@@ -6,8 +6,12 @@ Python v3.12+  https://www.python.org/downloads/
 
 ## Environment
 
+<p align="center">
+  <img src="./img/test.png" alt="Test image" width="500">
+</p>
 
 
+#System Components
 ## Packages:
 Using pip v25.1.1+ <br/>
 
@@ -30,4 +34,4 @@ Pandas v2.3.1 <br/>
 purpose
 scope
 minimal
-feature description / System Components
+feature description
