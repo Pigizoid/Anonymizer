@@ -1,12 +1,12 @@
 # Anonymizer
 
-##Purpose
+## Purpose
 ingest any data from a schema and anonymize it or create synthetic data, TODO
 
-##Scope
+## Scope
 TODO
 
-##Features
+## Features
 TODO
 
 ## Environment
@@ -21,7 +21,7 @@ Install poetry using pipx <br/>
 TODO
 
 
-#System Components
+# System Components
 TODO
 ## Packages:
 Using pip v25.1.1+ <br/>
