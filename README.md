@@ -1,17 +1,28 @@
 # Anonymizer
-ingest any data from a schema and anonymize it or create synthetic data
 
-## Language:
-Python v3.12+  https://www.python.org/downloads/
+##Purpose
+ingest any data from a schema and anonymize it or create synthetic data, TODO
+
+##Scope
+TODO
+
+##Features
+TODO
 
 ## Environment
+Python v3.12+ <br/>
+Start by [installing](https://pipx.pypa.io/stable/installation/) pipx if you havent yet already <br/>
+`py -m pip install --user pipx` <br/>
+Follow [installation instructions](https://pipx.pypa.io/stable/installation/) to get pipx on the appropriate environment path <br/>
+<br/>
+Install poetry using pipx <br/>
+`pipx install poetry`
 
-<p align="center">
-  <img src="./img/test.png" alt="Test image" width="500">
-</p>
+TODO
 
 
 #System Components
+TODO
 ## Packages:
 Using pip v25.1.1+ <br/>
 
@@ -30,6 +41,9 @@ Pandas v2.3.1 <br/>
 # Usage
 ```example():```
 
+<p align="center">
+  <img src="./img/test.png" alt="Test image" width="500">
+</p>
 
 purpose
 scope
