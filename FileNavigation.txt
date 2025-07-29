@@ -1,0 +1,9 @@
+Anonymizer
+|img
+|\images used for README
+|
+|FileNavigation.txt
+|
+|pyproject.toml
+|
+|README.md

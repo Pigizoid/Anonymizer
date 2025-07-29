@@ -18,7 +18,13 @@ Follow installation instructions to get pipx on the appropriate environment path
 Install poetry using pipx <br/>
 `pipx install poetry` <br/>
 <br/>
-Poetry 
+To install and set up packages run `poetry install` in application root 
+<br/>
+To optionally install testing environment use `poetry install --with test` <br/>
+<br/>
+If any errors occur try running `poetry sync`<br/>
+
+
 TODO
 
 
@@ -31,13 +37,6 @@ Pytest v8.4.1 <br/>
 Pydantic v2.11.7 <br/>
 Pandas v2.3.1 <br/>
 <br/>
-To install and set up packages run <br/>
-In package root `poetry install` 
-<br/>
-To optionally install testing environment <br/>
-`poetry install --with test` <br/>
-<br/>
-If any errors occur try running `poetry sync`<br/>
 
 # Usage
 ```example():```
