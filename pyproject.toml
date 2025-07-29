@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "anonymizer"
+version = "0.1.0"
+description = "ingest any data from a schema and anonymize it or create synthetic data"
+authors = ["Pigizoid <evansimpson470@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+
+[tool.poetry.group.test.dependencies]
+optional = true
+pytest = "^8.4.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
