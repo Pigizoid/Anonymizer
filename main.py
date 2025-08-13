@@ -83,7 +83,6 @@ def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
 	
 	
 	if file != None:
-		print("hmmmm")
 		with open(f"{file_path}.json","a") as f:
 			f.write("\n}\n")
 	
