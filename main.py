@@ -18,25 +18,30 @@ def synth_func(schema_model,method,amount,file_path,start_index=0):
 	flush = []
 	for index,data in enumerate(dataset):
 		if file_path != None:
-			flush.append(f"{index+1+start_index}: {json.dumps(dict(data),indent=8)}")
+			output_data = {key: str(value) for key, value in dict(data).items()}
+			if (index+1+start_index) != 1:
+				front_string = ",\n    "
+			else:
+				front_string = ""
+			flush.append(f'{front_string}"{index+1+start_index}": {json.dumps(output_data,indent=8)}')
 		else:
 			flush.append(f"{index+1+start_index}: {data}")
 		if (index+1)%max((amount//10),1) == 0:
 			if file_path != None:
-				flush_out = ",\n    ".join(flush)
+				flush_out = "".join(flush)
 				with open(f"{file_path}.json","a") as f:
 					f.write(flush_out)
 			else:
-				flush_out = "\n".join(flush)
+				flush_out = "".join(flush)
 			print(flush_out)
 			flush.clear()
 	if flush != []:
 		if file_path != None:
-			flush_out = ",\n    ".join(flush)
+			flush_out = "".join(flush)
 			with open(f"{file_path}.json","a") as f:
 				f.write(flush_out)
 		else:
-			flush_out = "\n".join(flush)
+			flush_out = "".join(flush)
 		print(flush_out)
 		flush.clear()
 	if file_path != None:
@@ -62,7 +67,8 @@ def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
 				print(f"An error occurred: {e}")
 		else:
 			with open(f"{file_path}.json","w") as f:
-				f.write("[")
+				f.write("{")
+	
 	
 	schema_model = schema.Address
 	if batch != 0:
@@ -74,9 +80,16 @@ def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
 		synth_func(schema_model,method,amount-batch_index,file_path,start_index=batch_index)
 	else:
 		synth_func(schema_model,method,amount,file_path)
+	
+	
 	if file != None:
+		print("hmmmm")
 		with open(f"{file_path}.json","a") as f:
-			f.write("\n]")
+			f.write("\n}\n")
+	
+	
+	with open(f"{file_path}.json","r") as f:
+		print(json.load(f))
 
 
 @app.command()
