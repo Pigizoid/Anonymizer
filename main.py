@@ -13,7 +13,7 @@ import json
 
 app = typer.Typer()
 
-def synth_func(schema_model,method,amount,file_path,start_index=0):
+def synth_func(schema_model,method,amount,file_path,start_index=0,cout:str="true"):
 	dataset = Synthesiser.synthesise(schema_model,method,amount)  #returns as [ data, data, ... ]
 	flush = []
 	for index,data in enumerate(dataset):
@@ -33,7 +33,8 @@ def synth_func(schema_model,method,amount,file_path,start_index=0):
 					f.write(flush_out)
 			else:
 				flush_out = "".join(flush)
-			print(flush_out)
+			if cout == "true":
+				print(flush_out)
 			flush.clear()
 	if flush != []:
 		if file_path != None:
@@ -42,15 +43,16 @@ def synth_func(schema_model,method,amount,file_path,start_index=0):
 				f.write(flush_out)
 		else:
 			flush_out = "".join(flush)
-		print(flush_out)
+		if cout == "true":
+			print(flush_out)
 		flush.clear()
 	if file_path != None:
 		print(f"To file_path -> {file_path}")
 
 
 @app.command()
-def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
-	
+def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0,cout:str="true"):
+	#methods = "faker","mimesis","mixed"
 	if file != None:
 		import os
 		dir_name = "outputs"
@@ -69,17 +71,19 @@ def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
 			with open(f"{file_path}.json","w") as f:
 				f.write("{")
 	
+	if file == None:
+		file_path = None
 	
 	schema_model = schema.Address
 	if batch != 0:
 		batch_index = 0
 		for y in range(amount//batch):
 			print("Batch: ",y+1)
-			synth_func(schema_model,method,batch,file_path,start_index=batch_index)
+			synth_func(schema_model,method,batch,file_path,start_index=batch_index,cout=cout)
 			batch_index+=batch
-		synth_func(schema_model,method,amount-batch_index,file_path,start_index=batch_index)
+		synth_func(schema_model,method,amount-batch_index,file_path,start_index=batch_index,cout=cout)
 	else:
-		synth_func(schema_model,method,amount,file_path)
+		synth_func(schema_model,method,amount,file_path,cout=cout)
 	
 	
 	if file != None:
@@ -87,8 +91,8 @@ def synthesise(method:str = "faker",amount:int=1,file:str=None,batch:int=0):
 			f.write("\n}\n")
 	
 	
-	with open(f"{file_path}.json","r") as f:
-		print(json.load(f))
+	#with open(f"{file_path}.json","r") as f:
+	#	print(json.load(f))
 
 
 @app.command()

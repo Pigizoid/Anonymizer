@@ -24,17 +24,17 @@ class Synthesiser():
 	@staticmethod
 	def list_faker_methods(method):
 		methods = []
+		methods_map = {}
 		if method == "faker":
 			fake = Faker()
 			for attr in dir(fake):
 				try:
 					if not attr.startswith('_') and callable(getattr(fake, attr)):
 						methods.append(attr)
+						methods_map[attr] = fake
 				except:
 					pass
 		elif method == "mimesis":
-			methods_map = {}
-			Synthesiser.providers_instances = {}
 			for provider_name in sorted(generic.__dict__.keys()):
 				provider_cls = getattr(generic, provider_name)
 				if inspect.isclass(provider_cls):
@@ -49,13 +49,54 @@ class Synthesiser():
 							continue
 					except (TypeError, ValueError):
 						continue
-					Synthesiser.providers_instances[provider_name] = instance
 					for attr in dir(instance):
 						if not attr.startswith('_') and callable(getattr(instance, attr)):
 							methods.append(attr)
 							methods_map[attr] = instance
-			Synthesiser.methods_mp = methods_map
+			
+		elif method == "mixed":
+			#print("mixed")
+			fake = Faker()
+			for attr in dir(fake):
+				try:
+					if not attr.startswith('_') and callable(getattr(fake, attr)):
+						methods.append(attr)
+						methods_map[attr] = fake
+				except:
+					pass
+			for provider_name in sorted(generic.__dict__.keys()):
+				provider_cls = getattr(generic, provider_name)
+				if inspect.isclass(provider_cls):
+					try:
+						sig = inspect.signature(provider_cls)
+						if all(
+							p.default != inspect.Parameter.empty or p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD)
+							for p in sig.parameters.values()
+						):
+							instance = provider_cls()
+						else:
+							continue
+					except (TypeError, ValueError):
+						continue
+					for attr in dir(instance):
+						if not attr.startswith('_') and callable(getattr(instance, attr)):
+							methods.append(attr)
+							methods_map[attr] = instance
+		#print("hello")
+		methods = list(set(methods))
+		#print(sorted(methods))
+		Synthesiser.methods_mp = methods_map
+		#for method in methods:
+		#	print(f"Method: {method}, Map: {methods_map[method]}")
 		return methods
+	
+	
+	@staticmethod
+	def get_model_data(model: BaseModel):
+		model_data = []
+		for field_name, model_field in model.model_fields.items():
+			model_data.append([field_name,model_field])
+		return model_data
 	
 	
 	@staticmethod
@@ -78,17 +119,16 @@ class Synthesiser():
 	
 	
 	@staticmethod
-	def get_model_data(model: BaseModel):
-		model_data = []
-		for field_name, model_field in model.model_fields.items():
-			model_data.append([field_name,model_field])
-		return model_data
-	
-	
-	@staticmethod
 	def calc_difference(target_word, word, target_tokens,target_tokens_set):
 		
-		main_distance = Synthesiser.levenshtein_distance(target_word, word.lower())
+		
+		if ("".join([letter[0] for letter in word.split("_")]))==target_word.lower(): #abbreviation mapping    ssn -> social_security_number
+			return 0
+		if ("".join([letter[0] for letter in target_word.lower().split("_")]))==word: #abbreviation mapping    social_security_number -> ssn
+			return 0
+		
+		
+		main_distance = Synthesiser.levenshtein_distance(target_word, word.lower())  #close early exit
 		if main_distance <=1 or  main_distance >= len(target_word):
 			return main_distance
 		
@@ -157,7 +197,7 @@ class Synthesiser():
 						potential_matches.append([word,distance])
 				sorted_match_by_distance = sorted(potential_matches, key=lambda x: x[1])
 				min_value = sorted_by_distance[0][1]
-				if min_value > len(target_word)//2:
+				if min_value < len(target_word)//2:
 					closest_matches = [item for item in sorted_match_by_distance if item[1] == min_value]
 			else:
 				closest_matches = [item for item in sorted_by_distance if item[1] == min_value]
@@ -165,6 +205,7 @@ class Synthesiser():
 				field_matches.append("")
 			else:
 				field_matches.append(closest_matches[0][0])
+		#print({field_name:match for field_name,match in zip([x[0] for x in model_data],field_matches)})
 		return [[x[0] for x in model_data],field_matches]
 	
 	@staticmethod
@@ -187,7 +228,14 @@ class Synthesiser():
 					elif method == "mimesis":
 						provider_instance = Synthesiser.methods_mp[field_match_pairs[name]]
 						synthesised_data[name] = getattr(provider_instance, field_match_pairs[name], None)()
+					elif method == "mixed":
+						provider_instance = Synthesiser.methods_mp[field_match_pairs[name]]
+						try:
+							synthesised_data[name] = str(getattr(provider_instance, field_match_pairs[name], None)())
+						except:
+							print("Field Error:", field_match_pairs[name])
 				else:
 					synthesised_data[name] = Synthesiser.generate_from_constraints(name,field)
 			dataset.append(schema_model(**synthesised_data))
 		return dataset
+#'''
