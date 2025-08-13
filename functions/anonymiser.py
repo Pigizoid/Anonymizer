@@ -5,7 +5,7 @@ import pydantic
 from pydantic import BaseModel
 from pydantic_core import core_schema
 
-from synthesiser import Synthesiser
+from functions.synthesiser import Synthesiser
 
 
 class Anonymiser():
