@@ -1,0 +1,11 @@
+
+
+
+---
+  method: manual
+  #methods = auto/manual
+  fields:
+    #list of fields, and method
+    street: default
+    zip_code: default
+  
