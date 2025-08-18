@@ -5,8 +5,8 @@
   schema: schema.py
   synthesiser:
     method: mixed
-    amount: 5
-    batch: 2
+    amount: 50000
+    batch: 2000
     output: data_out
     cout: false
   anonymiser:
