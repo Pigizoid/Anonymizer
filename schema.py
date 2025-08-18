@@ -6,8 +6,8 @@ from typing import List, Optional
 from datetime import datetime
 
 
-
 class Address(BaseModel):
+	
 	street: str
 	city: str
 	zip_code: str = Field(..., pattern=r'^\d{5}(-\d{4})?$')

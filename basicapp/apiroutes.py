@@ -17,64 +17,70 @@ async def scalar_html():
 
 
 
-class User(BaseModel):
-	id: int
-	name: str
-	age: int
+class Address(BaseModel):
+	street: str
+	city: str
+	zip_code: str = Field(..., pattern=r'^\d{5}(-\d{4})?$')
+	country: str = Field(default="USA")
+	social_security_number: str
+	continent: str
 
 
-class ReturnUserMessage(BaseModel):
+class ReturnEntryMessage(BaseModel):
 	message: str
-	user: User
+	entry: schema_model
 
 class Message(BaseModel):
 	message: str
 
-
-users: List[User] = []
-
+schema_model = Address
 
 
-def get_user_by_id(user_id: int):
-	for index, user in enumerate(users):
-		if user.id == user_id:
+
+database: List[schema_model] = []
+
+
+
+def get_entry_by_id(entry_id: int):
+	for index, entry in enumerate(database):
+		if entry.id == entry_id:
 			return index
-	return -1
+	return None
 
 
-@app.get('/users/{id}',response_model=User, responses={404: {"model": Message}})
-def user_get(id: int):
-	index = get_user_by_id(id)
-	if index == -1:
-		raise HTTPException(status_code=404, detail="User not found")
-	return users[index]
+@app.get('/database/{id}',response_model=schema_model, responses={404: {"model": Message}})
+def entry_get(id: int):
+	index = get_entry_by_id(id)
+	if index == None:
+		raise HTTPException(status_code=404, detail="Entry not found")
+	return database[index]
 
-@app.get('/users',response_model=List[User])
-def user_get():
-	return users
+@app.get('/database',response_model=List[schema_model])
+def database_get():
+	return database
 
-@app.post('/users/add',response_model=ReturnUserMessage, responses={404: {"model": Message}})
-def user_add(data: User):
-	if get_user_by_id(data.id) != -1:
-		raise HTTPException(status_code=400, detail="User with this ID already exists")
-	users.append(data)
-	return {"message": "User added", "user": data}
+@app.post('/database/add',response_model=ReturnEntryMessage, responses={404: {"model": Message}})
+def entry_add(data: schema_model):
+	if get_entry_by_id(data.id) != None:
+		raise HTTPException(status_code=400, detail="Entry with this ID already exists")
+	database.append(data)
+	return {"message": "Entry added", "entry": data}
 
-@app.put('/users/update',response_model=ReturnUserMessage, responses={404: {"model": Message}})
-def user_update(data: User):
-	index = get_user_by_id(data.id)
-	if index == -1:
-		raise HTTPException(status_code=404, detail="User not found")
-	users[index] = data
-	return {"message": "User updated", "user": data}
+@app.put('/database/update',response_model=ReturnEntryMessage, responses={404: {"model": Message}})
+def entry_update(data: schema_model):
+	index = get_entry_by_id(data.id)
+	if index == None:
+		raise HTTPException(status_code=404, detail="Entry not found")
+	database[index] = data
+	return {"message": "Entry updated", "entry": data}
 
-@app.delete('/users/delete',response_model=ReturnUserMessage, responses={404: {"model": Message}})
-def user_delete(id: int):
-	index = get_user_by_id(id)
-	if index == -1:
-		raise HTTPException(status_code=404, detail="User not found")
-	removed_user = users.pop(index)
-	return {"message": "User deleted", "user": removed_user}
+@app.delete('/database/delete',response_model=ReturnEntryMessage, responses={404: {"model": Message}})
+def entry_delete(id: int):
+	index = get_entry_by_id(id)
+	if index == None:
+		raise HTTPException(status_code=404, detail="Entry not found")
+	removed_entry = database.pop(index)
+	return {"message": "Entry deleted", "entry": removed_entry}
 
 
 
@@ -82,19 +88,6 @@ def user_delete(id: int):
 if __name__ == "__main__":
 	import uvicorn
 	uvicorn.run(app, host="127.0.0.1", port=8000)
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

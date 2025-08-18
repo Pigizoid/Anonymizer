@@ -18,7 +18,49 @@ import inspect
 import typing
 from typing import List, Optional, Union, get_origin, get_args, get_type_hints
 
+import re
+import rstr
 
+
+
+
+
+
+'''
+		speed_data = [x for x in range(len(data_names))]
+		for index,name,provider in zip(range(len(data_names)),data_names,method_providers):
+			speed_data[index] = [provider() for x in range(amount)]
+		data_set = output = [schema_model(**dict(zip(data_names, vals))) for vals in zip(*speed_data)]
+'''
+
+
+
+'''
+
+class Synthesiser():
+	
+	@staticmethod
+	def synthesise(schema_model,method="faker",amount=1):
+		method_providers = []
+		if method == "faker":
+			method_providers = [fake.street_name,fake.city,fake.zipcode,fake.country]
+		elif method == "mimesis":
+			method_providers = [generic.address.street_name,generic.address.city,generic.address.zip_code,generic.address.country]
+		
+		data_set = []
+		data_names = ["street", "city","zip_code", "country"]
+		for x in range(amount):
+			data = {}
+			for name,provider in zip(data_names,method_providers):
+				data[name] = provider()
+			data_set.append(schema_model(**data))
+		return data_set
+
+
+
+
+
+'''
 class Synthesiser():
 	
 	@staticmethod

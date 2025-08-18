@@ -11,14 +11,9 @@ from functions.synthesiser import Synthesiser
 class Anonymiser():
 	
 	@staticmethod
-	def anonymise(schema_model,method,data,config):
-		print("▁"*len(str(config)))
-		print(config)
-		print("Config:")
-		if config["method"] == "manual":
-			fields = config["fields"]
+	def anonymise(schema_model,data,method,manual,fields):
+		if manual == True:
 			field_names = fields.keys()
-			
 		else: #auto
 			name_match_pairs = Synthesiser.match_fields(schema_model,method)
 			field_names = [name for name in name_match_pairs[0] if name!=""]
@@ -30,9 +25,6 @@ class Anonymiser():
 		for field in field_names:
 			new_fields[field] = return_data[field]
 		anonymised_data = new_fields
-		print("▁"*len(str(config)))
-		print(f"Input data:\n\t{data}")
-		print(f"Anonymised:\n\t{anonymised_data}")
 		return anonymised_data
 	
 	@staticmethod
