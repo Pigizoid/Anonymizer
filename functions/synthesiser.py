@@ -1,11 +1,17 @@
-import inspect
+from pydantic import BaseModel
+from faker import Faker
 import mimesis
 from mimesis import Generic
-from faker import Faker
-from pydantic import BaseModel
+import inspect
+
 
 fake = Faker()
+
+
 generic = Generic(mimesis.locales.Locale.EN)
+
+
+
 
 
 """
@@ -197,6 +203,8 @@ class Synthesiser:
 
     @staticmethod
     def generate_from_constraints(field_name, field):
+        print(f"Name:{field_name}\nFields:{field}")
+
         return "****"
 
     @staticmethod
@@ -244,21 +252,52 @@ class Synthesiser:
             else:
                 field_matches.append(closest_matches[0][0])
         # print({field_name:match for field_name,match in zip([x[0] for x in model_data],field_matches)})
-        return ([[x[0] for x in model_data], field_matches], methods_map)
+        return (([x[0] for x in model_data], field_matches), methods_map)
+
+    @staticmethod
+    def check_generation_method(name, field, match, instance_provider):
+        method = "match"
+        applied_constraints = "length"
+        # methods = ["match","constraint"]
+
+        # match method constraints
+        #
+        #
+
+        # constraint method constraints
+        #
+        #
+
+        # both method constraints
+        # data type
+        # Type nesting (list,Union,etc)
+        #
+        return (method, applied_constraints)
 
     @staticmethod
     def synthesise(
         schema_model, method="faker", amount=1
     ):  # methods = faker or mimesis
-        model_data = Synthesiser.get_model_data(schema_model)
+        #model_data = Synthesiser.get_model_data(schema_model)
 
-        name_match_pairs, methods_map = Synthesiser.match_fields(schema_model, method)
-        field_matches = name_match_pairs[1]
+        name_match_pairs, methods_map = Synthesiser.match_fields(
+            schema_model, method
+        )  # match_fields() returns -> ((names, matches), methods_map)
+        field_match_pairs = {
+            name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
+        }
 
-        field_match_pairs = {}
+        for name, field in schema_model.model_fields.items():
+            generation_method, applied_constraints = (
+                Synthesiser.check_generation_method(
+                    name,
+                    field,
+                    field_match_pairs[name],
+                    methods_map[field_match_pairs[name]],
+                )
+            )
+
         synthesised_data = {}
-        for field, match in zip([x[0] for x in model_data], field_matches):
-            field_match_pairs[field] = match
         dataset = []
         for x in range(amount):
             for name, field in schema_model.model_fields.items():

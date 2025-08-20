@@ -15,17 +15,28 @@ import json  # builtin
 import importlib.util
 import inspect  # builtin
 
+import requests
+
+import time
 
 app = typer.Typer()
 
 
 def synth_func(
-    schema_model, method, amount, file_path, start_index=0, cout: bool = False
+    schema_model, method, amount, file_path, output, start_index=0, cout: bool = False
 ):
     dataset = Synthesiser.synthesise(
         schema_model, method, amount
     )  # returns as [ data, data, ... ]
     flush = []
+    if output.startswith("http"):
+        request_entries = []
+
+    if output.startswith("http"):
+        batch_print_size = amount
+    else:
+        batch_print_size = max((amount // 10), 1)
+
     for index, data in enumerate(dataset):
         if file_path is not None:
             output_data = {
@@ -36,12 +47,16 @@ def synth_func(
             else:
                 front_string = ""
             flush.append(
-                f'{front_string}"{index + 1 + start_index}": {json.dumps(output_data, indent=8)}'
+                f'{front_string}"{index + start_index}": {json.dumps(output_data, indent=8)}'
             )
+            if output.startswith("http"):
+                request_entries.append(output_data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
-        if (index + 1) % max((amount // 10), 1) == 0:
+        if (index + 1) % batch_print_size == 0:
             if file_path is not None:
+                if output.startswith("http"):
+                    send_batch_to_API(schema_model, output, request_entries)
                 flush_out = "".join(flush)
                 with open(f"{file_path}.json", "a") as f:
                     f.write(flush_out)
@@ -50,8 +65,12 @@ def synth_func(
             if cout:
                 print(flush_out)
             flush.clear()
+            if output.startswith("http"):
+                request_entries.clear()
     if flush != []:
         if file_path is not None:
+            if output.startswith("http"):
+                send_batch_to_API(schema_model, output, request_entries)
             flush_out = "".join(flush)
             with open(f"{file_path}.json", "a") as f:
                 f.write(flush_out)
@@ -60,24 +79,53 @@ def synth_func(
         if cout:
             print(flush_out)
         flush.clear()
+        if output.startswith("http"):
+            request_entries.clear()
     if file_path is not None and cout:
         print(f"To file_path -> {file_path}")
 
 
-def anon_func(schema_model, data, method, file_path, cout, manual, fields):
-    anonymised_data = Anonymiser.anonymise(schema_model, data, method, manual, fields)
+def anon_func(
+    schema_model, method, amount, start, file_path, ingest, cout, manual, fields, output
+):
+    if amount > 1:
+        data = load_ingest_data(ingest, amount=amount, start=start)
 
-    if cout:
-        L = len(f"        {data}")
-        print("_" * L)
-        print(f"Input data:\n\t{data}")
-        print(f"Anonymised:\n\t{anonymised_data}")
-        print("_" * L)
+        anonymised_data = [
+            Anonymiser.anonymise(schema_model, data_item, method, manual, fields)
+            for data_item in data
+        ]
 
-    flush_output = f'"1":{json.dumps(anonymised_data, indent=8)}'
-    if file_path is not None:
-        with open(f"{file_path}.json", "a") as f:
-            f.write(flush_output)
+        for x in range(amount):
+            if cout:
+                L = len(f"        {data}")
+                print("_" * L)
+                print(f"Input data:\n\t{data[x]}")
+                print(f"Anonymised:\n\t{anonymised_data[x]}")
+                print("_" * L)
+
+            flush_output = f"{start + x}:{json.dumps(anonymised_data[x], indent=8)}"
+            if file_path is not None:
+                with open(f"{file_path}.json", "a") as f:
+                    f.write(flush_output)
+
+    else:
+        data = load_ingest_data(ingest, start=start)
+        anonymised_data = Anonymiser.anonymise(
+            schema_model, data, method, manual, fields
+        )
+
+        if cout:
+            L = len(f"        {data}")
+            print("_" * L)
+            print(f"Input data:\n\t{data}")
+            print(f"Anonymised:\n\t{anonymised_data}")
+            print("_" * L)
+
+        flush_output = f"{start}:{json.dumps(anonymised_data, indent=8)}"
+        if file_path is not None:
+            with open(f"{file_path}.json", "a") as f:
+                f.write(flush_output)
 
 
 def load_config(config):
@@ -88,9 +136,9 @@ def load_config(config):
         except yaml.YAMLError as err:
             print(err)
 
-    if "schema" in config_data.keys():
+    try:
         schema_file = config_data["schema"]
-    else:
+    except:
         print("Config 'schema' not defined")
         return 0
 
@@ -113,14 +161,14 @@ def load_config(config):
     # print(schema_model)
     # User = module.User
 
-    if "synthesiser" in config_data.keys():
+    try:
         synthesiser_config = config_data["synthesiser"]
-    else:
+    except:
         synthesiser_config = []
 
-    if "anonymiser" in config_data.keys():
+    try:
         anonymiser_config = config_data["anonymiser"]
-    else:
+    except:
         anonymiser_config = []
 
     return {"schema": schema_model, "s": synthesiser_config, "a": anonymiser_config}
@@ -153,6 +201,35 @@ def close_folder(file_path):
             f.write("\n}\n")
 
 
+def send_to_API(schema_model, output, data):
+    session = requests.Session()
+    for entry in data:
+        print(entry)
+        response = session.post(
+            output,
+            headers={"Content-Type": "application/json"},
+            params={"id_num": ""},
+            json=entry,
+        )
+        # conn.request("POST", "/database/add", payload, headers)
+        # response = requests.post(output,json=entry)
+        print(response)
+
+
+
+def send_batch_to_API(schema_model, output, data):
+    start_time = time.time()
+
+    session = requests.Session()
+    response = session.post(
+        output, headers={"Content-Type": "application/json"}, json=data
+    )
+
+    elapsed_time = time.time() - start_time  # end timer
+    print(f"Response: {response} | Time taken: {elapsed_time:.2f} seconds")
+    return response
+
+
 class SynthesiserConfig(BaseModel):
     method: str = Field(default="faker")
     amount: int = Field(default=1)
@@ -164,6 +241,8 @@ class SynthesiserConfig(BaseModel):
 class AnonymiserConfig(BaseModel):
     ingest: str = Field(default="")
     method: str = Field(default="faker")
+    amount: int = Field(default=1)
+    start: int = Field(default=0)
     output: str = Field(default="")
     cout: bool = Field(default=False)
     manual: bool = Field(default=False)
@@ -208,6 +287,28 @@ def load_flags(func_type, flags):
     return (flag_data, schema_model)
 
 
+def load_ingest_data(ingest, amount=1, start=0):
+    if ingest.startswith("http"):
+        if amount > 1:
+            data = []
+            for x in range(amount):
+                response = requests.get(ingest, params={"id_num": start + x})
+                data.append(response.json())
+        else:
+            response = requests.get(ingest, params={"id_num": start})
+            data = response.json()
+    elif ingest.endswith(".json"):
+        with open(ingest) as dt_file:
+            try:
+                data = json.load(dt_file)
+            except Exception as e:
+                print(e)
+                data = {}
+    else:
+        raise ("Unsupported ingest type")
+    return data
+
+
 @app.command()
 def synthesise(
     method: str = None,
@@ -236,10 +337,13 @@ def synthesise(
 
     print("Args:", synthesiser_data)
 
-    if output is not None:
-        file_path = load_folder(output)
+    if output.startswith("http"):
+        file_path = load_folder("_temp_db_output")
     else:
-        file_path = None
+        if output is not None:
+            file_path = load_folder(output)
+        else:
+            file_path = None
     ##	load folder		##
 
     if batch != 0:
@@ -252,6 +356,7 @@ def synthesise(
                 method,
                 batch,
                 file_path,
+                output,
                 start_index=batch_index,
                 cout=cout,
             )
@@ -261,11 +366,12 @@ def synthesise(
             method,
             amount - batch_index,
             file_path,
+            output,
             start_index=batch_index,
             cout=cout,
         )
     else:
-        synth_func(schema_model, method, amount, file_path, cout=cout)
+        synth_func(schema_model, method, amount, file_path, output, cout=cout)
 
     ##	close folder	##
     close_folder(file_path)
@@ -275,6 +381,8 @@ def synthesise(
 def anonymise(
     ingest: str = None,
     method: str = None,
+    amount: int = None,
+    start: int = None,
     output: str = None,
     manual: Annotated[
         typing.Optional[bool], typer.Option("--manual/--no-manual")
@@ -286,6 +394,8 @@ def anonymise(
     flags = {
         "ingest": ingest,
         "method": method,
+        "amount": amount,
+        "start": start,
         "output": output,
         "manual": manual,
         "cout": cout,
@@ -297,6 +407,8 @@ def anonymise(
 
     ingest = anonymiser_data["ingest"]
     method = anonymiser_data["method"]
+    amount = anonymiser_data["amount"]
+    start = anonymiser_data["start"]
     output = anonymiser_data["output"]
     cout = anonymiser_data["cout"]
     manual = anonymiser_data["manual"]
@@ -304,22 +416,30 @@ def anonymise(
 
     print("Args:", anonymiser_data)
 
-    if output is not None:
-        file_path = load_folder(output)
+    if output.startswith("http"):
+        file_path = load_folder("_temp_db_output")
     else:
-        file_path = None
+        if output is not None:
+            file_path = load_folder(output)
+        else:
+            file_path = None
     ##	load folder		##
 
     if ingest is None:
         raise ("Config 'ingest' required")
-    with open(ingest) as dt_file:
-        try:
-            data = json.load(dt_file)
-        except Exception as e:
-            print(e)
-            data = {}
 
-    anon_func(schema_model, data, method, file_path, cout, manual, fields)
+    anon_func(
+        schema_model,
+        method,
+        amount,
+        start,
+        file_path,
+        ingest,
+        cout,
+        manual,
+        fields,
+        output,
+    )
 
     ##	close folder	##
     close_folder(file_path)
