@@ -19,15 +19,26 @@ import requests
 
 import time
 
+
 app = typer.Typer()
 
 
 def synth_func(
     schema_model, method, amount, file_path, output, start_index=0, cout: bool = False
 ):
+    """
+    from line_profiler import LineProfiler
+    lp = LineProfiler()
+    lp_wrapper = lp(Synthesiser.synthesise)
+    lp_wrapper(schema_model,method,amount)
+    lp.print_stats()
+    """
+    start_time = time.time()
     dataset = Synthesiser.synthesise(
         schema_model, method, amount
     )  # returns as [ data, data, ... ]
+    elapsed_time = time.time() - start_time  # end timer
+    print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
     flush = []
     if output.startswith("http"):
         request_entries = []
@@ -216,7 +227,7 @@ def send_to_API(schema_model, output, data):
         print(response)
 
 
-
+# import time
 def send_batch_to_API(schema_model, output, data):
     start_time = time.time()
 
@@ -349,8 +360,7 @@ def synthesise(
     if batch != 0:
         batch_index = 0
         for y in range(amount // batch):
-            if cout:
-                print("Batch: ", y + 1)
+            print("Batch: ", y + 1)
             synth_func(
                 schema_model,
                 method,
@@ -361,15 +371,16 @@ def synthesise(
                 cout=cout,
             )
             batch_index += batch
-        synth_func(
-            schema_model,
-            method,
-            amount - batch_index,
-            file_path,
-            output,
-            start_index=batch_index,
-            cout=cout,
-        )
+        if amount - batch_index != 0:
+            synth_func(
+                schema_model,
+                method,
+                amount - batch_index,
+                file_path,
+                output,
+                start_index=batch_index,
+                cout=cout,
+            )
     else:
         synth_func(schema_model, method, amount, file_path, output, cout=cout)
 
