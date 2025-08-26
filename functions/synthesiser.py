@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 import typing
 from typing import get_origin, get_args
-from typing import List, Dict, Tuple, Set, Union, Literal, Annotated
+from typing import List, Dict, Tuple, Set, Union, Literal, Annotated, Optional
 
 from faker import Faker
 import mimesis
@@ -11,6 +11,12 @@ from mimesis import Generic
 
 import random
 import inspect
+
+import rstr
+import exrex
+import re
+import string
+from decimal import Decimal, ROUND_HALF_UP
 
 
 fake = Faker()
@@ -21,7 +27,7 @@ generic = Generic(mimesis.locales.Locale.EN)
 		speed_data = [x for x in range(len(data_names))]
 		for index,name,provider in zip(range(len(data_names)),data_names,method_providers):
 			speed_data[index] = [provider() for x in range(amount)]
-		data_set = output = [schema_model(**dict(zip(data_names, vals))) for vals in zip(*speed_data)]
+		data_set = [schema_model(**dict(zip(data_names, vals))) for vals in zip(*speed_data)]
 """
 
 
@@ -79,10 +85,6 @@ def generate_provider_return_types(provider_names, provider_instances):
 
         if isinstance(value, bytes):
             return_types[name] = bytes
-        elif isinstance(value, bytearray):
-            return_types[name] = bytearray
-        elif isinstance(value, memoryview):
-            return_types[name] = memoryview
         elif isinstance(value, tuple):
             return_types[name] = tuple
         elif isinstance(value, list):
@@ -93,16 +95,8 @@ def generate_provider_return_types(provider_names, provider_instances):
             return_types[name] = frozenset
         elif isinstance(value, dict):
             return_types[name] = dict
-        elif isinstance(value, range):
-            return_types[name] = range
-        elif isinstance(value, slice):
-            return_types[name] = slice
-        elif isinstance(value, type):
-            return_types[name] = type
         else:
             return_types[name] = str
-
-        # object has been removed
 
     return dict(sorted(return_types.items()))
 
@@ -463,23 +457,31 @@ python_builtin_types = {
     str,
     int,
     float,
+    Decimal,
     bool,
     complex,
     bytes,
-    bytearray,
-    memoryview,
     tuple,
     list,
     set,
     frozenset,
     dict,
-    range,
-    slice,
-    type,
-    object,
 }
-typing_origins = {List, Dict, Tuple, Set, Union, Literal}
-recursive_types = {List, Dict, Tuple, Set, Union, Literal, list, dict, tuple, set}
+typing_origins = {List, Dict, Tuple, Set, Union, Literal, Optional}
+recursive_types = {
+    List,
+    Dict,
+    Tuple,
+    Set,
+    Union,
+    Literal,
+    Optional,
+    list,
+    dict,
+    tuple,
+    set,
+    frozenset,
+}
 all_constr_attribs = {
     "strip_whitespace",
     "to_upper",
@@ -488,7 +490,6 @@ all_constr_attribs = {
     "default",
     "annotation",
     "min_length",
-    "max_length",
     "max_length",
     "pattern",
     "gt",
@@ -509,7 +510,7 @@ class Synthesiser:
         methods_map = {}
         fake = Faker()
         for attr in dir(fake):
-            try:
+            try:  # this is used to ensure the providers dont error when called
                 if not attr.startswith("_") and callable(getattr(fake, attr)):
                     methods.append(attr)
                     methods_map[attr] = fake
@@ -560,7 +561,8 @@ class Synthesiser:
 
             methods_map = methods_mapF
             methods_map.update(methods_mapM)
-
+        else:
+            raise Exception(f"Unexpected method: {method}")
         methods = list(set(methods))
         # for method in methods:
         # print(f"Method: {method}, Map: {methods_map[method]}")
@@ -571,6 +573,7 @@ class Synthesiser:
         model_data = []
         for field_name, model_field in model.model_fields.items():
             model_data.append([field_name, model_field])
+        # print(type(model_field))
         return model_data
 
     @staticmethod
@@ -597,11 +600,11 @@ class Synthesiser:
     def calc_difference(target_word, word, target_tokens, target_tokens_set):
         if (
             ("".join([letter[0] for letter in word.split("_")])) == target_word.lower()
-        ):  # abbreviation mapping    ssn -> social_security_number
+        ):  # abbreviation mapping	ssn -> social_security_number   #ssn is target word
             return 0
         if (
             "".join([letter[0] for letter in target_word.lower().split("_")])
-        ) == word:  # abbreviation mapping    social_security_number -> ssn
+        ) == word:  # abbreviation mapping	social_security_number -> ssn
             return 0
 
         main_distance = Synthesiser.levenshtein_distance(
@@ -701,35 +704,16 @@ class Synthesiser:
         return (([x[0] for x in model_data], field_matches), methods_map)
 
     @staticmethod
-    def check_generation_constraints(name, field, match, instance_provider):
+    def check_generation_constraints(name, field):
         cout = False
         if cout:
             print("__")
             print(f"	Name:{name}")
             print(f"	Field:{field}")
 
-        # constraint sieve
         field_info = field.metadata
         constraints = {}
         constraints["required"] = getattr(field, "is_required", None)()
-        """
-		attributes = [
-			"default",
-			"annotation",
-			"min_length",
-			"max_length",
-			"max_length",
-			"pattern",
-			"gt",
-			"lt",
-			"ge",
-			"le",
-			"multiple_of",
-			"allow_inf_nan",
-			"max_digits",
-			"decimal_places"
-		]
-		"""
         for attr in all_constr_attribs:
             return_val = getattr(field, attr, None)
             if return_val is None:
@@ -745,19 +729,431 @@ class Synthesiser:
         constraints["origin"] = get_origin(annotation)
         constraints["args"] = get_args(annotation)
 
-        if cout:
-            print(f"	Match:{match}")
-            print("__")
         return constraints
 
     @staticmethod
-    def generate_from_constraints(field_name, constraints):
+    def generate_from_constraints(field_name, constraints, generate_path):
         # print(f"Name:{field_name}\nFields:{constraints}")
+        # print("__")
 
-        return "****"
+        if generate_path not in Synthesiser.outputpooling or (
+            generate_path in Synthesiser.outputpooling
+            and Synthesiser.outputpooling[generate_path] == []
+        ):
+            pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
+            amount = pooling_numbers[0]
+            pooling_count = 1
+            for x in pooling_numbers:
+                pooling_count *= x
+
+            print(f"Path:{generate_path}")
+            print("count", pooling_count)
+            import time
+
+            start_time = time.time()
+            data_pool = []
+
+            if constraints["pattern"] is not None:
+                print(f"Path:{generate_path}")
+                # HERE HERE
+                # check if a map exists for this constraint sequence (pattern and constraints)
+                # if there is not, generate a map of possible results and then run regex forward pass over each (could be slow for initial pass through)
+                # save the forward pass map to global
+
+                # print(constraints["pattern"])
+
+                min_length = constraints["min_length"]
+                max_length = constraints["max_length"]
+                pattern = constraints["pattern"]
+                if min_length is None and max_length is None:
+                    pattern = pattern
+                elif min_length is not None and max_length is None:
+                    # pattern = f"^(?=.{{{min_length},}}$)(?:{pattern})$"
+                    if pattern[-1] == "$":
+                        pattern = pattern[:-1] + f"{{{min_length},}}$"
+                    else:
+                        pattern = pattern + f"{{{min_length},}}$"
+                elif min_length is None and max_length is not None:
+                    # pattern = f"^(?=.{{0,{max_length}}}$)(?:{pattern})$"
+                    if pattern[-1] == "$":
+                        pattern = pattern[:-1] + f"{{0,{max_length}}}$"
+                    else:
+                        pattern = pattern + f"{{0,{max_length}}}$"
+                else:
+                    # pattern = f"^(?=.{{{min_length},{max_length}}}$)(?:{pattern})$"
+                    if pattern[-1] == "$":
+                        pattern = pattern[:-1] + f"{{{min_length},{max_length}}}$"
+                    else:
+                        pattern = pattern + f"{{{min_length},{max_length}}}$"
+
+                print(pattern)
+                print(exrex.getone(pattern))
+                try:
+                    data_pool = [
+                        exrex.getone(pattern) for x in range(max(1, pooling_count))
+                    ]
+                except:
+                    data_pool = [
+                        rstr.xeger(pattern) for x in range(max(1, pooling_count))
+                    ]
+
+                if constraints["to_upper"] != None:
+                    data_pool = [item.upper() for item in data_pool]
+                elif constraints["to_lower"] != None:
+                    data_pool = [item.lower() for item in data_pool]
+
+                print(data_pool)
+                # regex_generation =
+                # if constraints["annotation"] != str:
+                # regex_generation = str(regex_generation)
+                # return_value = regex_generation
+                # print(data_pool)
+                # input("wait...")
+                if data_pool == []:
+                    raise Exception(f"No data pool for {constraints['pattern']}")
+            else:
+                # print("Generate from annotation",str(constraints["annotation"]))
+                data_type = constraints["annotation"]
+                if data_type is str:
+                    string_list = string.ascii_letters + string.digits
+                    if constraints["to_upper"] != None:
+                        string_list = [item.upper() for item in string_list]
+                    elif constraints["to_lower"] != None:
+                        string_list = [item.lower() for item in string_list]
+                    if constraints["min_length"] != None:
+                        min_length = constraints["min_length"]
+                    else:
+                        min_length = 1
+                    if constraints["max_length"] != None:
+                        max_length = constraints["max_length"]
+                    else:
+                        max_length = min_length + max(1, (pooling_count // amount)) + 3
+                    data_pool = [
+                        "".join(
+                            random.choices(
+                                string_list, k=(random.randint(min_length, max_length))
+                            )
+                        )
+                        for x in range(max(1, pooling_count))
+                    ]
+
+                    if data_pool == []:
+                        raise Exception(f"No data pool for str:{generate_path}")
+
+                elif data_type is int or data_type is float or data_type is Decimal:
+                    if constraints["lt"] != None:
+                        lt = constraints["lt"] - 1
+                    else:
+                        lt = 10 * max(1, (pooling_count // amount) + 3)
+                    if constraints["le"] != None:
+                        lt = min(lt, constraints["le"])
+
+                    if constraints["gt"] != None:
+                        gt = constraints["gt"] + 1
+                    else:
+                        gt = lt * -1
+                    if constraints["ge"] != None:
+                        gt = max(gt, constraints["ge"])
+
+                    if gt > lt:
+                        raise Exception(
+                            f"Value for gt:{gt} is greater than value for lt:{lt}"
+                        )
+
+                    if constraints["multiple_of"]:
+                        multiple_of = constraints["multiple_of"]
+                        first = ((gt + multiple_of) // multiple_of) * multiple_of
+
+                        if data_type is int or (
+                            (data_type is float)
+                            and constraints["decimal_places"] is None
+                        ):
+                            count = (lt - gt) // multiple_of
+                            if count <= 0:
+                                raise Exception(
+                                    f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
+                                )
+                            try:
+                                data_pool = [
+                                    first + (idx + 1) * multiple_of
+                                    for idx in range(count - 1)
+                                ]  # count is capped at poling_count
+                            except:
+                                data_pool == []
+                        else:  # data_type is float and constraints["decimal_places"] != None
+                            decimal_places = constraints["decimal_places"]
+                            scale = Decimal(10) ** Decimal(decimal_places)
+                            decimal_precision = Decimal(10) ** Decimal(
+                                decimal_places * -1
+                            )
+                            # print(str(multiple_of))
+                            # print(Decimal(repr(multiple_of)).as_tuple())
+                            precision = Decimal(10) ** (
+                                Decimal(repr(multiple_of)).as_tuple().exponent
+                            )
+                            # print(precision)
+
+                            first = (
+                                (Decimal(gt) + Decimal(multiple_of))
+                                // Decimal(multiple_of)
+                            ) * Decimal(multiple_of)
+
+                            first = Decimal(first).quantize(
+                                precision, rounding=ROUND_HALF_UP
+                            )
+                            multiple_of = Decimal(multiple_of).quantize(
+                                precision, rounding=ROUND_HALF_UP
+                            )
+
+                            min_scaled = Decimal(first * scale)
+                            scaled_mult = Decimal(multiple_of * scale)
+
+                            # print(first,multiple_of,min_scaled,scaled_mult,scale)
+
+                            data_pool = []
+                            try:
+                                for x in range(
+                                    int((lt * scale - min_scaled) // scaled_mult) - 1
+                                ):
+                                    potential_val = (
+                                        min_scaled + (x + 1) * scaled_mult
+                                    ) / scale
+                                    if potential_val == potential_val.quantize(
+                                        decimal_precision, rounding=ROUND_HALF_UP
+                                    ):
+                                        data_pool.append(potential_val)
+                                # print(data_pool)
+                            except:
+                                data_pool = []
+                            if data_pool == []:
+                                raise Exception(
+                                    f"No multiples of {multiple_of} fit in the range [{gt}, {lt}) with max decimal digits{decimal_places}."
+                                )
+                    else:
+                        if constraints["decimal_places"] != None:
+                            data_pool = [
+                                round(
+                                    random.uniform(gt, lt),
+                                    constraints["decimal_places"],
+                                )
+                                for _ in range(max(1, pooling_count))
+                            ]
+                        else:
+                            data_pool = [
+                                random.randint(gt, lt)
+                                for _ in range(max(1, pooling_count))
+                            ]
+
+                    if constraints["allow_inf_nan"] != None:
+                        allowed_inf_types = ["inf", "-inf", "nan"]
+                        if constraints["gt"] != None or constraints["ge"] != None:
+                            allowed_inf_types.remove("-inf")
+                            allowed_inf_types.remove("nan")
+                        if constraints["lt"] != None or constraints["le"] != None:
+                            allowed_inf_types.remove("inf")
+                            if "nan" in allowed_inf_types:
+                                allowed_inf_types.remove("nan")
+                        if constraints["multiple_of"]:
+                            allowed_inf_types = []
+                        if constraints["max_digits"]:
+                            allowed_inf_types = []
+
+                        if data_type is float and allowed_inf_types != []:
+                            data_pool.extend(
+                                [
+                                    random.choice(allowed_inf_types)
+                                    for x in range(len(data_pool))
+                                ]
+                            )
+                    random.shuffle(data_pool)
+                    if data_pool == []:
+                        raise Exception(f"No data pool for num:{generate_path}")
+
+                elif data_type is bool:
+                    data_pool = [
+                        random.randint(1, 2) == 1 for x in range(max(1, pooling_count))
+                    ]
+                    if data_pool == []:
+                        raise Exception(f"No data pool for bool:{generate_path}")
+                elif data_type is complex:
+                    # return_value= '0+0j'
+                    max_num = 10 ** max(1, (pooling_count // amount) + 3)
+                    min_num = max_num * -1
+
+                    data_pool = [
+                        complex(
+                            random.randint(0, min_num + max_num) - min_num,
+                            random.randint(0, min_num + max_num) - min_num,
+                        )
+                        for x in range(max(1, pooling_count))
+                    ]
+                    if data_pool == []:
+                        raise Exception(f"No data pool for complex:{generate_path}")
+                elif data_type is bytes:
+                    if constraints["min_length"] != None:
+                        min_length = constraints["min_length"]
+                    else:
+                        min_length = 1
+                    if constraints["max_length"] != None:
+                        max_length = constraints["max_length"]
+                    else:
+                        max_length = min_length + max(1, (pooling_count // amount)) + 3
+                    data_pool = [
+                        random.randbytes(random.randint(min_length, max_length))
+                        for x in range(max(1, pooling_count))
+                    ]
+                    if data_pool == []:
+                        raise Exception(f"No data pool for bytes:{generate_path}")
+                else:
+                    data_pool = ["error" for x in range(max(1, pooling_count))]
+                    if data_pool == []:
+                        raise Exception(f"No data pool for default:{generate_path}")
+
+            Synthesiser.outputpooling[generate_path] = data_pool
+            elapsed_time = time.time() - start_time  # end timer
+            print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
+        return_value = Synthesiser.outputpooling[generate_path].pop()
+        if Synthesiser.outputpooling[generate_path] == []:
+            del Synthesiser.outputpooling[generate_path]
+
+        return_value = constraints["annotation"](return_value)
+        # input("wait...")
+        # exit()
+        return return_value
 
     @staticmethod
-    def generate_synth_data(field_name, match_name, applied_constraints):
+    def apply_constraints(return_value, constraints, match_name, generate_path):
+        ("strip_whitespace",)
+        ("to_upper",)
+        ("to_lower",)
+        ("strict",)  # first 4 are from pydantic StringConstraint aka constr()
+        ("default",)
+        ("annotation",)
+        ("min_length",)
+        ("max_length",)
+        ("pattern",)
+        ("gt",)
+        ("lt",)
+        ("ge",)
+        ("le",)
+        ("multiple_of",)
+        ("allow_inf_nan",)
+        ("max_digits",)
+        ("decimal_places",)
+
+        pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
+        amount = pooling_numbers[0]
+        pooling_count = 1
+        for x in pooling_numbers:
+            pooling_count *= x
+
+        data_type = type(return_value)
+        if data_type is str:
+            string_list = string.ascii_letters + string.digits
+            if constraints["to_upper"] != None:
+                string_list = [item.upper() for item in string_list]
+            elif constraints["to_lower"] != None:
+                string_list = [item.lower() for item in string_list]
+
+            if constraints["to_upper"] != None:
+                return_value = return_value.upper()
+            elif constraints["to_lower"]:
+                return_value = return_value.lower()
+            if constraints["min_length"] != None:
+                min_length = constraints["min_length"]
+            else:
+                min_length = 1
+            if constraints["max_length"] != None:
+                max_length = constraints["max_length"]
+
+            if len(return_value) < min_length:
+                pad_length = min_length - len(return_value)
+                return_value += "".join(random.choices(string_list, k=pad_length))
+            if constraints["max_length"] != None:
+                if len(return_value) > max_length:
+                    return_value = return_value[:max_length]
+
+        elif data_type is int or data_type is float:
+            if constraints["lt"] != None:
+                lt = constraints["lt"] - 1
+            else:
+                lt = 10 * max(1, (pooling_count // amount) + 3)
+            if constraints["le"] != None:
+                lt = min(lt, constraints["le"])
+
+            if constraints["gt"] != None:
+                if data_type is int:
+                    gt = constraints["gt"] + 1
+                else:
+                    if constraints["multiple_of"] != None:
+                        gt = constraints["gt"] + constraints["multiple_of"]
+                    else:
+                        gt = constraints["gt"] + 0.0001
+
+            else:
+                gt = lt * -1
+            if constraints["ge"] != None:
+                gt = max(gt, constraints["ge"])
+
+            if gt > lt:
+                raise Exception(f"Value for gt:{gt} is greater than value for lt:{lt}")
+
+            if constraints["multiple_of"]:
+                multiple_of = constraints["multiple_of"]
+                first = ((gt + multiple_of) // multiple_of) * multiple_of
+
+                if data_type is int or (
+                    (data_type is float) and constraints["decimal_places"] is None
+                ):
+                    count = (lt - gt) // multiple_of
+                    if count <= 0:
+                        raise Exception(
+                            f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
+                        )
+                    idx = (return_value // multiple_of) % count
+
+                    return_value = first + idx * multiple_of
+                else:  # data_type is float and constraints["decimal_places"] != None
+                    return_value = Synthesiser.generate_from_constraints(
+                        match_name, constraints, generate_path
+                    )
+            else:
+                if constraints["decimal_places"] != None:
+                    return_value = round(return_value, constraints["decimal_places"])
+                else:
+                    try:
+                        return_value = int(return_value)
+                    except:
+                        return_value = Synthesiser.generate_from_constraints(
+                            match_name, constraints, generate_path
+                        )
+
+        elif data_type is bool:
+            try:
+                return_value = bool(return_value)
+            except:
+                return_value = random.choice([True, False])
+
+        elif data_type is complex:
+            try:
+                return_value = complex(return_value)
+            except:
+                return_value = Synthesiser.generate_from_constraints(
+                    match_name, constraints, generate_path
+                )
+
+        elif data_type is bytes:
+            try:
+                return_value = bytes(return_value)
+            except:
+                return_value = Synthesiser.generate_from_constraints(
+                    match_name, constraints, generate_path
+                )
+
+        return return_value
+
+    @staticmethod
+    def generate_synth_data(field_name, match_name, applied_constraints, generate_path):
         # print("__")
         # print(f"	Generating for: {field_name}")
         # print(applied_constraints)
@@ -768,12 +1164,14 @@ class Synthesiser:
             # print(applied_constraints)
             # print("~~")
             new_info = typing.get_args(applied_constraints["annotation"])
-            new_data_type = new_info[0]
+            new_data_type = new_info[0]  # [0] is the data type
             # print(new_data_type)
             constr_constraints = {}
 
             for attr in all_constr_attribs:
-                return_val = getattr(new_info[1], attr, None)
+                return_val = getattr(
+                    new_info[1], attr, None
+                )  # [1] is the data constraints
                 constr_constraints[attr] = return_val
             # print(constr_constraints)
             new_constraints = constr_constraints
@@ -783,8 +1181,9 @@ class Synthesiser:
             new_constraints["args"] = get_args(new_data_type)
             # print("___")
             # print(new_constraints)
+            generate_path += ".Annotated"
             output_data = Synthesiser.generate_synth_data(
-                field_name, match_name, new_constraints
+                field_name, match_name, new_constraints, generate_path
             )
             # print("returned:",output_data)
             # input("wait...")
@@ -795,7 +1194,7 @@ class Synthesiser:
             data_args = applied_constraints["args"]
             # data_args = get_args(applied_constraints["annotation"])
             # print(f"	{data_type}\n	{data_args}")
-            if data_type is None:
+            if data_type is type(None):
                 output_data = None
             elif data_type in recursive_types:
                 if applied_constraints["min_length"] is not None:
@@ -805,23 +1204,35 @@ class Synthesiser:
                 if applied_constraints["max_length"] is not None:
                     max_amount = applied_constraints["max_length"]
                 else:
-                    max_amount = min_amount + 10
+                    max_amount = min_amount + 9
                 if data_type in [List, list]:
                     output_data = []
                     new_applied_constraints = applied_constraints.copy()
+                    if len(data_args) == 0:
+                        data_args = [str]
                     for x in range(random.randint(min_amount, max_amount)):
-                        chosen_type = random.choice(data_args)
+                        chosen_index = random.randint(0, len(data_args) - 1)
+                        chosen_type = data_args[chosen_index]
                         new_applied_constraints["annotation"] = chosen_type
                         new_applied_constraints["origin"] = get_origin(chosen_type)
                         new_applied_constraints["args"] = get_args(chosen_type)
+                        list_generate_path = (
+                            generate_path + f".List({chosen_index})[{max_amount}]"
+                        )
                         output_data.append(
                             Synthesiser.generate_synth_data(
-                                field_name, match_name, new_applied_constraints
+                                field_name,
+                                match_name,
+                                new_applied_constraints,
+                                list_generate_path,
                             )
                         )
+
                 elif data_type in [Dict, dict]:
                     new_left_applied_constraints = applied_constraints.copy()
                     new_right_applied_constraints = applied_constraints.copy()
+                    if len(data_args) == 0:
+                        data_args = [str, str]
                     chosen_type_left = data_args[0]
                     new_left_applied_constraints["annotation"] = chosen_type_left
                     new_left_applied_constraints["origin"] = get_origin(
@@ -840,74 +1251,137 @@ class Synthesiser:
                     current_tries = 0
                     target_amountx2 = target_amount * 2
                     # for x in range(random.randint(min_amount,max_amount)):
+                    dict_keys = set()
                     while current_amount < target_amount:
+                        generate_path_v1 = generate_path + f".Dict(Left)[{max_amount}]"
                         v1 = Synthesiser.generate_synth_data(
-                            field_name, match_name, new_left_applied_constraints
+                            field_name,
+                            match_name,
+                            new_left_applied_constraints,
+                            generate_path_v1,
                         )
-                        v2 = Synthesiser.generate_synth_data(
-                            field_name, match_name, new_right_applied_constraints
-                        )
-                        output_data[v1] = v2
-                        current_amount = len(output_data)
+
+                        dict_keys.add(v1)
+                        current_amount = len(dict_keys)
                         current_tries += 1
                         if current_tries > target_amountx2:
-                            raise Exception(
-                                f"Not enough provider dictionary keys for {field_name}"
-                            )
+                            if min_amount != 1:
+                                raise Exception(
+                                    f"Not enough provider keys for {field_name}, \nkeys: {dict_keys}"
+                                )
+                            else:
+                                break
+                    for key in dict_keys:
+                        generate_path_v2 = generate_path + f".Dict(Right)[{max_amount}]"
+                        v2 = Synthesiser.generate_synth_data(
+                            field_name,
+                            match_name,
+                            new_right_applied_constraints,
+                            generate_path_v2,
+                        )
+                        output_data[key] = v2
 
                 elif data_type in [Tuple, tuple]:
                     output_data = []
                     new_applied_constraints = applied_constraints.copy()
-                    for x in range(random.randint(min_amount, max_amount)):
+                    if len(data_args) == 0:
+                        data_args = [str for x in range(random.randint(1, 10))]
+                    for x in range(len(data_args)):
                         chosen_type = data_args[x]
                         new_applied_constraints["annotation"] = chosen_type
                         new_applied_constraints["origin"] = get_origin(chosen_type)
                         new_applied_constraints["args"] = get_args(chosen_type)
+                        tuple_generate_path = (
+                            generate_path + f".Tuple({x})[{max_amount}]"
+                        )
                         output_data.append(
                             Synthesiser.generate_synth_data(
-                                field_name, match_name, new_applied_constraints
+                                field_name,
+                                match_name,
+                                new_applied_constraints,
+                                tuple_generate_path,
                             )
                         )
 
-                elif data_type in [Set, set]:
+                elif data_type in [Set, set, frozenset]:
                     output_data = []
                     new_applied_constraints = applied_constraints.copy()
                     current_amount = 0
                     target_amount = random.randint(min_amount, max_amount)
+                    if len(data_args) == 0:
+                        data_args = [str]
                     chosen_type = data_args[0]
                     new_applied_constraints["annotation"] = chosen_type
                     new_applied_constraints["origin"] = get_origin(chosen_type)
                     new_applied_constraints["args"] = get_args(chosen_type)
                     current_tries = 0
                     target_amountx2 = target_amount * 2
+                    if data_type is frozenset:
+                        pathstr = "FrozenSet"
+                    else:
+                        pathstr = "Set"
                     while current_amount < target_amount:
+                        set_generate_path = (
+                            generate_path + f".{pathstr}({0})[{max_amount}]"
+                        )
                         output_data.append(
                             Synthesiser.generate_synth_data(
-                                field_name, match_name, new_applied_constraints
+                                field_name,
+                                match_name,
+                                new_applied_constraints,
+                                set_generate_path,
                             )
                         )
                         current_amount = len(output_data)
                         current_tries += 1
                         if current_tries > target_amountx2:
-                            raise Exception(
-                                f"Not enough provider dictionary keys for {field_name}"
-                            )
+                            if min_amount != 1:
+                                raise Exception(
+                                    f"Not enough provider keys for {field_name}"
+                                )
+                            else:
+                                break
+                    if data_type is frozenset:
+                        output_data = frozenset(output_data)
 
                 elif data_type == Union:
                     new_applied_constraints = applied_constraints.copy()
-                    chosen_type = random.choice(data_args)
+                    chosen_index = random.randint(0, len(data_args) - 1)
+                    chosen_type = data_args[chosen_index]
                     new_applied_constraints["annotation"] = chosen_type
                     new_applied_constraints["origin"] = get_origin(chosen_type)
                     new_applied_constraints["args"] = get_args(chosen_type)
+                    generate_path += f".Union({chosen_index})"
                     output_data = Synthesiser.generate_synth_data(
-                        field_name, match_name, new_applied_constraints
+                        field_name, match_name, new_applied_constraints, generate_path
                     )
 
+                elif (
+                    data_type == Optional
+                ):  # should use Union, but still here for fallback
+                    new_applied_constraints = applied_constraints.copy()
+                    data_args.extend(None)
+                    chosen_index = random.randint(0, len(data_args) - 1)
+                    chosen_type = data_args[chosen_index]
+                    if chosen_type == None:
+                        output_data = None
+                    else:
+                        new_applied_constraints["annotation"] = chosen_type
+                        new_applied_constraints["origin"] = get_origin(chosen_type)
+                        new_applied_constraints["args"] = get_args(chosen_type)
+                        generate_path += f".Optional({chosen_index})"
+                        output_data = Synthesiser.generate_synth_data(
+                            field_name,
+                            match_name,
+                            new_applied_constraints,
+                            generate_path,
+                        )
                 elif data_type == Literal:
                     # print("Literal Here")
                     # print(data_args)
                     output_data = random.choice(data_args)
                     # print(output_data)
+
                 else:
                     raise Exception(
                         f"Recersive data type| {data_type} : {data_args} |not handled"
@@ -916,15 +1390,24 @@ class Synthesiser:
             elif data_type in python_builtin_types:
                 # print("	generate data")
                 func = Synthesiser.resolved_methods.get(match_name)
-                if not func:  # or applied_constraints["pattern"] is not None:
+                # print(applied_constraints["pattern"])
+                if applied_constraints["pattern"] or not func or match_name == "":
+                    # print("generating,",field_name)
+                    # print(inspect.getsource(Synthesiser.generate_from_constraints))
                     output_data = Synthesiser.generate_from_constraints(
-                        match_name, applied_constraints
+                        field_name, applied_constraints, generate_path
                     )
                 else:
                     result = func()
-                    output_data = result if isinstance(result, str) else str(result)
-                    # output_data = str(getattr(provider_instance, match_name, None)())
+                    result = Synthesiser.apply_constraints(
+                        result, applied_constraints, match_name, generate_path
+                    )
+                    output_data = applied_constraints["annotation"](result)
+
             else:
+                raise Exception(
+                    f"Unkown data type ({data_type}) for field {field_name}"
+                )
                 if inspect.isclass(data_type):
                     if issubclass(data_type, BaseModel):
                         pass  # print("	nest")
@@ -934,48 +1417,62 @@ class Synthesiser:
 
         # print(f"Data: {output_data}")
         # print("__")
+
+        # apply constraints of output after data is provided
+
         return output_data
 
     @staticmethod
-    def synthesise(schema_model, method="faker", amount=1):
-        # methods = faker or mimesis
-        # model_data = Synthesiser.get_model_data(schema_model)
-        if amount == 0:
-            return []
-        name_match_pairs, methods_map = Synthesiser.match_fields(
-            schema_model, method
-        )  # match_fields() returns -> ((names, matches), methods_map)
-
-        field_match_pairs = {
-            name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
-        }
-        # print(field_match_pairs)
+    def make_applied_constraints(schema_model):
         applied_constraints = {}
-        for name, field in schema_model.model_fields.items():
-            if field_match_pairs[name] == "":
-                mm = ""
-            else:
-                mm = methods_map[field_match_pairs[name]]
-            applied_constraints[name] = Synthesiser.check_generation_constraints(
-                name, field, field_match_pairs[name], mm
-            )
-        # print(applied_constraints)
 
+        for name, field in schema_model.model_fields.items():
+            applied_constraints[name] = Synthesiser.check_generation_constraints(
+                name, field
+            )
+
+        return applied_constraints
+
+    @staticmethod
+    def make_resolved_methods(name_match_pairs, methods_map):
         resolved_methods = {}
-        for match_name in name_match_pairs[1]:
+        for match_name in name_match_pairs:
             if match_name != "":
                 provider_instance = methods_map[match_name]
                 resolved_methods[match_name] = getattr(provider_instance, match_name)
             else:
                 resolved_methods[match_name] = None
         Synthesiser.resolved_methods = resolved_methods
+
+    @staticmethod
+    def synthesise(schema_model, method="faker", amount=1):
+        # methods = faker or mimesis
+
+        if amount == 0:
+            return []
+
+        name_match_pairs, methods_map = Synthesiser.match_fields(schema_model, method)
+        # match_fields() returns -> ((names, matches), methods_map)
+
+        field_match_pairs = {
+            name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
+        }
+        # print(field_match_pairs)
+
+        applied_constraints = Synthesiser.make_applied_constraints(schema_model)
+        # print(applied_constraints)
+
+        Synthesiser.make_resolved_methods(name_match_pairs[1], methods_map)
         # print(resolved_methods)
 
-        synthesised_data = {}
+        Synthesiser.outputpooling = {}
+        # initialise global pool dict
+
         dataset = []
         for x in range(amount):
+            synthesised_data = {}
             # print("__")
-            for name, field in schema_model.model_fields.items():
+            for name in schema_model.model_fields.keys():
                 # print(f"Field:{name}")
                 if not applied_constraints[name]["required"]:
                     if random.randint(1, 2) == 1:
@@ -985,8 +1482,14 @@ class Synthesiser:
                     provider_instance = methods_map[field_match_pairs[name]]
                 else:
                     provider_instance = ""
+
+                generate_path = f"{name}{[amount]}"
+
                 synthesised_data[name] = Synthesiser.generate_synth_data(
-                    name, field_match_pairs[name], applied_constraints[name]
+                    name,
+                    field_match_pairs[name],
+                    applied_constraints[name],
+                    generate_path,
                 )
                 # print(f"	Data:{synthesised_data[name]}")
             # print("__")

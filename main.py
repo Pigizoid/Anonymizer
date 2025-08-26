@@ -51,10 +51,10 @@ def synth_func(
     for index, data in enumerate(dataset):
         if file_path is not None:
             output_data = {
-                key: str(value) for key, value in dict(data).items()
+                key: value for key, value in dict(data).items()
             }  # convert outputs to string
             if (index + 1 + start_index) != 1:
-                front_string = ",\n    "
+                front_string = ",\n	"
             else:
                 front_string = ""
             flush.append(
@@ -68,9 +68,10 @@ def synth_func(
             if file_path is not None:
                 if output.startswith("http"):
                     send_batch_to_API(schema_model, output, request_entries)
-                flush_out = "".join(flush)
-                with open(f"{file_path}.json", "a") as f:
-                    f.write(flush_out)
+                else:
+                    flush_out = "".join(flush)
+                    with open(f"{file_path}.json", "a") as f:
+                        f.write(flush_out)
             else:
                 flush_out = "".join(flush)
             if cout:
@@ -82,9 +83,10 @@ def synth_func(
         if file_path is not None:
             if output.startswith("http"):
                 send_batch_to_API(schema_model, output, request_entries)
-            flush_out = "".join(flush)
-            with open(f"{file_path}.json", "a") as f:
-                f.write(flush_out)
+            else:
+                flush_out = "".join(flush)
+                with open(f"{file_path}.json", "a") as f:
+                    f.write(flush_out)
         else:
             flush_out = "".join(flush)
         if cout:
@@ -109,7 +111,7 @@ def anon_func(
 
         for x in range(amount):
             if cout:
-                L = len(f"        {data}")
+                L = len(f"		{data}")
                 print("_" * L)
                 print(f"Input data:\n\t{data[x]}")
                 print(f"Anonymised:\n\t{anonymised_data[x]}")
@@ -127,7 +129,7 @@ def anon_func(
         )
 
         if cout:
-            L = len(f"        {data}")
+            L = len(f"		{data}")
             print("_" * L)
             print(f"Input data:\n\t{data}")
             print(f"Anonymised:\n\t{anonymised_data}")
@@ -280,9 +282,9 @@ def load_flags(func_type, flags):
             flag_data.update(config_data[func_type])
         else:
             if func_type == "s":
-                print("Config 'synthesiser' not defined")
+                raise Exception("Config 'synthesiser' not defined")
             elif func_type == "a":
-                print("Config 'anonymiser' not defined")
+                raise Exception("Config 'anonymiser' not defined")
     else:
         print("Schema auto loader")
         import schema
@@ -316,7 +318,7 @@ def load_ingest_data(ingest, amount=1, start=0):
                 print(e)
                 data = {}
     else:
-        raise ("Unsupported ingest type")
+        raise Exception("Unsupported ingest type")
     return data
 
 
@@ -437,7 +439,7 @@ def anonymise(
     ##	load folder		##
 
     if ingest is None:
-        raise ("Config 'ingest' required")
+        raise Exception("Config 'ingest' required")
 
     anon_func(
         schema_model,

@@ -5,6 +5,15 @@ from functions.synthesiser import Synthesiser
 
 class Anonymiser:
     @staticmethod
+    def subset_model(schema_model, field_names):
+        fields = {
+            name: (field.annotation, field.default)
+            for name, field in schema_model.model_fields.items()
+            if name in field_names
+        }
+        return pydantic.create_model("new_schema_model", **fields)
+
+    @staticmethod
     def anonymise(schema_model, data, method, manual, fields):
         if manual:
             field_names = fields.keys()
@@ -19,12 +28,3 @@ class Anonymiser:
             new_fields[field] = return_data[field]
         anonymised_data = new_fields
         return anonymised_data
-
-    @staticmethod
-    def subset_model(schema_model, field_names):
-        fields = {
-            name: (field.annotation, field.default)
-            for name, field in schema_model.__fields__.items()
-            if name in field_names
-        }
-        return pydantic.create_model("new_schema_model", **fields)
