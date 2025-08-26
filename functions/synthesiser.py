@@ -16,8 +16,10 @@ import rstr
 import exrex
 import re
 import string
+import decimal
 from decimal import Decimal, ROUND_HALF_UP
 
+from concurrent.futures import ProcessPoolExecutor
 
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
@@ -736,7 +738,7 @@ class Synthesiser:
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
 
-        if generate_path not in Synthesiser.outputpooling or (
+        if not generate_path in Synthesiser.outputpooling or (
             generate_path in Synthesiser.outputpooling
             and Synthesiser.outputpooling[generate_path] == []
         ):
@@ -770,21 +772,25 @@ class Synthesiser:
                 elif min_length is not None and max_length is None:
                     # pattern = f"^(?=.{{{min_length},}}$)(?:{pattern})$"
                     if pattern[-1] == "$":
-                        pattern = pattern[:-1] + f"{{{min_length},}}$"
-                    else:
-                        pattern = pattern + f"{{{min_length},}}$"
+                        pattern = pattern[:-1]
+                    while pattern[-1] in ["+", "*", "?"]:
+                        pattern = pattern[:-1]
+                    pattern = pattern + f"{{{min_length},}}$"
+
                 elif min_length is None and max_length is not None:
                     # pattern = f"^(?=.{{0,{max_length}}}$)(?:{pattern})$"
                     if pattern[-1] == "$":
-                        pattern = pattern[:-1] + f"{{0,{max_length}}}$"
-                    else:
-                        pattern = pattern + f"{{0,{max_length}}}$"
+                        pattern = pattern[:-1]
+                    while pattern[-1] in ["+", "*", "?"]:
+                        pattern = pattern[:-1]
+                    pattern = pattern + f"{{0,{max_length}}}$"
                 else:
                     # pattern = f"^(?=.{{{min_length},{max_length}}}$)(?:{pattern})$"
                     if pattern[-1] == "$":
-                        pattern = pattern[:-1] + f"{{{min_length},{max_length}}}$"
-                    else:
-                        pattern = pattern + f"{{{min_length},{max_length}}}$"
+                        pattern = pattern[:-1]
+                    while pattern[-1] in ["+", "*", "?"]:
+                        pattern = pattern[:-1]
+                    pattern = pattern + f"{{{min_length},{max_length}}}$"
 
                 print(pattern)
                 print(exrex.getone(pattern))
@@ -797,9 +803,9 @@ class Synthesiser:
                         rstr.xeger(pattern) for x in range(max(1, pooling_count))
                     ]
 
-                if constraints["to_upper"] != None:
+                if constraints["to_upper"] is not None:
                     data_pool = [item.upper() for item in data_pool]
-                elif constraints["to_lower"] != None:
+                elif constraints["to_lower"] is not None:
                     data_pool = [item.lower() for item in data_pool]
 
                 print(data_pool)
@@ -816,15 +822,15 @@ class Synthesiser:
                 data_type = constraints["annotation"]
                 if data_type is str:
                     string_list = string.ascii_letters + string.digits
-                    if constraints["to_upper"] != None:
+                    if constraints["to_upper"] is not None:
                         string_list = [item.upper() for item in string_list]
-                    elif constraints["to_lower"] != None:
+                    elif constraints["to_lower"] is not None:
                         string_list = [item.lower() for item in string_list]
-                    if constraints["min_length"] != None:
+                    if constraints["min_length"] is not None:
                         min_length = constraints["min_length"]
                     else:
                         min_length = 1
-                    if constraints["max_length"] != None:
+                    if constraints["max_length"] is not None:
                         max_length = constraints["max_length"]
                     else:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
@@ -841,18 +847,18 @@ class Synthesiser:
                         raise Exception(f"No data pool for str:{generate_path}")
 
                 elif data_type is int or data_type is float or data_type is Decimal:
-                    if constraints["lt"] != None:
+                    if constraints["lt"] is not None:
                         lt = constraints["lt"] - 1
                     else:
                         lt = 10 * max(1, (pooling_count // amount) + 3)
-                    if constraints["le"] != None:
+                    if constraints["le"] is not None:
                         lt = min(lt, constraints["le"])
 
-                    if constraints["gt"] != None:
+                    if constraints["gt"] is not None:
                         gt = constraints["gt"] + 1
                     else:
                         gt = lt * -1
-                    if constraints["ge"] != None:
+                    if constraints["ge"] is not None:
                         gt = max(gt, constraints["ge"])
 
                     if gt > lt:
@@ -880,7 +886,7 @@ class Synthesiser:
                                 ]  # count is capped at poling_count
                             except:
                                 data_pool == []
-                        else:  # data_type is float and constraints["decimal_places"] != None
+                        else:  # data_type is float and constraints["decimal_places"] is not None
                             decimal_places = constraints["decimal_places"]
                             scale = Decimal(10) ** Decimal(decimal_places)
                             decimal_precision = Decimal(10) ** Decimal(
@@ -930,7 +936,7 @@ class Synthesiser:
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt}) with max decimal digits{decimal_places}."
                                 )
                     else:
-                        if constraints["decimal_places"] != None:
+                        if constraints["decimal_places"] is not None:
                             data_pool = [
                                 round(
                                     random.uniform(gt, lt),
@@ -944,12 +950,18 @@ class Synthesiser:
                                 for _ in range(max(1, pooling_count))
                             ]
 
-                    if constraints["allow_inf_nan"] != None:
+                    if constraints["allow_inf_nan"] is not None:
                         allowed_inf_types = ["inf", "-inf", "nan"]
-                        if constraints["gt"] != None or constraints["ge"] != None:
+                        if (
+                            constraints["gt"] is not None
+                            or constraints["ge"] is not None
+                        ):
                             allowed_inf_types.remove("-inf")
                             allowed_inf_types.remove("nan")
-                        if constraints["lt"] != None or constraints["le"] != None:
+                        if (
+                            constraints["lt"] is not None
+                            or constraints["le"] is not None
+                        ):
                             allowed_inf_types.remove("inf")
                             if "nan" in allowed_inf_types:
                                 allowed_inf_types.remove("nan")
@@ -990,11 +1002,11 @@ class Synthesiser:
                     if data_pool == []:
                         raise Exception(f"No data pool for complex:{generate_path}")
                 elif data_type is bytes:
-                    if constraints["min_length"] != None:
+                    if constraints["min_length"] is not None:
                         min_length = constraints["min_length"]
                     else:
                         min_length = 1
-                    if constraints["max_length"] != None:
+                    if constraints["max_length"] is not None:
                         max_length = constraints["max_length"]
                     else:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
@@ -1050,49 +1062,49 @@ class Synthesiser:
         data_type = type(return_value)
         if data_type is str:
             string_list = string.ascii_letters + string.digits
-            if constraints["to_upper"] != None:
+            if constraints["to_upper"] is not None:
                 string_list = [item.upper() for item in string_list]
-            elif constraints["to_lower"] != None:
+            elif constraints["to_lower"] is not None:
                 string_list = [item.lower() for item in string_list]
 
-            if constraints["to_upper"] != None:
+            if constraints["to_upper"] is not None:
                 return_value = return_value.upper()
             elif constraints["to_lower"]:
                 return_value = return_value.lower()
-            if constraints["min_length"] != None:
+            if constraints["min_length"] is not None:
                 min_length = constraints["min_length"]
             else:
                 min_length = 1
-            if constraints["max_length"] != None:
+            if constraints["max_length"] is not None:
                 max_length = constraints["max_length"]
 
             if len(return_value) < min_length:
                 pad_length = min_length - len(return_value)
                 return_value += "".join(random.choices(string_list, k=pad_length))
-            if constraints["max_length"] != None:
+            if constraints["max_length"] is not None:
                 if len(return_value) > max_length:
                     return_value = return_value[:max_length]
 
         elif data_type is int or data_type is float:
-            if constraints["lt"] != None:
+            if constraints["lt"] is not None:
                 lt = constraints["lt"] - 1
             else:
                 lt = 10 * max(1, (pooling_count // amount) + 3)
-            if constraints["le"] != None:
+            if constraints["le"] is not None:
                 lt = min(lt, constraints["le"])
 
-            if constraints["gt"] != None:
+            if constraints["gt"] is not None:
                 if data_type is int:
                     gt = constraints["gt"] + 1
                 else:
-                    if constraints["multiple_of"] != None:
+                    if constraints["multiple_of"] is not None:
                         gt = constraints["gt"] + constraints["multiple_of"]
                     else:
                         gt = constraints["gt"] + 0.0001
 
             else:
                 gt = lt * -1
-            if constraints["ge"] != None:
+            if constraints["ge"] is not None:
                 gt = max(gt, constraints["ge"])
 
             if gt > lt:
@@ -1113,12 +1125,12 @@ class Synthesiser:
                     idx = (return_value // multiple_of) % count
 
                     return_value = first + idx * multiple_of
-                else:  # data_type is float and constraints["decimal_places"] != None
+                else:  # data_type is float and constraints["decimal_places"] is not None
                     return_value = Synthesiser.generate_from_constraints(
                         match_name, constraints, generate_path
                     )
             else:
-                if constraints["decimal_places"] != None:
+                if constraints["decimal_places"] is not None:
                     return_value = round(return_value, constraints["decimal_places"])
                 else:
                     try:
@@ -1363,7 +1375,7 @@ class Synthesiser:
                     data_args.extend(None)
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
-                    if chosen_type == None:
+                    if chosen_type is None:
                         output_data = None
                     else:
                         new_applied_constraints["annotation"] = chosen_type
@@ -1376,6 +1388,7 @@ class Synthesiser:
                             new_applied_constraints,
                             generate_path,
                         )
+
                 elif data_type == Literal:
                     # print("Literal Here")
                     # print(data_args)
