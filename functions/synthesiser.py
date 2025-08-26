@@ -16,10 +16,8 @@ import rstr
 import exrex
 import re
 import string
-import decimal
 from decimal import Decimal, ROUND_HALF_UP
 
-from concurrent.futures import ProcessPoolExecutor
 
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
@@ -738,7 +736,7 @@ class Synthesiser:
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
 
-        if not generate_path in Synthesiser.outputpooling or (
+        if generate_path not in Synthesiser.outputpooling or (
             generate_path in Synthesiser.outputpooling
             and Synthesiser.outputpooling[generate_path] == []
         ):
@@ -756,7 +754,7 @@ class Synthesiser:
             data_pool = []
 
             if constraints["pattern"] is not None:
-                print(f"Path:{generate_path}")
+                # print(f"Path:{generate_path}")
                 # HERE HERE
                 # check if a map exists for this constraint sequence (pattern and constraints)
                 # if there is not, generate a map of possible results and then run regex forward pass over each (could be slow for initial pass through)
@@ -792,8 +790,8 @@ class Synthesiser:
                         pattern = pattern[:-1]
                     pattern = pattern + f"{{{min_length},{max_length}}}$"
 
-                print(pattern)
-                print(exrex.getone(pattern))
+                # print(pattern)
+                # print(exrex.getone(pattern))
                 try:
                     data_pool = [
                         exrex.getone(pattern) for x in range(max(1, pooling_count))
@@ -808,7 +806,7 @@ class Synthesiser:
                 elif constraints["to_lower"] is not None:
                     data_pool = [item.lower() for item in data_pool]
 
-                print(data_pool)
+                # print(data_pool)
                 # regex_generation =
                 # if constraints["annotation"] != str:
                 # regex_generation = str(regex_generation)
