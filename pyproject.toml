@@ -1,19 +1,19 @@
-[tool.poetry]
+[project]
 name = "anonymizer"
 version = "0.1.0"
-description = "ingest any data from a schema and anonymize it or create synthetic data"
-authors = ["Pigizoid <evansimpson470@gmail.com>"]
+description = "Ingest any data from a schema with the use of an API and CLI, that allows the user to generate a new set of synthetic data or anonymise a set of existing input data"
 readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "faker>=37.5.3",
+    "importlib>=1.0.4",
+    "mimesis>=18.0.0",
+    "pydantic>=2.11.7",
+    "typer>=0.16.0",
+    "typing>=3.10.0.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-
-
-[tool.poetry.group.test.dependencies]
-optional = true
-pytest = "^8.4.1"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "ruff>=0.12.9",
+]
