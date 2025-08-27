@@ -75,8 +75,13 @@ def synth_func(
                 front_string = ",\n	"
             else:
                 front_string = ""
+            json_str = json.dumps(
+                data.model_dump(), 
+                indent=8, 
+                default=lambda v: repr(v)
+            )
             flush.append(
-                f'{front_string}"{index + start_index}": {data.model_dump_json(indent=8)}'
+                f'{front_string}"{index + start_index}": {json_str}'
             )
             if output.startswith("http"):
                 request_entries.append(data)
