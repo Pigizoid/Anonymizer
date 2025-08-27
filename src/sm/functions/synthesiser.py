@@ -1474,7 +1474,7 @@ class Synthesiser:
                 resolved_methods[match_name] = getattr(provider_instance, match_name)
             else:
                 resolved_methods[match_name] = None
-        print("r",resolved_methods)
+        #print("r",resolved_methods)
         return resolved_methods
 
     @staticmethod
