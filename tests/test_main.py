@@ -1,7 +1,7 @@
 # test_main.py
 
 
-from main import *
+from sm.main import *
 
 
 from typer.testing import CliRunner

@@ -4,7 +4,7 @@
 import pytest
 
 
-from functions.synthesiser import Synthesiser
+from sm.functions.synthesiser import Synthesiser
 
 
 import pydantic
