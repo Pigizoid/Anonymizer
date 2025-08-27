@@ -710,7 +710,6 @@ class Synthesiser:
             print("__")
             print(f"	Name:{name}")
             print(f"	Field:{field}")
-
         field_info = field.metadata
         constraints = {}
         constraints["required"] = getattr(field, "is_required", None)()
@@ -1416,15 +1415,31 @@ class Synthesiser:
                     output_data = applied_constraints["annotation"](result)
 
             else:
-                raise Exception(
-                    f"Unkown data type ({data_type}) for field {field_name}"
-                )
-                if inspect.isclass(data_type):
-                    if issubclass(data_type, BaseModel):
-                        pass  # print("	nest")
-                    output_data = None
+                if (
+                    data_type.__class__.__module__
+                    == "pydantic._internal._model_construction"  # checking if its a model
+                    and inspect.isclass(data_type)
+                    and issubclass(
+                        data_type, BaseModel
+                    )  # extra checks to make sure its a BaseModel
+                ):
+                    output_data = Synthesiser.synthesise(
+                        data_type, Synthesiser.method, amount=1
+                    )[0]  # [0] because amount = 1
+                    print("big nested")
+
                 else:
-                    output_data = None
+                    raise Exception(
+                        f"Unkown data type ({data_type}) for field {field_name}"
+                    )
+                """
+				if inspect.isclass(data_type):
+					if issubclass(data_type, BaseModel):
+						pass  # print("	nest")
+					output_data = None
+				else:
+					output_data = None
+				"""
 
         # print(f"Data: {output_data}")
         # print("__")
@@ -1479,6 +1494,7 @@ class Synthesiser:
         Synthesiser.outputpooling = {}
         # initialise global pool dict
 
+        Synthesiser.method = method
         dataset = []
         for x in range(amount):
             synthesised_data = {}
@@ -1494,7 +1510,7 @@ class Synthesiser:
                 else:
                     provider_instance = ""
 
-                generate_path = f"{name}{[amount]}"
+                generate_path = f"{schema_model.__name__}({name})[{amount}]"
 
                 synthesised_data[name] = Synthesiser.generate_synth_data(
                     name,
