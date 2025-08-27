@@ -1432,7 +1432,7 @@ class Synthesiser:
                     output_data = Synthesiser.synthesise(
                         data_type, Synthesiser.method, amount=1
                     )[0]  # [0] because amount = 1
-                    print("big nested")
+                    #print("big nested")
 
                 else:
                     raise Exception(
