@@ -1,0 +1,22 @@
+
+
+
+---
+  schema: schema.py
+  synthesiser:
+    method: mixed
+    amount: 50000
+    batch: 2000
+    output: data_out
+    cout: false
+  anonymiser:
+    ingest: data.json
+    method: mixed
+    output: data_out
+    cout: true
+    manual: true
+    fields:
+      street: default
+      zip_code: default
+      continent: default
+  
