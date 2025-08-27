@@ -1,6 +1,6 @@
 import pydantic
 
-from sm.functions.synthesiser import Synthesiser
+from src.functions.synthesiser import Synthesiser
 
 
 class Anonymiser:

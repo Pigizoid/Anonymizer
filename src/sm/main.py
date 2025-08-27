@@ -5,8 +5,8 @@ from decimal import Decimal
 
 import typer
 
-from sm.functions.synthesiser import Synthesiser
-from sm.functions.anonymiser import Anonymiser
+from src.functions.synthesiser import Synthesiser
+from src.functions.anonymiser import Anonymiser
 
 
 import yaml  # uv add pyyaml
@@ -79,7 +79,7 @@ def synth_func(
                 f'{front_string}"{index + start_index}": {data.model_dump_json(indent=8)}'
             )
             if output.startswith("http"):
-                request_entries.append(output_data)
+                request_entries.append(data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
         if (index + 1) % batch_print_size == 0:
@@ -182,8 +182,7 @@ def load_config(config):
     try:
         schema_file = config_data["schema"]
     except:
-        print("Config 'schema' not defined")
-        return 0
+        raise Exception("Config 'schema' not defined")
 
     if not (schema_file.endswith(".py")):
         schema_file += ".py"
@@ -271,6 +270,13 @@ def send_batch_to_API(schema_model, output, data):
     elapsed_time = time.time() - start_time  # end timer
     print(f"Response: {response} | Time taken: {elapsed_time:.2f} seconds")
     return response
+
+
+"""
+class configSettings(...):
+    synth: Optional[SynthesiserConfig]
+    anon: Optional[AnonymiserConfig]
+"""
 
 
 class SynthesiserConfig(BaseModel):

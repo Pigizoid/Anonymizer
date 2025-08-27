@@ -1164,7 +1164,7 @@ class Synthesiser:
     @staticmethod
     def generate_synth_data(field_name, match_name, applied_constraints, generate_path):
         # print("__")
-        # print(f"	Generating for: {field_name}")
+        print(f"	Generating for: {field_name}")
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
         data_type = applied_constraints["origin"]
@@ -1365,9 +1365,8 @@ class Synthesiser:
                         field_name, match_name, new_applied_constraints, generate_path
                     )
 
-                elif (
-                    data_type == Optional
-                ):  # should use Union, but still here for fallback
+                elif data_type == Optional:
+                    # should use Union, but still here for fallback
                     new_applied_constraints = applied_constraints.copy()
                     data_args.extend(None)
                     chosen_index = random.randint(0, len(data_args) - 1)
