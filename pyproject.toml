@@ -1,14 +1,18 @@
 [project]
-name = "anonymizer"
+name = "sm"
 version = "0.1.0"
 description = "Ingest any data from a schema with the use of an API and CLI, that allows the user to generate a new set of synthetic data or anonymise a set of existing input data"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "exrex>=0.12.0",
     "faker>=37.5.3",
     "importlib>=1.0.4",
     "mimesis>=18.0.0",
     "pydantic>=2.11.7",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.5",
+    "rstr>=3.2.2",
     "typer>=0.16.0",
     "typing>=3.10.0.0",
 ]
@@ -17,3 +21,10 @@ dependencies = [
 dev = [
     "ruff>=0.12.9",
 ]
+
+[project.scripts]
+sm = "sm.main:app"
+
+[build-system]
+requires = ["uv_build>=0.7.21,<0.8.0"]
+build-backend = "uv_build"

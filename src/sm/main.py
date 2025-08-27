@@ -1,14 +1,15 @@
 from pydantic import BaseModel, Field
 import typing
-from typing_extensions import Annotated  # part of pydantic
+from typing_extensions import Annotated  # typing_extensions is part of pydantic
+from decimal import Decimal
 
 import typer
 
-from functions.synthesiser import Synthesiser
-from functions.anonymiser import Anonymiser
+from sm.functions.synthesiser import Synthesiser
+from sm.functions.anonymiser import Anonymiser
 
 
-import yaml  # builtin
+import yaml  # uv add pyyaml
 import json  # builtin
 
 
@@ -21,6 +22,21 @@ import time
 
 
 app = typer.Typer()
+
+
+def make_json_safe(obj):
+    if type(obj) in [set, list, tuple, frozenset]:
+        return [make_json_safe(v) for v in obj]
+    elif isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, complex):
+        return repr(obj)
+    elif isinstance(obj, bytes):
+        return repr(obj)
+    else:
+        return obj
 
 
 def synth_func(
@@ -50,18 +66,25 @@ def synth_func(
 
     for index, data in enumerate(dataset):
         if file_path is not None:
-            output_data = {
-                key: value for key, value in dict(data).items()
-            }  # convert outputs to string
+            """
+			output_data = {}
+			for key, value in dict(data).items():
+				output_data[key] = make_json_safe(value)
+			"""
             if (index + 1 + start_index) != 1:
                 front_string = ",\n	"
             else:
                 front_string = ""
+            json_str = json.dumps(
+                data.model_dump(), 
+                indent=8, 
+                default=lambda v: repr(v)
+            )
             flush.append(
-                f'{front_string}"{index + start_index}": {json.dumps(output_data, indent=8)}'
+                f'{front_string}"{index + start_index}": {json_str}'
             )
             if output.startswith("http"):
-                request_entries.append(output_data)
+                request_entries.append(data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
         if (index + 1) % batch_print_size == 0:
@@ -109,6 +132,12 @@ def anon_func(
             for data_item in data
         ]
 
+        for index, data_entry in enumerate(anonymised_data):
+            output_data = {}
+            for key, value in dict(data_entry).items():
+                output_data[key] = make_json_safe(value)
+            anonymised_data[index] = output_data
+
         for x in range(amount):
             if cout:
                 L = len(f"		{data}")
@@ -127,6 +156,12 @@ def anon_func(
         anonymised_data = Anonymiser.anonymise(
             schema_model, data, method, manual, fields
         )
+
+        for index, data_entry in enumerate(anonymised_data):
+            output_data = {}
+            for key, value in dict(data_entry).items():
+                output_data[key] = make_json_safe(value)
+            anonymised_data[index] = output_data
 
         if cout:
             L = len(f"		{data}")
@@ -152,8 +187,7 @@ def load_config(config):
     try:
         schema_file = config_data["schema"]
     except:
-        print("Config 'schema' not defined")
-        return 0
+        raise Exception("Config 'schema' not defined")
 
     if not (schema_file.endswith(".py")):
         schema_file += ".py"
@@ -169,7 +203,7 @@ def load_config(config):
         for name, cls in classes
         if cls.__module__ == "imported_schema_model"
     ]
-    schema_model = filtered[0][1]
+    schema_model = filtered[0][1]  # schema.Address   (alphabetically)
     # print(filtered)
     # print(schema_model)
     # User = module.User
@@ -243,8 +277,15 @@ def send_batch_to_API(schema_model, output, data):
     return response
 
 
+"""
+class configSettings(...):
+    synth: Optional[SynthesiserConfig]
+    anon: Optional[AnonymiserConfig]
+"""
+
+
 class SynthesiserConfig(BaseModel):
-    method: str = Field(default="faker")
+    method: str = Field(default="mixed")
     amount: int = Field(default=1)
     batch: int = Field(default=0)
     output: str = Field(default="")
@@ -253,7 +294,7 @@ class SynthesiserConfig(BaseModel):
 
 class AnonymiserConfig(BaseModel):
     ingest: str = Field(default="")
-    method: str = Field(default="faker")
+    method: str = Field(default="mixed")
     amount: int = Field(default=1)
     start: int = Field(default=0)
     output: str = Field(default="")
@@ -287,9 +328,20 @@ def load_flags(func_type, flags):
                 raise Exception("Config 'anonymiser' not defined")
     else:
         print("Schema auto loader")
-        import schema
+        spec = importlib.util.spec_from_file_location(
+            "imported_schema_model", "schema.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
-        schema_model = schema.Address
+        classes = inspect.getmembers(module, inspect.isclass)
+        # print(classes)
+        filtered = [
+            (name, cls)
+            for name, cls in classes
+            if cls.__module__ == "imported_schema_model"
+        ]
+        schema_model = filtered[0][1]  # schema.Address   (alphabetically)
 
     cli_args = {
         field_name: flags[field_name]

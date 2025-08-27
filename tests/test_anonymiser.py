@@ -1,7 +1,7 @@
 # test_anonymiser.py
 
 
-from functions.anonymiser import Anonymiser
+from src.functions.anonymiser import Anonymiser
 
 
 from pydantic import *

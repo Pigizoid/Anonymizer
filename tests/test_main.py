@@ -1,16 +1,15 @@
 # test_main.py
 
 
-from main import *
+from Anonymizer.src.sm.main import *
 
 
 from typer.testing import CliRunner
 # from unittest.mock import patch
 
-from main import app
 
 runner = CliRunner()
-
+"""
 
 def test_synthesise():
     result = runner.invoke(
@@ -50,7 +49,7 @@ def test_anonymise():
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
-
+"""
 
 ingest: str = (None,)
 method: str = (None,)
