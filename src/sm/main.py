@@ -5,8 +5,8 @@ from decimal import Decimal
 
 import typer
 
-from src.functions.synthesiser import Synthesiser
-from src.functions.anonymiser import Anonymiser
+from sm.functions.synthesiser import Synthesiser
+from sm.functions.anonymiser import Anonymiser
 
 
 import yaml  # uv add pyyaml

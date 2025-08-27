@@ -1164,7 +1164,7 @@ class Synthesiser:
     @staticmethod
     def generate_synth_data(field_name, match_name, applied_constraints, generate_path):
         # print("__")
-        print(f"	Generating for: {field_name}")
+        #print(f"	Generating for: {field_name}")
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
         data_type = applied_constraints["origin"]
