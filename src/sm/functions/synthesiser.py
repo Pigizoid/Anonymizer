@@ -685,7 +685,7 @@ class Synthesiser:
                         )
                         potential_matches.append([word, distance])
                 sorted_match_by_distance = sorted(potential_matches, key=lambda x: x[1])
-                min_value = sorted_by_distance[0][1]
+                min_value = sorted_match_by_distance[0][1]
                 if min_value < len(target_word) // 2:
                     closest_matches = [
                         item
@@ -712,7 +712,8 @@ class Synthesiser:
             print(f"	Field:{field}")
         field_info = field.metadata
         constraints = {}
-        constraints["required"] = getattr(field, "is_required", None)()
+        is_req = getattr(field, "is_required", None)
+        constraints["required"] = is_req() if callable(is_req) else bool(is_req)
         for attr in all_constr_attribs:
             return_val = getattr(field, attr, None)
             if return_val is None:
@@ -1429,7 +1430,7 @@ class Synthesiser:
                     and issubclass(data_type, BaseModel)  
                     # extra checks to make sure its a BaseModel
                 ):
-                    output_data = Synthesiser.synthesise(
+                    output_data = Synthesiser.synthesise_with_schema(
                         data_type, Synthesiser.method, amount=1
                     )[0]  # [0] because amount = 1
                     #print("big nested")
@@ -1478,7 +1479,7 @@ class Synthesiser:
         return resolved_methods
 
     @staticmethod
-    def synthesise(schema_model, method="faker", amount=1):
+    def synthesise_with_schema(schema_model, method="faker", amount=1):
         # methods = faker or mimesis
 
         if amount == 0:
@@ -1497,9 +1498,6 @@ class Synthesiser:
 
         resolved_methods = Synthesiser.make_resolved_methods(name_match_pairs[1], methods_map)
         # print(resolved_methods)
-
-        Synthesiser.outputpooling = {}
-        # initialise global pool dict
 
         Synthesiser.method = method
         dataset = []
@@ -1530,7 +1528,19 @@ class Synthesiser:
             # print("__")
             dataset.append(schema_model(**synthesised_data))
         return dataset
-
+    
+    @staticmethod
+    def synthesise(schema_model, method="faker", amount=1):
+        
+        # initialise global pool dict
+        Synthesiser.outputpooling = {}
+        
+        return Synthesiser.synthesise_with_schema(schema_model, method, amount)
+        
+        
+        
+        
+        
 
 #'''
 
