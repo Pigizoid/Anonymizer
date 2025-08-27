@@ -1162,7 +1162,7 @@ class Synthesiser:
         return return_value
 
     @staticmethod
-    def generate_synth_data(field_name, match_name, applied_constraints, generate_path):
+    def generate_synth_data(field_name, match_name, applied_constraints, generate_path, resolved_methods):
         # print("__")
         #print(f"	Generating for: {field_name}")
         # print(applied_constraints)
@@ -1192,7 +1192,7 @@ class Synthesiser:
             # print(new_constraints)
             generate_path += ".Annotated"
             output_data = Synthesiser.generate_synth_data(
-                field_name, match_name, new_constraints, generate_path
+                field_name, match_name, new_constraints, generate_path, resolved_methods
             )
             # print("returned:",output_data)
             # input("wait...")
@@ -1233,7 +1233,8 @@ class Synthesiser:
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                list_generate_path,
+                                list_generate_path, 
+                                resolved_methods
                             )
                         )
 
@@ -1267,7 +1268,8 @@ class Synthesiser:
                             field_name,
                             match_name,
                             new_left_applied_constraints,
-                            generate_path_v1,
+                            generate_path_v1, 
+                            resolved_methods
                         )
 
                         dict_keys.add(v1)
@@ -1287,6 +1289,7 @@ class Synthesiser:
                             match_name,
                             new_right_applied_constraints,
                             generate_path_v2,
+                            resolved_methods
                         )
                         output_data[key] = v2
 
@@ -1309,6 +1312,7 @@ class Synthesiser:
                                 match_name,
                                 new_applied_constraints,
                                 tuple_generate_path,
+                                resolved_methods
                             )
                         )
 
@@ -1339,6 +1343,7 @@ class Synthesiser:
                                 match_name,
                                 new_applied_constraints,
                                 set_generate_path,
+                                resolved_methods
                             )
                         )
                         current_amount = len(output_data)
@@ -1362,7 +1367,7 @@ class Synthesiser:
                     new_applied_constraints["args"] = get_args(chosen_type)
                     generate_path += f".Union({chosen_index})"
                     output_data = Synthesiser.generate_synth_data(
-                        field_name, match_name, new_applied_constraints, generate_path
+                        field_name, match_name, new_applied_constraints, generate_path, resolved_methods
                     )
 
                 elif data_type == Optional:
@@ -1383,6 +1388,7 @@ class Synthesiser:
                             match_name,
                             new_applied_constraints,
                             generate_path,
+                            resolved_methods
                         )
 
                 elif data_type == Literal:
@@ -1398,8 +1404,10 @@ class Synthesiser:
                 # print("	recursive")
             elif data_type in python_builtin_types:
                 # print("	generate data")
-                func = Synthesiser.resolved_methods.get(match_name)
+                func = resolved_methods.get(match_name)
                 # print(applied_constraints["pattern"])
+                # print(func)
+                # print(match_name)
                 if applied_constraints["pattern"] or not func or match_name == "":
                     # print("generating,",field_name)
                     # print(inspect.getsource(Synthesiser.generate_from_constraints))
@@ -1418,9 +1426,8 @@ class Synthesiser:
                     data_type.__class__.__module__
                     == "pydantic._internal._model_construction"  # checking if its a model
                     and inspect.isclass(data_type)
-                    and issubclass(
-                        data_type, BaseModel
-                    )  # extra checks to make sure its a BaseModel
+                    and issubclass(data_type, BaseModel)  
+                    # extra checks to make sure its a BaseModel
                 ):
                     output_data = Synthesiser.synthesise(
                         data_type, Synthesiser.method, amount=1
@@ -1467,7 +1474,8 @@ class Synthesiser:
                 resolved_methods[match_name] = getattr(provider_instance, match_name)
             else:
                 resolved_methods[match_name] = None
-        Synthesiser.resolved_methods = resolved_methods
+        print("r",resolved_methods)
+        return resolved_methods
 
     @staticmethod
     def synthesise(schema_model, method="faker", amount=1):
@@ -1487,7 +1495,7 @@ class Synthesiser:
         applied_constraints = Synthesiser.make_applied_constraints(schema_model)
         # print(applied_constraints)
 
-        Synthesiser.make_resolved_methods(name_match_pairs[1], methods_map)
+        resolved_methods = Synthesiser.make_resolved_methods(name_match_pairs[1], methods_map)
         # print(resolved_methods)
 
         Synthesiser.outputpooling = {}
@@ -1516,6 +1524,7 @@ class Synthesiser:
                     field_match_pairs[name],
                     applied_constraints[name],
                     generate_path,
+                    resolved_methods
                 )
                 # print(f"	Data:{synthesised_data[name]}")
             # print("__")
