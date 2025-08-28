@@ -1,17 +1,21 @@
 # test_main.py
 
 
-from Anonymizer.src.sm.main import *
+from src.sm.main import *
 
 
 from typer.testing import CliRunner
 # from unittest.mock import patch
 
-
+import os
 runner = CliRunner()
-"""
+
+
+test_dir = os.getcwd()+"\\tests"
 
 def test_synthesise():
+    os.chdir(test_dir)
+    print(os.getcwd())
     result = runner.invoke(
         app,
         [
@@ -32,6 +36,8 @@ def test_synthesise():
 
 
 def test_anonymise():
+    os.chdir(test_dir)
+    print(os.getcwd())
     result = runner.invoke(
         app,
         [
@@ -49,7 +55,6 @@ def test_anonymise():
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
-"""
 
 ingest: str = (None,)
 method: str = (None,)

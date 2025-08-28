@@ -1,6 +1,6 @@
 import pydantic
 
-from sm.functions.synthesiser import Synthesiser
+from .synthesiser import Synthesiser
 
 
 class Anonymiser:
@@ -15,7 +15,7 @@ class Anonymiser:
 
     @staticmethod
     def anonymise(schema_model, data, method, manual, fields):
-        synth = Synthesiser()
+        synth = Synthesiser(method=method)
         if manual == True:
             field_names = fields.keys()
         else:  # auto

@@ -475,8 +475,13 @@ all_constr_attribs = {
 
 class Synthesiser:
     
-    def __init_(self):
-        pass
+    def __init__(self, method="faker"):
+        self.outputpooling = {}
+        self.word_list, methods_map = self.list_match_methods(method)
+        self.word_tokens = {word: word.split("_") for word in self.word_list }
+        self.word_tokens_set = {word: set(word.split("_")) for word in self.word_list }
+        self.resolved_methods = self.make_resolved_methods(self.word_list, methods_map)
+        
     
     def list_faker_methods(self):
         methods = []
@@ -570,7 +575,10 @@ class Synthesiser:
         return distance_point[len_word1][len_word2]
 
     
-    def calc_difference(self,target_word, word, target_tokens, target_tokens_set):
+    def calc_difference(self,target_word, word, word_tokens, word_tokens_set, target_tokens, target_tokens_set):
+        if target_tokens_set == word_tokens_set:  # name_first -> first_name
+            return 0
+        
         if (
             ("".join([letter[0] for letter in word.split("_")])) == target_word.lower()
         ):  # abbreviation mapping	ssn -> social_security_number   #ssn is target word
@@ -586,18 +594,17 @@ class Synthesiser:
         if main_distance <= 1 or main_distance >= len(target_word):
             return main_distance
 
-        main_distance_joined = self.levenshtein_distance(
-            target_word.replace("_", ""), word.lower()
+        main_distance_joined = main_distance - (
+            (
+                len(target_word) - len(target_word.replace("_", ""))
+            ) 
+            +(
+                len(word) - len(word.replace("_", ""))
+            )
         )
         if main_distance_joined <= 1:
             return main_distance_joined
-
-        target_tokens = [t.lower() for t in target_tokens]
-        word_tokens = [w.lower() for w in word.split("_")]
-
-        word_tokens_set = set(word_tokens)
-        if target_tokens_set == word_tokens_set:  # name_first -> first_name
-            return 0
+        
 
         token_distance = 0
         cross_points = len(word_tokens) * len(target_tokens)
@@ -630,7 +637,7 @@ class Synthesiser:
         return distance
 
     
-    def match_fields(self, schema_model, word_list, method="faker"):
+    def match_fields(self, schema_model):
         model_data = self.get_model_data(schema_model)
 
         field_matches = []
@@ -641,9 +648,9 @@ class Synthesiser:
             target_word = target_word.lower()
             target_tokens = target_word.split("_")
             target_tokens_set = set(target_tokens)
-            for word in word_list:
+            for word in self.word_list:
                 distance = self.calc_difference(
-                    target_word, word, target_tokens, target_tokens_set
+                    target_word, word, self.word_tokens[word], self.word_tokens_set[word], target_tokens, target_tokens_set
                 )
                 distances.append([word, distance])
             sorted_by_distance = sorted(distances, key=lambda x: x[1])
@@ -653,7 +660,7 @@ class Synthesiser:
                 min_value = (len(target_word) // 2 - 0.5)+1
             if min_value > (len(target_word) // 2 - 0.5):
                 potential_matches = []
-                for word in word_list:
+                for word in self.word_list:
                     if target_word in word:
                         distance = self.levenshtein_distance(
                             target_word, word, [-0.5, 0.5, -0.5]
@@ -685,18 +692,27 @@ class Synthesiser:
         
         return field_match_pairs
     
-    def recursive_match_schema_fields(self, schema_model, word_list, method="faker"):
-        field_match_pairs = {}
+    def recursive_match_schema_fields(self, schema_model, field_match_pairs={}):
         model_data = self.get_model_data(schema_model)
         
-        field_match_pairs[schema_model.__name__] = self.match_fields(schema_model, word_list, method)
+        if schema_model.__name__ not in field_match_pairs.keys():
+            field_match_pairs[schema_model.__name__] = self.match_fields(schema_model)
+        
+        from line_profiler import LineProfiler
+        lp = LineProfiler()
+        lp_wrapper = lp(self.match_fields)
+        lp_wrapper(schema_model)
+        lp.print_stats()
+        
         for x in model_data:
             data_type = x[1].annotation
             if (
                 inspect.isclass(data_type)
                 and issubclass(data_type, BaseModel)
+                and data_type.__name__ not in field_match_pairs.keys()
                 ):
-                field_match_pairs.update(self.recursive_match_schema_fields(data_type, word_list, method))
+                print(data_type.__name__, field_match_pairs.keys())
+                field_match_pairs.update(self.recursive_match_schema_fields(data_type))
                 
         
         return field_match_pairs
@@ -1461,6 +1477,7 @@ class Synthesiser:
             if (
                 inspect.isclass(data_type)
                 and issubclass(data_type, BaseModel)
+                and data_type.__name__ not in applied_constraints.keys()
                 ):
                 applied_constraints.update(self.recursive_make_schema_applied_constraints(data_type))
             
@@ -1512,25 +1529,12 @@ class Synthesiser:
         if amount == 0:
             return []
         
-        word_list, methods_map = self.list_match_methods(method)
-        self.resolved_methods = self.make_resolved_methods(word_list, methods_map)
-        
-        self.field_match_pairs = self.recursive_match_schema_fields(schema_model, word_list, method)
-        # match_fields() returns -> {schema_name: (names, matches)}
-        #print(self.field_match_pairs)
-        #print("")
-        self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
-        #print(self.applied_constraints)
-        
         self.method = method
         
-        self.outputpooling = {}
+        self.field_match_pairs = self.recursive_match_schema_fields(schema_model)
         
-        # self.field_match_pairs
-        # self.applied_constraints
-        # self.resolved_methods
-        # self.method
-        # self.outputpooling
+        self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
+        #print(self.applied_constraints)
         
         return self.synthesise_recursive(schema_model, method, amount)
         
