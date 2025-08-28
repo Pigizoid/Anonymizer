@@ -511,7 +511,8 @@ def test_generate_synth_data_expect_pass():
     method = "mixed"
     path = "" 
     schema_name = schema_model.__name__
-    
+    synth_g.field_match_pairs = synth_g.recursive_match_schema_fields(schema_model)
+    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(schema_model)
     synthesised_data = {}
     for name in schema_model.model_fields.keys():
         generate_path = path+f"{schema_model.__name__}({name})[1]"
@@ -522,7 +523,7 @@ def test_generate_synth_data_expect_pass():
             synth_g.applied_constraints[schema_name][name],
             generate_path
         )
-    assert schema_model(**return_value)
+    assert schema_model(**synthesised_data)
 
 
 def test_generate_synth_data_expect_alternate():
@@ -531,14 +532,24 @@ def test_generate_synth_data_expect_alternate():
 
 def test_generate_synth_data_expect_fail():
     
-    schema_model = generate_test2 #test2 should fail as dict wont have enough keys#
-    applied_constraints = synth.make_applied_constraints(schema_model)
-    return_value = {}
+    synth_g = Synthesiser("mixed")
+    
+    schema_model = generate_test2
+    method = "mixed"
+    path = "" 
+    schema_name = schema_model.__name__
+    synth_g.field_match_pairs = synth_g.recursive_match_schema_fields(schema_model)
+    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(schema_model)
+    synthesised_data = {}
     with pytest.raises(Exception):
-        for name, field in schema_model.model_fields.items():
-            generate_path = f"{name}[1]"
-            return_value[name] = synth.generate_synth_data(
-                name, field_match_pairs[name], applied_constraints[name], generate_path
+        for name in schema_model.model_fields.keys():
+            generate_path = path+f"{schema_model.__name__}({name})[1]"
+
+            synthesised_data[name] = synth_g.generate_synth_data(
+                name,
+                synth_g.field_match_pairs[schema_name][name],
+                synth_g.applied_constraints[schema_name][name],
+                generate_path
             )
 
 
