@@ -768,9 +768,11 @@ class Synthesiser:
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
 
-        if generate_path not in self.outputpooling or (
-            generate_path in self.outputpooling
-            and self.outputpooling[generate_path] == []
+        if (generate_path not in self.outputpooling or 
+            (
+                generate_path in self.outputpooling
+                and self.outputpooling[generate_path] == []
+            )
         ):
             pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
             amount = pooling_numbers[0]
@@ -1010,6 +1012,16 @@ class Synthesiser:
                     random.shuffle(data_pool)
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
+                    
+                    #if the data pool doesnt have enough elements, extend it with copies of existing elements
+                    original_len = len(data_pool)
+                    while len(data_pool) < pooling_count:
+                        # Append elements from the original list in order
+                        for item in data_pool[:original_len]:
+                            if len(data_pool) < pooling_count:
+                                data_pool.append(item)
+                            else:
+                                break
 
                 elif data_type is bool:
                     data_pool = [
@@ -1191,7 +1203,7 @@ class Synthesiser:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
-
+        return_value = constraints["annotation"](return_value)
         return return_value
 
     
@@ -1449,11 +1461,22 @@ class Synthesiser:
                         field_name, applied_constraints, generate_path
                     )
                 else:
-                    result = func()
-                    result = self.apply_constraints(
-                        result, applied_constraints, match_name, generate_path
-                    )
-                    output_data = applied_constraints["annotation"](result)
+                    if (generate_path not in self.outputpooling or 
+                        (
+                            generate_path in self.outputpooling
+                            and self.outputpooling[generate_path] == []
+                        )
+                    ):
+                        pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
+                        pooling_count = 1
+                        for x in pooling_numbers:
+                            pooling_count *= x
+                        
+                        data_pool = [ self.apply_constraints(func(), applied_constraints, match_name, generate_path) for _ in range(pooling_count) ]
+                        #can be used better for uniqueness and bulking later
+                        
+                        self.outputpooling[generate_path] = data_pool
+                    output_data = self.outputpooling[generate_path].pop()
 
             else:
                 if (
