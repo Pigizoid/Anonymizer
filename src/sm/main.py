@@ -45,12 +45,14 @@ def synth_func(
     """
     from line_profiler import LineProfiler
     lp = LineProfiler()
-    lp_wrapper = lp(Synthesiser.synthesise)
+    synth = Synthesiser()
+    lp_wrapper = lp(synth.synthesise)
     lp_wrapper(schema_model,method,amount)
     lp.print_stats()
     """
     start_time = time.time()
-    dataset = Synthesiser.synthesise(
+    synth = Synthesiser()
+    dataset = synth.synthesise(
         schema_model, method, amount
     )  # returns as [ data, data, ... ]
     elapsed_time = time.time() - start_time  # end timer

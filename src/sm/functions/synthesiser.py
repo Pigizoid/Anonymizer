@@ -23,36 +23,6 @@ fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
 
 
-"""
-		speed_data = [x for x in range(len(data_names))]
-		for index,name,provider in zip(range(len(data_names)),data_names,method_providers):
-			speed_data[index] = [provider() for x in range(amount)]
-		data_set = [schema_model(**dict(zip(data_names, vals))) for vals in zip(*speed_data)]
-"""
-
-
-"""
-
-class Synthesiser():
-	
-	@staticmethod
-	def synthesise(schema_model,method="faker",amount=1):
-		method_providers = []
-		if method == "faker":
-			method_providers = [fake.street_name,fake.city,fake.zipcode,fake.country]
-		elif method == "mimesis":
-			method_providers = [generic.address.street_name,generic.address.city,generic.address.zip_code,generic.address.country]
-		
-		data_set = []
-		data_names = ["street", "city","zip_code", "country"]
-		for x in range(amount):
-			data = {}
-			for name,provider in zip(data_names,method_providers):
-				data[name] = provider()
-			data_set.append(schema_model(**data))
-		return data_set
-"""
-
 
 def generate_provider_return_types(provider_names, provider_instances):
     return_types = {}
@@ -504,8 +474,11 @@ all_constr_attribs = {
 
 
 class Synthesiser:
-    @staticmethod
-    def list_faker_methods():
+    
+    def __init_(self):
+        pass
+    
+    def list_faker_methods(self):
         methods = []
         methods_map = {}
         fake = Faker()
@@ -518,8 +491,8 @@ class Synthesiser:
                 pass
         return (methods, methods_map)
 
-    @staticmethod
-    def list_mimesis_methods():
+    
+    def list_mimesis_methods(self):
         methods = []
         methods_map = {}
         for provider_name in sorted(generic.__dict__.keys()):
@@ -543,18 +516,18 @@ class Synthesiser:
                         methods_map[attr] = instance
         return (methods, methods_map)
 
-    @staticmethod
-    def list_match_methods(method):
+    
+    def list_match_methods(self, method):
         methods = []
         methods_map = {}
         if method == "faker":
-            methods, methods_map = Synthesiser.list_faker_methods()
+            methods, methods_map = self.list_faker_methods()
         elif method == "mimesis":
-            methods, methods_map = Synthesiser.list_mimesis_methods()
+            methods, methods_map = self.list_mimesis_methods()
         elif method == "mixed":
-            methodsF, methods_mapF = Synthesiser.list_faker_methods()
+            methodsF, methods_mapF = self.list_faker_methods()
 
-            methodsM, methods_mapM = Synthesiser.list_mimesis_methods()
+            methodsM, methods_mapM = self.list_mimesis_methods()
 
             methods = methodsF
             methods.extend(methodsM)
@@ -568,16 +541,16 @@ class Synthesiser:
         # print(f"Method: {method}, Map: {methods_map[method]}")
         return (methods, methods_map)
 
-    @staticmethod
-    def get_model_data(model: BaseModel):
+    
+    def get_model_data(self, model: BaseModel):
         model_data = []
         for field_name, model_field in model.model_fields.items():
             model_data.append([field_name, model_field])
         # print(type(model_field))
         return model_data
 
-    @staticmethod
-    def levenshtein_distance(word1, word2, modifiers=[0, 0, 0]):
+    
+    def levenshtein_distance(self, word1, word2, modifiers=[0, 0, 0]):
         len_word1, len_word2 = len(word1), len(word2)
         distance_point = [
             [0 for _ in range(len_word2 + 1)] for _ in range(len_word1 + 1)
@@ -596,8 +569,8 @@ class Synthesiser:
                 )
         return distance_point[len_word1][len_word2]
 
-    @staticmethod
-    def calc_difference(target_word, word, target_tokens, target_tokens_set):
+    
+    def calc_difference(self,target_word, word, target_tokens, target_tokens_set):
         if (
             ("".join([letter[0] for letter in word.split("_")])) == target_word.lower()
         ):  # abbreviation mapping	ssn -> social_security_number   #ssn is target word
@@ -607,13 +580,13 @@ class Synthesiser:
         ) == word:  # abbreviation mapping	social_security_number -> ssn
             return 0
 
-        main_distance = Synthesiser.levenshtein_distance(
+        main_distance = self.levenshtein_distance(
             target_word, word.lower()
         )  # close early exit
         if main_distance <= 1 or main_distance >= len(target_word):
             return main_distance
 
-        main_distance_joined = Synthesiser.levenshtein_distance(
+        main_distance_joined = self.levenshtein_distance(
             target_word.replace("_", ""), word.lower()
         )
         if main_distance_joined <= 1:
@@ -635,7 +608,7 @@ class Synthesiser:
                     distance = (main_distance / 2 + token_distance) / 2
                 else:
                     token_distance = (
-                        Synthesiser.levenshtein_distance(target_word, word.lower())
+                        self.levenshtein_distance(target_word, word.lower())
                         * cross_points
                     )
                     distance = (main_distance + token_distance) / 2
@@ -645,21 +618,20 @@ class Synthesiser:
                     distance = (main_distance / 2 + token_distance) / 2
                 else:
                     token_distance = (
-                        Synthesiser.levenshtein_distance(target_word, word.lower())
+                        self.levenshtein_distance(target_word, word.lower())
                         * cross_points
                     )
                     distance = (main_distance + token_distance) / 2
         else:
             distance = (
-                Synthesiser.levenshtein_distance(target_word, word.lower())
+                self.levenshtein_distance(target_word, word.lower())
                 * cross_points
             )
         return distance
 
-    @staticmethod
-    def match_fields(schema_model, method="faker"):
-        word_list, methods_map = Synthesiser.list_match_methods(method)
-        model_data = Synthesiser.get_model_data(schema_model)
+    
+    def match_fields(self, schema_model, word_list, method="faker"):
+        model_data = self.get_model_data(schema_model)
 
         field_matches = []
         for x in model_data:
@@ -670,23 +642,29 @@ class Synthesiser:
             target_tokens = target_word.split("_")
             target_tokens_set = set(target_tokens)
             for word in word_list:
-                distance = Synthesiser.calc_difference(
+                distance = self.calc_difference(
                     target_word, word, target_tokens, target_tokens_set
                 )
                 distances.append([word, distance])
             sorted_by_distance = sorted(distances, key=lambda x: x[1])
-            min_value = sorted_by_distance[0][1]
+            if sorted_by_distance != [] and sorted_by_distance[0] != []:
+                min_value = sorted_by_distance[0][1]
+            else:
+                min_value = (len(target_word) // 2 - 0.5)+1
             if min_value > (len(target_word) // 2 - 0.5):
                 potential_matches = []
                 for word in word_list:
                     if target_word in word:
-                        distance = Synthesiser.levenshtein_distance(
+                        distance = self.levenshtein_distance(
                             target_word, word, [-0.5, 0.5, -0.5]
                         )
                         potential_matches.append([word, distance])
                 sorted_match_by_distance = sorted(potential_matches, key=lambda x: x[1])
-                min_value = sorted_match_by_distance[0][1]
-                if min_value < len(target_word) // 2:
+                if sorted_match_by_distance != [] and sorted_match_by_distance[0] != []:
+                    min_value = sorted_match_by_distance[0][1]
+                else:
+                    min_value = (len(target_word) // 2)+1
+                if min_value > len(target_word) // 2:
                     closest_matches = [
                         item
                         for item in sorted_match_by_distance
@@ -700,11 +678,31 @@ class Synthesiser:
                 field_matches.append("")
             else:
                 field_matches.append(closest_matches[0][0])
-        # print({field_name:match for field_name,match in zip([x[0] for x in model_data],field_matches)})
-        return (([x[0] for x in model_data], field_matches), methods_map)
-
-    @staticmethod
-    def check_generation_constraints(name, field):
+        
+        field_match_pairs = {}
+        for name,match in zip([x[0] for x in model_data], field_matches):
+            field_match_pairs[name] = match
+        
+        return field_match_pairs
+    
+    def recursive_match_schema_fields(self, schema_model, word_list, method="faker"):
+        field_match_pairs = {}
+        model_data = self.get_model_data(schema_model)
+        
+        field_match_pairs[schema_model.__name__] = self.match_fields(schema_model, word_list, method)
+        for x in model_data:
+            data_type = x[1].annotation
+            if (
+                inspect.isclass(data_type)
+                and issubclass(data_type, BaseModel)
+                ):
+                field_match_pairs.update(self.recursive_match_schema_fields(data_type, word_list, method))
+                
+        
+        return field_match_pairs
+        
+    
+    def check_generation_constraints(self, name, field):
         cout = False
         if cout:
             print("__")
@@ -731,14 +729,14 @@ class Synthesiser:
 
         return constraints
 
-    @staticmethod
-    def generate_from_constraints(field_name, constraints, generate_path):
+    
+    def generate_from_constraints(self, field_name, constraints, generate_path):
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
 
-        if generate_path not in Synthesiser.outputpooling or (
-            generate_path in Synthesiser.outputpooling
-            and Synthesiser.outputpooling[generate_path] == []
+        if generate_path not in self.outputpooling or (
+            generate_path in self.outputpooling
+            and self.outputpooling[generate_path] == []
         ):
             pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
             amount = pooling_numbers[0]
@@ -1019,20 +1017,20 @@ class Synthesiser:
                     if data_pool == []:
                         raise Exception(f"No data pool for default:{generate_path}")
 
-            Synthesiser.outputpooling[generate_path] = data_pool
+            self.outputpooling[generate_path] = data_pool
             elapsed_time = time.time() - start_time  # end timer
             print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
-        return_value = Synthesiser.outputpooling[generate_path].pop()
-        if Synthesiser.outputpooling[generate_path] == []:
-            del Synthesiser.outputpooling[generate_path]
+        return_value = self.outputpooling[generate_path].pop()
+        if self.outputpooling[generate_path] == []:
+            del self.outputpooling[generate_path]
 
         return_value = constraints["annotation"](return_value)
         # input("wait...")
         # exit()
         return return_value
 
-    @staticmethod
-    def apply_constraints(return_value, constraints, match_name, generate_path):
+    
+    def apply_constraints(self, return_value, constraints, match_name, generate_path):
         ("strip_whitespace",)
         ("to_upper",)
         ("to_lower",)
@@ -1124,7 +1122,7 @@ class Synthesiser:
 
                     return_value = first + idx * multiple_of
                 else:  # data_type is float and constraints["decimal_places"] is not None
-                    return_value = Synthesiser.generate_from_constraints(
+                    return_value = self.generate_from_constraints(
                         match_name, constraints, generate_path
                     )
             else:
@@ -1134,7 +1132,7 @@ class Synthesiser:
                     try:
                         return_value = int(return_value)
                     except:
-                        return_value = Synthesiser.generate_from_constraints(
+                        return_value = self.generate_from_constraints(
                             match_name, constraints, generate_path
                         )
 
@@ -1148,7 +1146,7 @@ class Synthesiser:
             try:
                 return_value = complex(return_value)
             except:
-                return_value = Synthesiser.generate_from_constraints(
+                return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
 
@@ -1156,14 +1154,14 @@ class Synthesiser:
             try:
                 return_value = bytes(return_value)
             except:
-                return_value = Synthesiser.generate_from_constraints(
+                return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
 
         return return_value
 
-    @staticmethod
-    def generate_synth_data(field_name, match_name, applied_constraints, generate_path, resolved_methods):
+    
+    def generate_synth_data(self, field_name, match_name, applied_constraints, generate_path):
         # print("__")
         #print(f"	Generating for: {field_name}")
         # print(applied_constraints)
@@ -1192,8 +1190,8 @@ class Synthesiser:
             # print("___")
             # print(new_constraints)
             generate_path += ".Annotated"
-            output_data = Synthesiser.generate_synth_data(
-                field_name, match_name, new_constraints, generate_path, resolved_methods
+            output_data = self.generate_synth_data(
+                field_name, match_name, new_constraints, generate_path
             )
             # print("returned:",output_data)
             # input("wait...")
@@ -1214,7 +1212,7 @@ class Synthesiser:
                 if applied_constraints["max_length"] is not None:
                     max_amount = applied_constraints["max_length"]
                 else:
-                    max_amount = min_amount + 9
+                    max_amount = min_amount + 4
                 if data_type in [List, list]:
                     output_data = []
                     new_applied_constraints = applied_constraints.copy()
@@ -1230,12 +1228,11 @@ class Synthesiser:
                             generate_path + f".List({chosen_index})[{max_amount}]"
                         )
                         output_data.append(
-                            Synthesiser.generate_synth_data(
+                            self.generate_synth_data(
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                list_generate_path, 
-                                resolved_methods
+                                list_generate_path
                             )
                         )
 
@@ -1265,12 +1262,11 @@ class Synthesiser:
                     dict_keys = set()
                     while current_amount < target_amount:
                         generate_path_v1 = generate_path + f".Dict(Left)[{max_amount}]"
-                        v1 = Synthesiser.generate_synth_data(
+                        v1 = self.generate_synth_data(
                             field_name,
                             match_name,
                             new_left_applied_constraints,
-                            generate_path_v1, 
-                            resolved_methods
+                            generate_path_v1
                         )
 
                         dict_keys.add(v1)
@@ -1285,12 +1281,11 @@ class Synthesiser:
                                 break
                     for key in dict_keys:
                         generate_path_v2 = generate_path + f".Dict(Right)[{max_amount}]"
-                        v2 = Synthesiser.generate_synth_data(
+                        v2 = self.generate_synth_data(
                             field_name,
                             match_name,
                             new_right_applied_constraints,
-                            generate_path_v2,
-                            resolved_methods
+                            generate_path_v2
                         )
                         output_data[key] = v2
 
@@ -1298,7 +1293,7 @@ class Synthesiser:
                     output_data = []
                     new_applied_constraints = applied_constraints.copy()
                     if len(data_args) == 0:
-                        data_args = [str for x in range(random.randint(1, 10))]
+                        data_args = [str for x in range(random.randint(min_amount, max_amount))]
                     for x in range(len(data_args)):
                         chosen_type = data_args[x]
                         new_applied_constraints["annotation"] = chosen_type
@@ -1308,12 +1303,11 @@ class Synthesiser:
                             generate_path + f".Tuple({x})[{max_amount}]"
                         )
                         output_data.append(
-                            Synthesiser.generate_synth_data(
+                            self.generate_synth_data(
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                tuple_generate_path,
-                                resolved_methods
+                                tuple_generate_path
                             )
                         )
 
@@ -1339,12 +1333,11 @@ class Synthesiser:
                             generate_path + f".{pathstr}({0})[{max_amount}]"
                         )
                         output_data.append(
-                            Synthesiser.generate_synth_data(
+                            self.generate_synth_data(
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                set_generate_path,
-                                resolved_methods
+                                set_generate_path
                             )
                         )
                         current_amount = len(output_data)
@@ -1367,8 +1360,8 @@ class Synthesiser:
                     new_applied_constraints["origin"] = get_origin(chosen_type)
                     new_applied_constraints["args"] = get_args(chosen_type)
                     generate_path += f".Union({chosen_index})"
-                    output_data = Synthesiser.generate_synth_data(
-                        field_name, match_name, new_applied_constraints, generate_path, resolved_methods
+                    output_data = self.generate_synth_data(
+                        field_name, match_name, new_applied_constraints, generate_path
                     )
 
                 elif data_type == Optional:
@@ -1384,12 +1377,11 @@ class Synthesiser:
                         new_applied_constraints["origin"] = get_origin(chosen_type)
                         new_applied_constraints["args"] = get_args(chosen_type)
                         generate_path += f".Optional({chosen_index})"
-                        output_data = Synthesiser.generate_synth_data(
+                        output_data = self.generate_synth_data(
                             field_name,
                             match_name,
                             new_applied_constraints,
-                            generate_path,
-                            resolved_methods
+                            generate_path
                         )
 
                 elif data_type == Literal:
@@ -1405,19 +1397,19 @@ class Synthesiser:
                 # print("	recursive")
             elif data_type in python_builtin_types:
                 # print("	generate data")
-                func = resolved_methods.get(match_name)
+                func = self.resolved_methods.get(match_name)
                 # print(applied_constraints["pattern"])
                 # print(func)
                 # print(match_name)
                 if applied_constraints["pattern"] or not func or match_name == "":
                     # print("generating,",field_name)
-                    # print(inspect.getsource(Synthesiser.generate_from_constraints))
-                    output_data = Synthesiser.generate_from_constraints(
+                    # print(inspect.getsource(self.generate_from_constraints))
+                    output_data = self.generate_from_constraints(
                         field_name, applied_constraints, generate_path
                     )
                 else:
                     result = func()
-                    result = Synthesiser.apply_constraints(
+                    result = self.apply_constraints(
                         result, applied_constraints, match_name, generate_path
                     )
                     output_data = applied_constraints["annotation"](result)
@@ -1430,8 +1422,8 @@ class Synthesiser:
                     and issubclass(data_type, BaseModel)  
                     # extra checks to make sure its a BaseModel
                 ):
-                    output_data = Synthesiser.synthesise_with_schema(
-                        data_type, Synthesiser.method, amount=1
+                    output_data = self.synthesise_recursive(
+                        data_type, self.method, amount=1, path=generate_path+"."
                     )[0]  # [0] because amount = 1
                     #print("big nested")
 
@@ -1439,14 +1431,6 @@ class Synthesiser:
                     raise Exception(
                         f"Unkown data type ({data_type}) for field {field_name}"
                     )
-                """
-				if inspect.isclass(data_type):
-					if issubclass(data_type, BaseModel):
-						pass  # print("	nest")
-					output_data = None
-				else:
-					output_data = None
-				"""
 
         # print(f"Data: {output_data}")
         # print("__")
@@ -1455,19 +1439,36 @@ class Synthesiser:
 
         return output_data
 
-    @staticmethod
-    def make_applied_constraints(schema_model):
+    
+    def make_applied_constraints(self, schema_model):
         applied_constraints = {}
 
         for name, field in schema_model.model_fields.items():
-            applied_constraints[name] = Synthesiser.check_generation_constraints(
+            applied_constraints[name] = self.check_generation_constraints(
                 name, field
             )
 
         return applied_constraints
-
-    @staticmethod
-    def make_resolved_methods(name_match_pairs, methods_map):
+    
+    def recursive_make_schema_applied_constraints(self, schema_model):
+        applied_constraints = {}
+        model_data = self.get_model_data(schema_model)
+        
+        applied_constraints[schema_model.__name__] = self.make_applied_constraints(schema_model)
+        
+        for x in model_data:
+            data_type = x[1].annotation
+            if (
+                inspect.isclass(data_type)
+                and issubclass(data_type, BaseModel)
+                ):
+                applied_constraints.update(self.recursive_make_schema_applied_constraints(data_type))
+            
+        
+        return applied_constraints
+        
+    
+    def make_resolved_methods(self, name_match_pairs, methods_map):
         resolved_methods = {}
         for match_name in name_match_pairs:
             if match_name != "":
@@ -1478,64 +1479,60 @@ class Synthesiser:
         #print("r",resolved_methods)
         return resolved_methods
 
-    @staticmethod
-    def synthesise_with_schema(schema_model, method="faker", amount=1):
-        # methods = faker or mimesis
-
-        if amount == 0:
-            return []
-
-        name_match_pairs, methods_map = Synthesiser.match_fields(schema_model, method)
-        # match_fields() returns -> ((names, matches), methods_map)
-
-        field_match_pairs = {
-            name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
-        }
-        # print(field_match_pairs)
-
-        applied_constraints = Synthesiser.make_applied_constraints(schema_model)
-        # print(applied_constraints)
-
-        resolved_methods = Synthesiser.make_resolved_methods(name_match_pairs[1], methods_map)
-        # print(resolved_methods)
-
-        Synthesiser.method = method
+    
+    def synthesise_recursive(self, schema_model, method="faker", amount=1, path=""):
+        
+        schema_name = schema_model.__name__
+        
         dataset = []
         for x in range(amount):
             synthesised_data = {}
             # print("__")
             for name in schema_model.model_fields.keys():
                 # print(f"Field:{name}")
-                if not applied_constraints[name]["required"]:
+                if not self.applied_constraints[schema_name][name]["required"]:
                     if random.randint(1, 2) == 1:
                         continue
+                generate_path = path+f"{schema_model.__name__}({name})[{amount}]"
 
-                if field_match_pairs[name] != "":
-                    provider_instance = methods_map[field_match_pairs[name]]
-                else:
-                    provider_instance = ""
-
-                generate_path = f"{schema_model.__name__}({name})[{amount}]"
-
-                synthesised_data[name] = Synthesiser.generate_synth_data(
+                synthesised_data[name] = self.generate_synth_data(
                     name,
-                    field_match_pairs[name],
-                    applied_constraints[name],
-                    generate_path,
-                    resolved_methods
+                    self.field_match_pairs[schema_name][name],
+                    self.applied_constraints[schema_name][name],
+                    generate_path
                 )
                 # print(f"	Data:{synthesised_data[name]}")
             # print("__")
             dataset.append(schema_model(**synthesised_data))
         return dataset
     
-    @staticmethod
-    def synthesise(schema_model, method="faker", amount=1):
+    
+    def synthesise(self, schema_model, method="faker", amount=1):
         
-        # initialise global pool dict
-        Synthesiser.outputpooling = {}
+        if amount == 0:
+            return []
         
-        return Synthesiser.synthesise_with_schema(schema_model, method, amount)
+        word_list, methods_map = self.list_match_methods(method)
+        self.resolved_methods = self.make_resolved_methods(word_list, methods_map)
+        
+        self.field_match_pairs = self.recursive_match_schema_fields(schema_model, word_list, method)
+        # match_fields() returns -> {schema_name: (names, matches)}
+        #print(self.field_match_pairs)
+        #print("")
+        self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
+        #print(self.applied_constraints)
+        
+        self.method = method
+        
+        self.outputpooling = {}
+        
+        # self.field_match_pairs
+        # self.applied_constraints
+        # self.resolved_methods
+        # self.method
+        # self.outputpooling
+        
+        return self.synthesise_recursive(schema_model, method, amount)
         
         
         
@@ -1546,7 +1543,8 @@ class Synthesiser:
 
 
 def setup_func():
-    names, instances = Synthesiser.list_match_methods("mixed")
+    synth = Synthesiser()
+    names, instances = synth.list_match_methods("mixed")
     print(generate_provider_return_types(names, instances))
 
 
