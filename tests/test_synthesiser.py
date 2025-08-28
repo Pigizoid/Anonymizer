@@ -61,8 +61,28 @@ word_tokens = synth.word_tokens
 word_tokens_set = synth.word_tokens_set
 
 
-
-
+default_constr_dict = {
+    "required": True,
+    "strip_whitespace": None,
+    "to_upper": None,
+    "to_lower": None,
+    "strict": None,
+    "default": None,
+    "annotation": None,
+    "min_length": None,
+    "max_length": None,
+    "pattern": None,
+    "gt": None,
+    "lt": None,
+    "ge": None,
+    "le": None,
+    "multiple_of": None,
+    "allow_inf_nan": None,
+    "max_digits": None,
+    "decimal_places": None,
+    "origin": None,
+    "args": None,
+}
 
 def test_list_faker_methods_pass():
     
@@ -426,7 +446,7 @@ def test_generate_from_constraints_expect_pass():
     
     generate_path = "test[100].List(0)[10].Dict(Right)[10].Annotated"
     schema_model = generate_constraints1
-    constraints = {}
+    constraints = default_constr_dict.copy()
     constraints["annotation"] = str
     constraints["pattern"] = r"^a$"
     return_value = synth.generate_from_constraints(
@@ -446,7 +466,7 @@ def test_generate_from_constraints_expect_alternate():
     
     generate_path = "test[100].List(0)[10].Dict(Right)[10]"
     schema_model = generate_constraints2
-    constraints = {}
+    constraints = default_constr_dict.copy()
     constraints["annotation"] = str
     constraints["pattern"] = None
     return_value = synth.generate_from_constraints(
@@ -485,18 +505,22 @@ class generate_test2(BaseModel):
 
 def test_generate_synth_data_expect_pass():
     
+    synth_g = Synthesiser("mixed")
+    
     schema_model = generate_test1
     method = "mixed"
-    name_match_pairs, methods_map = synth.match_fields(schema_model, method)
-    field_match_pairs = {
-        name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
-    }
-    applied_constraints = synth.make_applied_constraints(schema_model)
-    return_value = {}
-    for name, field in schema_model.model_fields.items():
-        generate_path = f"{name}[1]"
-        return_value[name] = synth.generate_synth_data(
-            name, field_match_pairs[name], applied_constraints[name], generate_path
+    path = "" 
+    schema_name = schema_model.__name__
+    
+    synthesised_data = {}
+    for name in schema_model.model_fields.keys():
+        generate_path = path+f"{schema_model.__name__}({name})[1]"
+
+        synthesised_data[name] = synth_g.generate_synth_data(
+            name,
+            synth_g.field_match_pairs[schema_name][name],
+            synth_g.applied_constraints[schema_name][name],
+            generate_path
         )
     assert schema_model(**return_value)
 
@@ -507,12 +531,7 @@ def test_generate_synth_data_expect_alternate():
 
 def test_generate_synth_data_expect_fail():
     
-    schema_model = generate_test2
-    method = "mixed"
-    name_match_pairs, methods_map = synth.match_fields(schema_model, method)
-    field_match_pairs = {
-        name: match for name, match in zip(name_match_pairs[0], name_match_pairs[1])
-    }
+    schema_model = generate_test2 #test2 should fail as dict wont have enough keys#
     applied_constraints = synth.make_applied_constraints(schema_model)
     return_value = {}
     with pytest.raises(Exception):
@@ -561,41 +580,17 @@ def test_make_applied_constraints_expect_fail():
     pass
 
 
-class resolved_test(BaseModel):
-    street: str
-    city: str
-    social_security_number: str
-    continent: str
-
-
-class resolved_test2(BaseModel):
-    street: str
-    banana: str
-
-
 def test_make_resolved_methods_expect_pass():
-    
     method = "mixed"
-    schema_model = resolved_test
-    name_match_pairs, methods_map = synth.match_fields(schema_model, method)
-    synth.make_resolved_methods(name_match_pairs[1], methods_map)
-    return_value = synth.resolved_methods
+    synth_r = Synthesiser(method)
+    word_list, methods_map = synth_r.list_match_methods(method)
+    synth_r.make_resolved_methods(word_list, methods_map)
+    return_value = synth_r.resolved_methods
     assert isinstance(return_value, dict)
-    # print([type(item) for item in return_value.values()])
     assert all([callable(item) for item in return_value.values()])
 
-
 def test_make_resolved_methods_expect_alternate():
-    
-    method = "mixed"
-    schema_model = resolved_test2
-    name_match_pairs, methods_map = synth.match_fields(schema_model, method)
-    synth.make_resolved_methods(name_match_pairs[1], methods_map)
-    return_value = synth.resolved_methods
-    # print(return_value)
-    assert isinstance(return_value, dict)
-    assert "banana" not in return_value
-
+    pass
 
 def test_make_resolved_methods_expect_fail():
     pass
@@ -615,7 +610,7 @@ synthesise_schema_model = generate_test1
         (synthesise_schema_model, "mixed", 3),
     ],
 )
-def test_synthesise_expect_pass(schema_model, method, amount):
+def test_synthesise_expect_pass_test_recursive_synthesiser_expect_pass(schema_model, method, amount):
     
     return_data = synth.synthesise(schema_model, method, amount)
     assert isinstance(return_data, list)

@@ -472,6 +472,29 @@ all_constr_attribs = {
     "decimal_places",
 }
 
+default_constr_dict = {
+    "required": True,
+    "strip_whitespace": None,
+    "to_upper": None,
+    "to_lower": None,
+    "strict": None,
+    "default": None,
+    "annotation": None,
+    "min_length": None,
+    "max_length": None,
+    "pattern": None,
+    "gt": None,
+    "lt": None,
+    "ge": None,
+    "le": None,
+    "multiple_of": None,
+    "allow_inf_nan": None,
+    "max_digits": None,
+    "decimal_places": None,
+    "origin": None,
+    "args": None,
+}
+
 
 class Synthesiser:
     
@@ -692,17 +715,12 @@ class Synthesiser:
         
         return field_match_pairs
     
-    def recursive_match_schema_fields(self, schema_model, field_match_pairs={}):
+    def recursive_match_schema_fields(self, schema_model, field_match_pairs={}): #needs test
         model_data = self.get_model_data(schema_model)
         
         if schema_model.__name__ not in field_match_pairs.keys():
             field_match_pairs[schema_model.__name__] = self.match_fields(schema_model)
         
-        from line_profiler import LineProfiler
-        lp = LineProfiler()
-        lp_wrapper = lp(self.match_fields)
-        lp_wrapper(schema_model)
-        lp.print_stats()
         
         for x in model_data:
             data_type = x[1].annotation
@@ -711,7 +729,7 @@ class Synthesiser:
                 and issubclass(data_type, BaseModel)
                 and data_type.__name__ not in field_match_pairs.keys()
                 ):
-                print(data_type.__name__, field_match_pairs.keys())
+                #print(data_type.__name__, field_match_pairs.keys())
                 field_match_pairs.update(self.recursive_match_schema_fields(data_type))
                 
         
@@ -1046,7 +1064,7 @@ class Synthesiser:
         return return_value
 
     
-    def apply_constraints(self, return_value, constraints, match_name, generate_path):
+    def apply_constraints(self, return_value, constraints, match_name, generate_path): #needs test
         ("strip_whitespace",)
         ("to_upper",)
         ("to_lower",)
@@ -1231,7 +1249,8 @@ class Synthesiser:
                     max_amount = min_amount + 4
                 if data_type in [List, list]:
                     output_data = []
-                    new_applied_constraints = applied_constraints.copy()
+                    new_applied_constraints = default_constr_dict.copy()
+                    new_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
                         data_args = [str]
                     for x in range(random.randint(min_amount, max_amount)):
@@ -1253,8 +1272,10 @@ class Synthesiser:
                         )
 
                 elif data_type in [Dict, dict]:
-                    new_left_applied_constraints = applied_constraints.copy()
-                    new_right_applied_constraints = applied_constraints.copy()
+                    new_left_applied_constraints = default_constr_dict.copy()
+                    new_left_applied_constraints.update(applied_constraints)
+                    new_right_applied_constraints = default_constr_dict.copy()
+                    new_right_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
                         data_args = [str, str]
                     chosen_type_left = data_args[0]
@@ -1307,7 +1328,8 @@ class Synthesiser:
 
                 elif data_type in [Tuple, tuple]:
                     output_data = []
-                    new_applied_constraints = applied_constraints.copy()
+                    new_applied_constraints = default_constr_dict.copy()
+                    new_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
                         data_args = [str for x in range(random.randint(min_amount, max_amount))]
                     for x in range(len(data_args)):
@@ -1329,7 +1351,8 @@ class Synthesiser:
 
                 elif data_type in [Set, set, frozenset]:
                     output_data = []
-                    new_applied_constraints = applied_constraints.copy()
+                    new_applied_constraints = default_constr_dict.copy()
+                    new_applied_constraints.update(applied_constraints)
                     current_amount = 0
                     target_amount = random.randint(min_amount, max_amount)
                     if len(data_args) == 0:
@@ -1369,7 +1392,8 @@ class Synthesiser:
                         output_data = frozenset(output_data)
 
                 elif data_type == Union:
-                    new_applied_constraints = applied_constraints.copy()
+                    new_applied_constraints = default_constr_dict.copy()
+                    new_applied_constraints.update(applied_constraints)
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
                     new_applied_constraints["annotation"] = chosen_type
@@ -1382,7 +1406,8 @@ class Synthesiser:
 
                 elif data_type == Optional:
                     # should use Union, but still here for fallback
-                    new_applied_constraints = applied_constraints.copy()
+                    new_applied_constraints = default_constr_dict.copy()
+                    new_applied_constraints.update(applied_constraints)
                     data_args.extend(None)
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
@@ -1466,7 +1491,7 @@ class Synthesiser:
 
         return applied_constraints
     
-    def recursive_make_schema_applied_constraints(self, schema_model):
+    def recursive_make_schema_applied_constraints(self, schema_model): #needs test
         applied_constraints = {}
         model_data = self.get_model_data(schema_model)
         
