@@ -1,12 +1,12 @@
-#UTILS_anon.py
+#app_anon.py
 
 import typing
 from typing_extensions import Annotated
 
 import typer
 
-from .UTILS_funcs import *
-from .UTILS_models import AnonymiserConfig
+from .helper_funcs import *
+from .app_models import AnonymiserConfig
 import json
 
 anon_app = typer.Typer()
@@ -23,8 +23,11 @@ def anon_auto(
 ):
     if ctx.invoked_subcommand is not None: #this allows a default without running extra code
         return
+    ctx.params["amount"] = 1
+    ctx.params["start"] = 0
+    ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
-    print(flags)
+    print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
     anon_flags = flags.anon
     output_file_path = load_file_path(anon_flags.output)
@@ -66,7 +69,7 @@ def anon_manual(
         ctx.params["fields"] = None
     
     flags = return_flags(ctx, AnonymiserConfig)
-    print(flags)
+    print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
     anon_flags = flags.anon
     output_file_path = load_file_path(anon_flags.output)

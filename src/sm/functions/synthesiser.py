@@ -570,7 +570,7 @@ class Synthesiser:
         return (methods, methods_map)
 
     
-    def get_model_data(self, model: BaseModel):
+    def get_model_data(self, model):
         model_data = []
         for field_name, model_field in model.model_fields.items():
             model_data.append([field_name, model_field])
@@ -660,15 +660,13 @@ class Synthesiser:
         return distance
 
     
-    def match_fields(self, schema_model):
-        model_data = self.get_model_data(schema_model)
+    def match_fields(self, field_names):
 
         field_matches = []
-        for x in model_data:
+        for t_word in field_names:
             closest_matches = []
             distances = []
-            target_word = x[0]
-            target_word = target_word.lower()
+            target_word = t_word.lower()
             target_tokens = target_word.split("_")
             target_tokens_set = set(target_tokens)
             for word in self.word_list:
@@ -676,7 +674,7 @@ class Synthesiser:
                     target_word, word, self.word_tokens[word], self.word_tokens_set[word], target_tokens, target_tokens_set
                 )
                 distances.append([word, distance])
-            sorted_by_distance = sorted(distances, key=lambda x: x[1])
+            sorted_by_distance = sorted(distances, key=lambda dist: dist[1])
             if sorted_by_distance != [] and sorted_by_distance[0] != []:
                 min_value = sorted_by_distance[0][1]
             else:
@@ -689,7 +687,7 @@ class Synthesiser:
                             target_word, word, [-0.5, 0.5, -0.5]
                         )
                         potential_matches.append([word, distance])
-                sorted_match_by_distance = sorted(potential_matches, key=lambda x: x[1])
+                sorted_match_by_distance = sorted(potential_matches, key=lambda dist: dist[1])
                 if sorted_match_by_distance != [] and sorted_match_by_distance[0] != []:
                     min_value = sorted_match_by_distance[0][1]
                 else:
@@ -710,16 +708,16 @@ class Synthesiser:
                 field_matches.append(closest_matches[0][0])
         
         field_match_pairs = {}
-        for name,match in zip([x[0] for x in model_data], field_matches):
+        for name,match in zip([x for x in field_names], field_matches):
             field_match_pairs[name] = match
         
         return field_match_pairs
     
     def recursive_match_schema_fields(self, schema_model, field_match_pairs={}): #needs test
         model_data = self.get_model_data(schema_model)
-        
+        field_names =  [ x[0] for x in model_data]
         if schema_model.__name__ not in field_match_pairs.keys():
-            field_match_pairs[schema_model.__name__] = self.match_fields(schema_model)
+            field_match_pairs[schema_model.__name__] = self.match_fields(field_names)
         
         
         for x in model_data:

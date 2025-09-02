@@ -1,12 +1,12 @@
-#UTILS_synth.py
+#app_synth.py
 
 import typing
 from typing_extensions import Annotated
 
 import typer
 
-from .UTILS_funcs import *
-from .UTILS_models import SynthesiserConfig
+from .helper_funcs import *
+from .app_models import SynthesiserConfig
 
 synth_app = typer.Typer()   
 
@@ -22,13 +22,15 @@ def synth_single(
 ):  
     if ctx.invoked_subcommand is not None: #this allows a default without running extra code
         return
+    ctx.params["amount"] = 1
+    ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
-    print(flags)
+    print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
     synth_flags = flags.synth
     output_file_path = load_file_path(synth_flags.output)
     
-    synth_func(schema_model, synth_flags.method, 1, output_file_path, cout=synth_flags.cout)
+    synth_func(schema_model, synth_flags.method, synth_flags.amount, output_file_path, cout=synth_flags.cout)
     
     close_folder(output_file_path)
 
@@ -42,7 +44,7 @@ def synth_batch(
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
     flags = return_flags(ctx, SynthesiserConfig)
-    print(flags)
+    print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
     synth_flags = flags.synth
     output_file_path = load_file_path(synth_flags.output)

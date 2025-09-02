@@ -13,28 +13,122 @@ runner = CliRunner()
 
 test_dir = os.getcwd()+"\\tests"
 
-def test_synthesise():
+def test_synth_single():
     os.chdir(test_dir)
     print(os.getcwd())
     result = runner.invoke(
         app,
         [
-            "synthesise",
+            "synth",
+        ],
+    )
+    print(result)
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+
+def test_main_config_single():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "--config",
+            "config.yaml",
+            "synth",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+    assert "output='test_output'" in result.stdout
+
+def test_main_config_batch():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "--config",
+            "config.yaml",
+            "synth",
+            "batch",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+    assert "amount=8" in result.stdout
+    assert "batch=4" in result.stdout
+
+def test_synth_single_method():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "synth",
             "--method",
-            "mixed",
-            "--amount",
-            "10",
-            "--batch",
-            "5",
+            "faker",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+    assert "method='faker'" in result.stdout
+
+def test_synth_single_output():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "synth",
             "--output",
-            "test_out",
+            "output_file",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+    assert "output='output_file'" in result.stdout
+    
+
+def test_synth_single_cout():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "synth",
             "--cout",
         ],
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
+    assert "cout=True)" in result.stdout
+    
 
 
+
+
+def test_synth_batch():
+    os.chdir(test_dir)
+    print(os.getcwd())
+    result = runner.invoke(
+        app,
+        [
+            "synth",
+            "batch",
+            "--amount",
+            "3",
+            "--batch",
+            "6",
+        ],
+    )
+    assert result.exit_code == 0
+    assert "Args:" in result.stdout
+    assert "amount=3" in result.stdout
+    assert "batch=6" in result.stdout
+
+
+
+'''
 def test_anonymise():
     os.chdir(test_dir)
     print(os.getcwd())
@@ -55,15 +149,13 @@ def test_anonymise():
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
+'''
 
-ingest: str = (None,)
-method: str = (None,)
-amount: int = (None,)
-start: int = (None,)
-output: str = (None,)
-manual: Annotated[typing.Optional[bool], typer.Option("--manual/--no-manual")] = (None,)
-cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = (None,)
-config: str = None
+
+
+
+
+
 """
 
 

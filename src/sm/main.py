@@ -16,10 +16,10 @@ import yaml
 
 app = typer.Typer()
 
-from .UTILS.UTILS_synth import synth_app
-from .UTILS.UTILS_anon import anon_app
-from .UTILS.UTILS_funcs import *
-from .UTILS.UTILS_models import SynthesiserConfig, AnonymiserConfig
+from .tools.app_synth import synth_app
+from .tools.app_anon import anon_app
+from .tools.helper_funcs import *
+from .tools.app_models import SynthesiserConfig, AnonymiserConfig
 
 app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
@@ -72,6 +72,41 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
             "anon": anon_defaults
         }
         return defaults
+
+    from collections.abc import Mapping
+
+    def deep_merge(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
+        """Standard deep dict merge: returns a new dict with b merged into a."""
+        out = dict(a)
+        for k, v in (b or {}).items():
+            if k in out and isinstance(out[k], Mapping) and isinstance(v, Mapping):
+                out[k] = deep_merge(out[k], v)
+            else:
+                out[k] = v
+        return out
+
+    def composite_source(sources):
+        """
+        this exists solely to merge input sources because pydantic merges dicts from source without allowing an option to overwirte the dict
+        """
+        order_low_to_high = reversed(sources)
+
+        result: Dict[str, Any] = {}
+        last_anon_fields = None
+
+        for src in order_low_to_high:
+            data = src() if callable(src) else (src or {})
+            anon = data.get("anon")
+            if isinstance(anon, Mapping) and "fields" in anon:
+                last_anon_fields = anon["fields"]
+            result = deep_merge(result, data)
+        
+        if last_anon_fields is not None:
+            if "anon" not in result or not isinstance(result["anon"], Mapping):
+                result["anon"] = {}
+            result["anon"]["fields"] = last_anon_fields
+
+        return result
     
     class Settings(BaseSettings):
         schema_path: str
@@ -86,13 +121,16 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         dotenv_settings,
         file_secret_settings,
     ):
-        return (
-            init_settings,          # highest priority: values passed into the constructor
-            yaml_settings_source,   # next priority: values from YAML file
-            schema_defaults_source, # then schema defaults loaded from schema.py
-            env_settings,
-            file_secret_settings,
-        )
+        def build_source():
+            return composite_source([
+                init_settings,          # highest priority: values passed into the constructor
+                yaml_settings_source,   # next priority: values from YAML file
+                schema_defaults_source, # then schema defaults loaded from schema.py
+                env_settings,
+                dotenv_settings,
+                file_secret_settings,
+            ])
+        return (build_source,)
     
     Settings.settings_customise_sources = classmethod(_settings_customise_sources)
     return Settings

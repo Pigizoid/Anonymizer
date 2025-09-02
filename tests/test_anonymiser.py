@@ -60,11 +60,13 @@ def test_anonymise_expect_pass():
     manual = True
     fields = {"street": "default", "city": "default"}
     return_data = Anonymiser.anonymise(schema_model, data, method, manual, fields)
-    assert isinstance(return_data, dict)
-    assert return_data["street"] != "street"
-    assert return_data["city"] != "city"
-    assert return_data["social_security_number"] == "social_security_number"
-    assert return_data["continent"] == "continent"
+    print(return_data)
+    assert isinstance(return_data, list)
+    assert all([isinstance(x, dict) for x in return_data])
+    assert all([x["street"] != "street" for x in return_data])
+    assert all([x["city"] != "city" for x in return_data])
+    assert all([x["social_security_number"] == "social_security_number" for x in return_data])
+    assert all([x["continent"] == "continent" for x in return_data])
 
 
 def test_anonymise_expect_alternate():

@@ -2,12 +2,12 @@
   schema: schema.py
   synthesiser:
     method: faker
-    amount: 500
-    batch:  100
-    output: output
+    amount: 8
+    batch:  4
+    output: test_output
     cout: false
   anonymiser:
-    ingest: output
+    ingest: data.json
     method: mixed
     amount: 1
     start: 8

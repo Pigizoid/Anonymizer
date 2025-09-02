@@ -239,8 +239,8 @@ def test_calc_difference_fail():
 
 
 def test_match_fields_expect_pass():
-    
-    return_value = synth.match_fields(test_Address)
+    field_names = [name for name,content in test_Address.model_fields.items()]
+    return_value = synth.match_fields(field_names)
     assert isinstance(return_value, dict)
     assert all([isinstance(x, str) and isinstance(y, str) for x,y in return_value.items()])
 
@@ -255,8 +255,8 @@ class test_Address_2(BaseModel):
 def test_match_fields_expect_alternate_methods():
     
     synth_match1 = Synthesiser(method="faker")
-    
-    return_value_faker = synth_match1.match_fields(test_Address_2)
+    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    return_value_faker = synth_match1.match_fields(field_names)
     assert return_value_faker["street"] != ""
     assert return_value_faker["city"] != ""
     assert return_value_faker["social_security_number"] != ""
@@ -266,8 +266,8 @@ def test_match_fields_expect_alternate_methods():
 def test_match_fields_expect_alternate_methods1():
     
     synth_match1 = Synthesiser(method="mimesis")
-    
-    return_value_mimesis = synth_match1.match_fields(test_Address_2)
+    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    return_value_mimesis = synth_match1.match_fields(field_names)
     assert return_value_mimesis["street"] != ""
     assert return_value_mimesis["city"] != ""
     assert return_value_mimesis["social_security_number"] == ""  # doesnt contain this
@@ -277,8 +277,8 @@ def test_match_fields_expect_alternate_methods1():
 def test_match_fields_expect_alternate_methods2():
     
     synth_match1 = Synthesiser(method="mixed")
-    
-    return_value_mixed = synth_match1.match_fields(test_Address_2)
+    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    return_value_mixed = synth_match1.match_fields(field_names)
     assert return_value_mixed["street"] != ""
     assert return_value_mixed["city"] != ""
     assert return_value_mixed["social_security_number"] != ""

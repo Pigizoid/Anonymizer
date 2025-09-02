@@ -1,4 +1,4 @@
-#UTILS_models.py
+#app_models.py
 from pydantic import BaseModel, Field
 import typing
 

@@ -1,4 +1,4 @@
-#UTILS_funcs.py
+#helper_funcs.py
 
 from pydantic import BaseModel
 from decimal import Decimal
@@ -11,6 +11,7 @@ except:
     from ..functions.synthesiser import Synthesiser
     from ..functions.anonymiser import Anonymiser
 
+from .app_models import *
 
 import importlib.util
 import inspect
@@ -154,7 +155,10 @@ def return_flags(ctx,config_schema):
     settings = ctx.obj["settings"]
     schema_path = ctx.obj["schema_path"]
     params = {key:param for key,param in ctx.params.items() if param is not None}
-    flags = settings(schema_path=schema_path,synth=config_schema(**params))
+    if config_schema == SynthesiserConfig:
+        flags = settings(schema_path=schema_path,synth=params)
+    else:
+        flags = settings(schema_path=schema_path,anon=params)
     return flags
 
 
@@ -254,7 +258,6 @@ def anon_func(
             Anonymiser.anonymise(schema_model, data_item, method, manual, fields)
             for data_item in data
         ]
-
         for index, data_entry in enumerate(anonymised_data):
             output_data = {}
             for key, value in dict(data_entry).items():
@@ -279,7 +282,6 @@ def anon_func(
         anonymised_data = Anonymiser.anonymise(
             schema_model, data, method, manual, fields
         )
-
         for index, data_entry in enumerate(anonymised_data):
             output_data = {}
             for key, value in dict(data_entry).items():

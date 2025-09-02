@@ -40,7 +40,7 @@ def convert_schema_to_JSON(schema_model):
 
 def normalise_JSON_schema_to_pydantic(JSON_schema):
     
-    pydantic_model = json_schema_to_pydantic.create_model(schema)
+    pydantic_model = json_schema_to_pydantic.create_model(JSON_schema)
     return pydantic_model
 
 def normalise_schema_to_pydantic(schema_model):

@@ -1,9 +1,44 @@
 Anonymizer
+|basicapp
+|\
+|
+|
 |img
-|\images used for README
+| \
+| |test.png
 |
-|FileNavigation.txt
+|src
+| \
+| |sm
+| | \
+| | |functions
+| | | \
+| | | |__init__.py
+| | | |anonymizer.py
+| | | |synthesiser.py
+| | |
+| | |UTILS
+| | | \
+| | | |__init__.py
+| | | |UTILS_anon.py
+| | | |UTILS_funcs.py
+| | | |UTILS_models.py
+| | | |UTILS_synth.py
+| | |
+| | |__init__.py
+| | |main.py
+| | |main(old).py
 |
+|tests
+| \
+| |__init__.py
+| |schema.py
+| |test_anonymiser.py
+| |test_main.py
+| |test_synthesiser.py
+|
+|.gitignore
+|.python-version
+|FileNavigation
 |pyproject.toml
-|
 |README.md
