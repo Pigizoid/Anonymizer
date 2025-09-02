@@ -1,37 +1,54 @@
+#UTILS_main.py
+
+
+
+
 from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 import typing
-from typing_extensions import Annotated  # typing_extensions is part of pydantic
+from typing import Optional, Dict, Tuple, List, Any
 from decimal import Decimal
+from pathlib import Path
+
+from typing_extensions import Annotated
 
 import typer
 
-
-import json_schema_to_pydantic
-
-from .functions.synthesiser import Synthesiser
-from .functions.anonymiser import Anonymiser
-
-
-import yaml  # uv add pyyaml
-import json  # builtin
+try:
+    from .functions.synthesiser import Synthesiser
+    from .functions.anonymiser import Anonymiser
+except:
+    print("running main directly?")
+    from functions.synthesiser import Synthesiser
+    from functions.anonymiser import Anonymiser
 
 
 import importlib.util
-import inspect  # builtin
+import inspect
 
 import requests
 
 import time
 
+import yaml
+import json
+
+import json_schema_to_pydantic
+
 
 app = typer.Typer()
 
+synth_app = typer.Typer()         # sub-app for synth
+anon_app = typer.Typer()          # sub-app for anon
+
+app.add_typer(synth_app, name="synth")
+app.add_typer(anon_app, name="anon")
 
 
-  #why
+
 
 def convert_schema_to_JSON(schema_model):
-    if issubclass(schema_model,BaseModel):
+    if isinstance(schema_model, type) and issubclass(schema_model,BaseModel):
         JSON_schema = schema_model.model_json_schema()
     
     elif isinstance(schema_model,dict) or isinstance(schema_model,list):
@@ -42,7 +59,7 @@ def convert_schema_to_JSON(schema_model):
 
 def normalise_JSON_schema_to_pydantic(JSON_schema):
     
-    pydantic_model = json_schema_to_pydantic.create_model(schema)
+    pydantic_model = json_schema_to_pydantic.create_model(JSON_schema)
     return pydantic_model
 
 def normalise_schema_to_pydantic(schema_model):
@@ -52,22 +69,22 @@ def normalise_schema_to_pydantic(schema_model):
 
 
 def make_json_safe(obj):
-    if type(obj) in [set, list, tuple, frozenset]:
+    if isinstance(obj, (set, list, tuple, frozenset)):
         return [make_json_safe(v) for v in obj]
     elif isinstance(obj, dict):
         return {k: make_json_safe(v) for k, v in obj.items()}
     elif isinstance(obj, Decimal):
         return float(obj)
     elif isinstance(obj, complex):
-        return repr(obj)
+        return {"real": obj.real, "imag": obj.imag}
     elif isinstance(obj, bytes):
-        return repr(obj)
+        return obj.decode('utf-8', errors='replace')
     else:
         return obj
 
 
 def synth_func(
-    schema_model, method, amount, file_path, output, start_index=0, cout: bool = False
+    schema_model, method, amount, output, start_index=0, cout: bool = False
 ):
     """
     from line_profiler import LineProfiler
@@ -88,18 +105,13 @@ def synth_func(
     if output.startswith("http"):
         request_entries = []
 
-    if output.startswith("http"):
-        batch_print_size = amount
-    else:
-        batch_print_size = max((amount // 10), 1)
-
     for index, data in enumerate(dataset):
-        if file_path is not None:
+        if output is not None:
             """
-			output_data = {}
-			for key, value in dict(data).items():
-				output_data[key] = make_json_safe(value)
-			"""
+            output_data = {}
+            for key, value in dict(data).items():
+                output_data[key] = make_json_safe(value)
+            """
             if (index + 1 + start_index) != 1:
                 front_string = ",\n	"
             else:
@@ -116,42 +128,27 @@ def synth_func(
                 request_entries.append(data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
-        if (index + 1) % batch_print_size == 0:
-            if file_path is not None:
-                if output.startswith("http"):
-                    send_batch_to_API(schema_model, output, request_entries)
-                else:
-                    flush_out = "".join(flush)
-                    with open(f"{file_path}.json", "a") as f:
-                        f.write(flush_out)
-            else:
-                flush_out = "".join(flush)
-            if cout:
-                print(flush_out)
-            flush.clear()
-            if output.startswith("http"):
-                request_entries.clear()
-    if flush != []:
-        if file_path is not None:
-            if output.startswith("http"):
-                send_batch_to_API(schema_model, output, request_entries)
-            else:
-                flush_out = "".join(flush)
-                with open(f"{file_path}.json", "a") as f:
-                    f.write(flush_out)
+    print("printed")
+    if output is not None:
+        if output.startswith("http"):
+            send_batch_to_API(schema_model, output, request_entries)
         else:
             flush_out = "".join(flush)
-        if cout:
-            print(flush_out)
-        flush.clear()
-        if output.startswith("http"):
-            request_entries.clear()
-    if file_path is not None and cout:
-        print(f"To file_path -> {file_path}")
+            with open(f"{output}.json", "a") as f:
+                f.write(flush_out)
+    else:
+        flush_out = "".join(flush)
+    if cout:
+        print(flush_out)
+    flush.clear()
+    if output.startswith("http"):
+        request_entries.clear()
+    if output is not None and cout:
+        print(f"To file_path -> {output}")
 
 
 def anon_func(
-    schema_model, method, amount, start, file_path, ingest, cout, manual, fields, output
+    schema_model, method, amount, start, ingest, cout, manual, fields, output
 ):
     if amount > 1:
         data = load_ingest_data(ingest, amount=amount, start=start)
@@ -176,8 +173,8 @@ def anon_func(
                 print("_" * L)
 
             flush_output = f"{start + x}:{json.dumps(anonymised_data[x], indent=8)}"
-            if file_path is not None:
-                with open(f"{file_path}.json", "a") as f:
+            if output is not None:
+                with open(f"{output}.json", "a") as f:
                     f.write(flush_output)
 
     else:
@@ -200,54 +197,9 @@ def anon_func(
             print("_" * L)
 
         flush_output = f"{start}:{json.dumps(anonymised_data, indent=8)}"
-        if file_path is not None:
-            with open(f"{file_path}.json", "a") as f:
+        if output is not None:
+            with open(f"{output}.json", "a") as f:
                 f.write(flush_output)
-
-
-def load_config(config):
-    with open(config) as cf_file:
-        try:
-            # print(yaml.safe_load(cf_file))
-            config_data = dict(yaml.safe_load(cf_file))
-        except yaml.YAMLError as err:
-            print(err)
-
-    try:
-        schema_file = config_data["schema"]
-    except:
-        raise Exception("Config 'schema' not defined")
-
-    if not (schema_file.endswith(".py")):
-        schema_file += ".py"
-
-    spec = importlib.util.spec_from_file_location("imported_schema_model", schema_file)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    classes = inspect.getmembers(module, inspect.isclass)
-    # print(classes)
-    filtered = [
-        (name, cls)
-        for name, cls in classes
-        if cls.__module__ == "imported_schema_model"
-    ]
-    schema_model = filtered[0][1]  # schema.Address   (alphabetically)
-    # print(filtered)
-    # print(schema_model)
-    # User = module.User
-
-    try:
-        synthesiser_config = config_data["synthesiser"]
-    except:
-        synthesiser_config = []
-
-    try:
-        anonymiser_config = config_data["anonymiser"]
-    except:
-        anonymiser_config = []
-
-    return {"schema": schema_model, "s": synthesiser_config, "a": anonymiser_config}
 
 
 def load_folder(output):
@@ -307,6 +259,9 @@ def send_batch_to_API(schema_model, output, data):
 
 
 
+
+
+
 class SynthesiserConfig(BaseModel):
     method: str = Field(default="mixed")
     amount: int = Field(default=1)
@@ -326,218 +281,346 @@ class AnonymiserConfig(BaseModel):
     fields: typing.Dict[str, str] = Field(default={})
 
 
-class configSettings(BaseModel):
-    synth: typing.Optional[SynthesiserConfig]
-    anon: typing.Optional[AnonymiserConfig]
+def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
+    
+    def yaml_settings_source() -> Dict[str, Any]:
+        
+        if not Path(config_path).exists():
+            return {}  #returning {} as empty to allow defaults to parse
 
-def load_flags(func_type, flags):
-    if func_type == "s":
-        config_schema = SynthesiserConfig
-    elif func_type == "a":
-        config_schema = AnonymiserConfig
-
-    unchanged = [
-        field_name
-        for field_name in config_schema.model_fields.keys()
-        if flags[field_name] is None
-    ]
-    flag_data = dict(config_schema(**{}))
-
-    if flags["config"] is not None:
-        config_data = load_config(flags["config"])
-        schema_model = config_data["schema"]
-        if config_data[func_type]:
-            flag_data.update(config_data[func_type])
-        else:
-            if func_type == "s":
-                raise Exception("Config 'synthesiser' not defined")
-            elif func_type == "a":
-                raise Exception("Config 'anonymiser' not defined")
-    else:
-        print("Schema auto loader")
         try:
-            spec = importlib.util.spec_from_file_location(
-                "imported_schema_model", "schema.py"
-            )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-        except:
-            raise Exception("No schema found, maybe youre in the wrong directory")
-        classes = inspect.getmembers(module, inspect.isclass)
-        # print(classes)
-        filtered = [
-            (name, cls)
-            for name, cls in classes
-            if cls.__module__ == "imported_schema_model"
-        ]
-        schema_model = filtered[0][1]  # schema.Address   (alphabetically)
+            raw = yaml.safe_load(Path(config_path).read_text()) or {}
+        except Exception as e:
+            print(f"Yaml doesnt exist: {e}")
+            return {}
+        
+        mapping: Dict[str, Any] = {}
+        if "schema" in raw:
+            mapping["schema_path"] = raw["schema"]
+        elif "schema_path" in raw:
+            mapping["schema_path"] = raw["schema_path"]
+        
+        if "synthesiser" in raw:
+            mapping["synth"] = raw["synthesiser"]
+        elif "synth" in raw:
+            mapping["synth"] = raw["synth"]
 
-    cli_args = {
-        field_name: flags[field_name]
-        for field_name in config_schema.model_fields.keys()
-    }
-    flag_data.update({k: v for k, v in cli_args.items() if k not in unchanged})
+        if "anonymiser" in raw:
+            mapping["anon"] = raw["anonymiser"]
+        elif "anonymizer" in raw:
+            mapping["anon"] = raw["anonymizer"]
+        elif "anon" in raw:
+            mapping["anon"] = raw["anon"]
 
-    return (flag_data, schema_model)
+        return mapping
+    
+    def schema_defaults_source() -> Dict[str, Any]:
+        
+        synth_defaults = {name: field.default for name, field in SynthesiserConfig.model_fields.items()}
+        anon_defaults = {name: field.default for name, field in AnonymiserConfig.model_fields.items()}
+        defaults = {
+            "schema_path": "schema.py",
+            "synth": synth_defaults,
+            "anon": anon_defaults
+        }
+        return defaults
+    
+    class Settings(BaseSettings):
+        schema_path: str
+        synth: typing.Optional[SynthesiserConfig]
+        anon: typing.Optional[AnonymiserConfig]
+    
+    def _settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        return (
+            init_settings,          # highest priority: values passed into the constructor
+            yaml_settings_source,   # next priority: values from YAML file
+            schema_defaults_source, # then schema defaults loaded from schema.py
+            env_settings,
+            file_secret_settings,
+        )
+    
+    Settings.settings_customise_sources = classmethod(_settings_customise_sources)
+    return Settings
 
 
-def load_ingest_data(ingest, amount=1, start=0):
-    if ingest.startswith("http"):
-        if amount > 1:
-            data = []
-            for x in range(amount):
-                response = requests.get(ingest, params={"id_num": start + x})
-                data.append(response.json())
-        else:
-            response = requests.get(ingest, params={"id_num": start})
-            data = response.json()
-    elif ingest.endswith(".json"):
-        with open(ingest) as dt_file:
-            try:
-                data = json.load(dt_file)
-            except Exception as e:
-                print(e)
-                data = {}
+def return_flags(ctx,config_schema):
+    settings = ctx.obj["settings"]
+    schema_path = ctx.obj["schema_path"]
+    params = {key:param for key,param in ctx.params.items() if param is not None}
+    flags = settings(schema_path=schema_path,synth=config_schema(**params))
+    return flags
+
+def load_schema(schema_path):
+    
+    schema_path
+
+    if not (schema_path.endswith(".py")):
+        schema_path += ".py"
+
+    spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    classes = inspect.getmembers(module, inspect.isclass)
+    # print(classes)
+    filtered = [
+        (name, cls)
+        for name, cls in classes
+        if cls.__module__ == "imported_schema_model"
+    ]
+    if filtered == []:
+        raise Exception(f"No pydantic schema in schema file {schema_path}")
+    schema_model = filtered[0][1]  #automatically ordered alphabetically
+    
+    return schema_model
+
+def load_file_path(output):
+    if output.startswith("http"):
+        file_path = load_folder("_temp_db_output")
     else:
-        raise Exception("Unsupported ingest type")
-    return data
+        if output is not None:
+            file_path = load_folder(output)
+        else:
+            file_path = None
+    
+    return file_path
 
+# -----
+# main app
+# -----
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    config: Optional[str] = typer.Option(
+        "config.yaml",  #default
+        exists=False,         #dont check if path exists before allowing it as option
+        file_okay=True,
+        dir_okay=False,       #these 3 check its readable and a file
+        readable=True,
+        help="Path to YAML config file",
+    ),
+    schema_path: Optional[str] = typer.Option(
+        "schema.py",
+        exists=False,
+    )
+):
+    Settings = make_settings_class(config)
+    ctx.obj = {
+        "settings": Settings,
+        "schema_path": schema_path,
+    }
 
-@app.command()
-def synthesise(
+# -----
+# synthesiser commands
+# -----
+@synth_app.callback(invoke_without_command=True)  #call default with no subcommand
+def synth_single(
+    ctx: typer.Context,  #contains ctx.config
+    method: str = None,
+    output: str = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):  
+    if ctx.invoked_subcommand is not None: #this allows a default without running extra code
+        return
+    flags = return_flags(ctx, SynthesiserConfig)
+    print(flags)
+    schema_model = load_schema(flags.schema_path)
+    synth_flags = flags.synth
+    output_file_path = load_file_path(synth_flags.output)
+    
+    synth_func(schema_model, synth_flags.method, 1, output_file_path, cout=synth_flags.cout)
+    
+    close_folder(output_file_path)
+
+@synth_app.command(name="batch")  #call with "batch" sub command
+def synth_batch(
+    ctx: typer.Context,  #contains ctx.config
     method: str = None,
     amount: int = None,
     batch: int = None,
     output: str = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
-    config: str = None,
 ):
-    flags = {
-        "method": method,
-        "amount": amount,
-        "batch": batch,
-        "output": output,
-        "cout": cout,
-        "config": config,
-    }
-
-    synthesiser_data, schema_model = load_flags("s", flags)
-
-    method = synthesiser_data["method"]
-    amount = synthesiser_data["amount"]
-    batch = synthesiser_data["batch"]
-    output = synthesiser_data["output"]
-    cout = synthesiser_data["cout"]
-
-    print("Args:", synthesiser_data)
-
-    if output.startswith("http"):
-        file_path = load_folder("_temp_db_output")
+    flags = return_flags(ctx, SynthesiserConfig)
+    print(flags)
+    schema_model = load_schema(flags.schema_path)
+    synth_flags = flags.synth
+    output_file_path = load_file_path(synth_flags.output)
+    
+    method = synth_flags.method
+    amount = synth_flags.amount
+    if synth_flags.batch == 0:
+        batch = amount  
     else:
-        if output is not None:
-            file_path = load_folder(output)
-        else:
-            file_path = None
-    ##	load folder		##
+        batch = synth_flags.batch
+    cout = synth_flags.cout
+    batch_index = 0
+    for y in range(amount // batch):
+        print("Batch: ", y + 1)
+        synth_func(
+            schema_model,
+            method,
+            batch,
+            output_file_path,
+            start_index=batch_index,
+            cout=cout,
+        )
+        batch_index += batch
+    if amount - batch_index != 0:
+        synth_func(
+            schema_model,
+            method,
+            amount - batch_index,
+            output_file_path,
+            start_index=batch_index,
+            cout=cout,
+        )
+    
+    close_folder(output_file_path)
 
-    if batch != 0:
-        batch_index = 0
-        for y in range(amount // batch):
-            print("Batch: ", y + 1)
-            synth_func(
-                schema_model,
-                method,
-                batch,
-                file_path,
-                output,
-                start_index=batch_index,
-                cout=cout,
-            )
-            batch_index += batch
-        if amount - batch_index != 0:
-            synth_func(
-                schema_model,
-                method,
-                amount - batch_index,
-                file_path,
-                output,
-                start_index=batch_index,
-                cout=cout,
-            )
-    else:
-        synth_func(schema_model, method, amount, file_path, output, cout=cout)
+# -----
+# anonymiser commands
+# -----
+@anon_app.callback(invoke_without_command=True)  #call with no subcommand
+def anon_auto(
+    ctx: typer.Context,  #contains ctx.config
+    ingest: str = None,
+    method: str = None,
+    output: str = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):
+    if ctx.invoked_subcommand is not None: #this allows a default without running extra code
+        return
+    flags = return_flags(ctx, AnonymiserConfig)
+    print(flags)
+    schema_model = load_schema(flags.schema_path)
+    anon_flags = flags.anon
+    output_file_path = load_file_path(anon_flags.output)
+    
+    if anon_flags.ingest is None:
+        raise Exception("Config 'ingest' required")
+    
+    anon_func(
+        schema_model,
+        anon_flags.method,
+        anon_flags.amount,
+        anon_flags.start,
+        anon_flags.ingest,
+        anon_flags.cout,
+        anon_flags.manual,
+        anon_flags.fields,
+        output_file_path,
+    )
+    
+    close_folder(output_file_path)
 
-    ##	close folder	##
-    close_folder(file_path)
-
-
-@app.command()
-def anonymise(
+@anon_app.command(name="manual")  #call with "manual" sub command
+def anon_manual(
+    ctx: typer.Context,  #contains ctx.config and ctx.params  (params are the below field
     ingest: str = None,
     method: str = None,
     amount: int = None,
     start: int = None,
     output: str = None,
-    manual: Annotated[
-        typing.Optional[bool], typer.Option("--manual/--no-manual")
-    ] = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
-    config: str = None,
+    fields: str = typer.Option(None, help="Fields as JSON string"),
 ):
-    fields = None
-    flags = {
-        "ingest": ingest,
-        "method": method,
-        "amount": amount,
-        "start": start,
-        "output": output,
-        "manual": manual,
-        "cout": cout,
-        "config": config,
-        "fields": fields,
-    }
-
-    anonymiser_data, schema_model = load_flags("a", flags)
-
-    ingest = anonymiser_data["ingest"]
-    method = anonymiser_data["method"]
-    amount = anonymiser_data["amount"]
-    start = anonymiser_data["start"]
-    output = anonymiser_data["output"]
-    cout = anonymiser_data["cout"]
-    manual = anonymiser_data["manual"]
-    fields = anonymiser_data["fields"]
-
-    print("Args:", anonymiser_data)
-
-    if output.startswith("http"):
-        file_path = load_folder("_temp_db_output")
+    if fields:
+        try:
+            ctx.params["fields"] = json.loads(fields)
+        except json.JSONDecodeError as e:
+            raise typer.BadParameter(f"Invalid JSON for --fields: {e}")
     else:
-        if output is not None:
-            file_path = load_folder(output)
-        else:
-            file_path = None
-    ##	load folder		##
-
-    if ingest is None:
+        ctx.params["fields"] = None
+    
+    flags = return_flags(ctx, AnonymiserConfig)
+    print(flags)
+    schema_model = load_schema(flags.schema_path)
+    anon_flags = flags.anon
+    output_file_path = load_file_path(anon_flags.output)
+    
+    if anon_flags.ingest is None:
         raise Exception("Config 'ingest' required")
-
+    
     anon_func(
         schema_model,
-        method,
-        amount,
-        start,
-        file_path,
-        ingest,
-        cout,
-        manual,
-        fields,
-        output,
+        anon_flags.method,
+        anon_flags.amount,
+        anon_flags.start,
+        anon_flags.ingest,
+        anon_flags.cout,
+        anon_flags.manual,
+        anon_flags.fields,
+        output_file_path,
     )
+    
+    close_folder(output_file_path)
 
-    ##	close folder	##
-    close_folder(file_path)
 
 
-if __name__ == "__main__":
-    app()
+
+
+
+
+'''
+config = "config.yaml"
+Settings = make_settings_class(config)
+print(Settings)
+
+flags = {
+    "method": None,
+    "amount": 10000,
+    "batch": 50,
+    "output": "outputs.json",
+    "cout": False
+    }
+flags = {key:param for key,param in flags.items() if param is not None}
+synth = SynthesiserConfig(**flags)
+
+print(Settings(synth=synth))
+'''
+
+'''
+
+
+
+
+
+sm             
+
+->  synthesise -> single
+    -> batch
+    
+->  anonymise -> auto
+    -> manual
+
+
+sm synthesise *args (default is to use the "single" flag)
+sm synthesise batch *args
+sm anonymise *args (default is to use the "auto" flag)
+sm anonymise manual *args
+
+
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+

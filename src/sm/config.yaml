@@ -1,0 +1,25 @@
+---
+  schema: schema.py
+  synthesiser:
+    method: faker
+    amount: 500
+    batch:  100
+    output: output
+    cout: false
+  anonymiser:
+    ingest: output
+    method: mixed
+    amount: 1
+    start: 8
+    output: data_out
+    cout: true
+    manual: false
+    
+    
+    
+    #split these, user defines per schema
+    fields:
+      street: default
+      zip_code: default
+      continent: default
+  

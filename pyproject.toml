@@ -12,6 +12,7 @@ dependencies = [
     "line-profiler>=5.0.0",
     "mimesis>=18.0.0",
     "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
     "pyyaml>=6.0.2",
     "requests>=2.32.5",
     "rstr>=3.2.2",
