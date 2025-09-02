@@ -58,7 +58,7 @@ def synth_batch(
     cout = synth_flags.cout
     batch_index = 0
     for y in range(amount // batch):
-        print("Batch: ", y + 1)
+        print(f"Batch num: {y + 1} of {amount//batch} | Batch amount: {batch} | Completed: {batch_index}/{amount}  {"-"*50}")
         synth_func(
             schema_model,
             method,

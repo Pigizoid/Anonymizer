@@ -18,482 +18,12 @@ import re
 import string
 from decimal import Decimal, ROUND_HALF_UP
 
+import time
 
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
 
-
-
-def generate_provider_return_types(provider_names, provider_instances):
-    return_types = {}
-
-    for name in provider_names:
-        try:
-            value = getattr(provider_instances[name], name, None)()
-        except:
-            continue
-        if value is None:
-            return_types[name] = type(None)
-
-        try:
-            int(value)
-            return_types[name] = int
-        except:
-            pass
-
-        try:
-            float(value)
-            return_types[name] = float
-        except:
-            pass
-
-        try:
-            if value.lower() in {"true", "false"}:
-                return_types[name] = bool
-        except:
-            pass
-
-        if isinstance(value, bytes):
-            return_types[name] = bytes
-        elif isinstance(value, tuple):
-            return_types[name] = tuple
-        elif isinstance(value, list):
-            return_types[name] = list
-        elif isinstance(value, set):
-            return_types[name] = set
-        elif isinstance(value, frozenset):
-            return_types[name] = frozenset
-        elif isinstance(value, dict):
-            return_types[name] = dict
-        else:
-            return_types[name] = str
-
-    return dict(sorted(return_types.items()))
-
-
-provider_return_types = {
-    "Meta": str,
-    "aba": str,
-    "academic_degree": str,
-    "address": str,
-    "administrative_unit": str,
-    "alphabet": list,
-    "am_pm": str,
-    "android_platform_token": str,
-    "answer": str,
-    "ascii_company_email": str,
-    "ascii_email": str,
-    "ascii_free_email": str,
-    "ascii_safe_email": str,
-    "bank": str,
-    "bank_country": str,
-    "basic_phone_number": str,
-    "bban": str,
-    "binary": bytes,
-    "birthdate": str,
-    "blood_type": str,
-    "boolean": str,
-    "bothify": str,
-    "bs": str,
-    "building_number": str,
-    "calling_code": str,
-    "catch_phrase": str,
-    "century": str,
-    "chrome": str,
-    "city": str,
-    "city_prefix": str,
-    "city_suffix": str,
-    "color": str,
-    "color_hsl": tuple,
-    "color_hsv": tuple,
-    "color_name": str,
-    "color_rgb": tuple,
-    "color_rgb_float": tuple,
-    "company": str,
-    "company_email": str,
-    "company_suffix": str,
-    "company_type": str,
-    "continent": str,
-    "coordinate": str,
-    "coordinates": dict,
-    "country": str,
-    "country_calling_code": str,
-    "country_code": str,
-    "country_emoji_flag": str,
-    "credit_card_expire": str,
-    "credit_card_full": str,
-    "credit_card_number": str,
-    "credit_card_provider": str,
-    "credit_card_security_code": str,
-    "cryptocurrency": tuple,
-    "cryptocurrency_code": str,
-    "cryptocurrency_iso_code": str,
-    "cryptocurrency_name": str,
-    "cryptocurrency_symbol": str,
-    "csv": str,
-    "currency": tuple,
-    "currency_code": str,
-    "currency_iso_code": str,
-    "currency_name": str,
-    "currency_symbol": str,
-    "current_country": str,
-    "current_country_code": str,
-    "date": str,
-    "date_between": str,
-    "date_between_dates": str,
-    "date_object": str,
-    "date_of_birth": str,
-    "date_this_century": str,
-    "date_this_decade": str,
-    "date_this_month": str,
-    "date_this_year": str,
-    "date_time": str,
-    "date_time_ad": str,
-    "date_time_between": str,
-    "date_time_between_dates": str,
-    "date_time_this_century": str,
-    "date_time_this_decade": str,
-    "date_time_this_month": str,
-    "date_time_this_year": str,
-    "datetime": str,
-    "day_of_month": str,
-    "day_of_week": str,
-    "default_country": str,
-    "dga": str,
-    "dish": str,
-    "doi": str,
-    "domain_name": str,
-    "domain_word": str,
-    "drink": str,
-    "dsv": str,
-    "duration": str,
-    "ean": str,
-    "ean13": str,
-    "ean8": str,
-    "ein": str,
-    "email": str,
-    "emoji": str,
-    "federal_subject": str,
-    "file_extension": str,
-    "file_name": str,
-    "file_path": str,
-    "firefox": str,
-    "first_name": str,
-    "first_name_female": str,
-    "first_name_male": str,
-    "first_name_nonbinary": str,
-    "fixed_width": str,
-    "formatted_date": str,
-    "formatted_datetime": str,
-    "formatted_time": str,
-    "free_email": str,
-    "free_email_domain": str,
-    "fruit": str,
-    "full_name": str,
-    "future_date": str,
-    "future_datetime": str,
-    "gender": str,
-    "gender_code": str,
-    "gender_symbol": str,
-    "get_current_locale": str,
-    "get_providers": list,
-    "get_words_list": list,
-    "gmt_offset": str,
-    "height": str,
-    "hex_color": str,
-    "hexify": str,
-    "hostname": str,
-    "http_method": str,
-    "http_status_code": str,
-    "iana_id": str,
-    "iata_code": str,
-    "iban": str,
-    "icao_code": str,
-    "identifier": str,
-    "image": bytes,
-    "image_url": str,
-    "internet_explorer": str,
-    "invalid_ssn": str,
-    "ios_platform_token": str,
-    "ipv4": str,
-    "ipv4_network_class": str,
-    "ipv4_private": str,
-    "ipv4_public": str,
-    "ipv6": str,
-    "isbn10": str,
-    "isbn13": str,
-    "isd_code": str,
-    "iso8601": str,
-    "items": list,
-    "itin": str,
-    "job": str,
-    "job_female": str,
-    "job_male": str,
-    "json": str,
-    "json_bytes": bytes,
-    "language": str,
-    "language_code": str,
-    "language_name": str,
-    "last_name": str,
-    "last_name_female": str,
-    "last_name_male": str,
-    "last_name_nonbinary": str,
-    "latitude": str,
-    "latlng": tuple,
-    "level": str,
-    "lexify": str,
-    "license_plate": str,
-    "linux_platform_token": str,
-    "linux_processor": str,
-    "local_latlng": tuple,
-    "locale": str,
-    "localized_ean": str,
-    "localized_ean13": str,
-    "localized_ean8": str,
-    "location_on_land": tuple,
-    "longitude": str,
-    "mac_address": str,
-    "mac_platform_token": str,
-    "mac_processor": str,
-    "md5": str,
-    "military_apo": str,
-    "military_dpo": str,
-    "military_ship": str,
-    "military_state": str,
-    "mime_type": str,
-    "month": str,
-    "month_name": str,
-    "msisdn": str,
-    "name": str,
-    "name_female": str,
-    "name_male": str,
-    "name_nonbinary": str,
-    "nationality": str,
-    "nic_handle": str,
-    "nic_handles": list,
-    "null_boolean": str,
-    "numerify": str,
-    "occupation": str,
-    "opera": str,
-    "paragraph": str,
-    "paragraphs": list,
-    "passport_dates": tuple,
-    "passport_dob": str,
-    "passport_full": str,
-    "passport_gender": str,
-    "passport_number": str,
-    "passport_owner": tuple,
-    "password": str,
-    "past_date": str,
-    "past_datetime": str,
-    "periodicity": str,
-    "phone_number": str,
-    "political_views": str,
-    "port_number": str,
-    "postal_code": str,
-    "postalcode": str,
-    "postalcode_in_state": str,
-    "postalcode_plus4": str,
-    "postcode": str,
-    "postcode_in_state": str,
-    "prefecture": str,
-    "prefix": str,
-    "prefix_female": str,
-    "prefix_male": str,
-    "prefix_nonbinary": str,
-    "price": str,
-    "price_in_btc": str,
-    "pricetag": str,
-    "profile": dict,
-    "province": str,
-    "psv": str,
-    "pybool": str,
-    "pydecimal": str,
-    "pydict": dict,
-    "pyfloat": str,
-    "pyint": str,
-    "pyiterable": set,
-    "pylist": list,
-    "pyobject": str,
-    "pyset": set,
-    "pystr": str,
-    "pystr_format": str,
-    "pystruct": tuple,
-    "pytimezone": str,
-    "pytuple": tuple,
-    "quote": str,
-    "random_choices": list,
-    "random_digit": str,
-    "random_digit_above_two": str,
-    "random_digit_not_null": str,
-    "random_digit_not_null_or_empty": str,
-    "random_digit_or_empty": str,
-    "random_element": str,
-    "random_elements": list,
-    "random_int": str,
-    "random_letter": str,
-    "random_letters": list,
-    "random_lowercase_letter": str,
-    "random_number": str,
-    "random_sample": list,
-    "random_uppercase_letter": str,
-    "randomize_nb_elements": str,
-    "region": str,
-    "reseed": str,
-    "rgb_color": tuple,
-    "rgb_css_color": str,
-    "ripe_id": str,
-    "safari": str,
-    "safe_color_name": str,
-    "safe_domain_name": str,
-    "safe_email": str,
-    "safe_hex_color": str,
-    "sbn9": str,
-    "secondary_address": str,
-    "seed_instance": str,
-    "sentence": str,
-    "sentences": list,
-    "sex": str,
-    "sha1": str,
-    "sha256": str,
-    "simple_profile": dict,
-    "slug": str,
-    "spices": str,
-    "ssn": str,
-    "state": str,
-    "state_abbr": str,
-    "stock_exchange": str,
-    "stock_name": str,
-    "stock_ticker": str,
-    "street_address": str,
-    "street_name": str,
-    "street_number": str,
-    "street_suffix": str,
-    "suffix": str,
-    "suffix_female": str,
-    "suffix_male": str,
-    "suffix_nonbinary": str,
-    "surname": str,
-    "swift": str,
-    "swift11": str,
-    "swift8": str,
-    "tar": bytes,
-    "telephone": str,
-    "text": str,
-    "texts": list,
-    "time": str,
-    "time_delta": str,
-    "time_object": str,
-    "time_series": str,
-    "timestamp": str,
-    "timezone": str,
-    "title": str,
-    "tld": str,
-    "tsv": str,
-    "university": str,
-    "unix_device": str,
-    "unix_partition": str,
-    "unix_time": str,
-    "upc_a": str,
-    "upc_e": str,
-    "uri": str,
-    "uri_extension": str,
-    "uri_page": str,
-    "uri_path": str,
-    "url": str,
-    "user_agent": str,
-    "user_name": str,
-    "username": str,
-    "uuid4": str,
-    "vegetable": str,
-    "views_on": str,
-    "vin": str,
-    "week_date": str,
-    "weight": str,
-    "windows_platform_token": str,
-    "word": str,
-    "words": list,
-    "worldview": str,
-    "year": str,
-    "zip": bytes,
-    "zip_code": str,
-    "zipcode": str,
-    "zipcode_in_state": str,
-    "zipcode_plus4": str,
-}
-
-
-python_builtin_types = {
-    str,
-    int,
-    float,
-    Decimal,
-    bool,
-    complex,
-    bytes,
-    tuple,
-    list,
-    set,
-    frozenset,
-    dict,
-}
-typing_origins = {List, Dict, Tuple, Set, Union, Literal, Optional}
-recursive_types = {
-    List,
-    Dict,
-    Tuple,
-    Set,
-    Union,
-    Literal,
-    Optional,
-    list,
-    dict,
-    tuple,
-    set,
-    frozenset,
-}
-all_constr_attribs = {
-    "strip_whitespace",
-    "to_upper",
-    "to_lower",
-    "strict",  # first 4 are from pydantic StringConstraint aka constr()
-    "default",
-    "annotation",
-    "min_length",
-    "max_length",
-    "pattern",
-    "gt",
-    "lt",
-    "ge",
-    "le",
-    "multiple_of",
-    "allow_inf_nan",
-    "max_digits",
-    "decimal_places",
-}
-
-default_constr_dict = {
-    "required": True,
-    "strip_whitespace": None,
-    "to_upper": None,
-    "to_lower": None,
-    "strict": None,
-    "default": None,
-    "annotation": None,
-    "min_length": None,
-    "max_length": None,
-    "pattern": None,
-    "gt": None,
-    "lt": None,
-    "ge": None,
-    "le": None,
-    "multiple_of": None,
-    "allow_inf_nan": None,
-    "max_digits": None,
-    "decimal_places": None,
-    "origin": None,
-    "args": None,
-}
+from .pre_made_data import provider_return_types,python_builtin_types,recursive_types,all_constr_attribs,default_constr_dict
 
 
 class Synthesiser:
@@ -504,7 +34,10 @@ class Synthesiser:
         self.word_tokens = {word: word.split("_") for word in self.word_list }
         self.word_tokens_set = {word: set(word.split("_")) for word in self.word_list }
         self.resolved_methods = self.make_resolved_methods(self.word_list, methods_map)
-        
+    
+    def print_path(self,generate_path, elapsed_time):
+        pooling_depth = len(list(map(int, re.findall(r"\[(\d+)\]", generate_path))))
+        print(f"Time taken: {elapsed_time:.2f} seconds","    "*pooling_depth,generate_path)
     
     def list_faker_methods(self):
         methods = []
@@ -777,11 +310,9 @@ class Synthesiser:
             pooling_count = 1
             for x in pooling_numbers:
                 pooling_count *= x
-
-            print(f"Path:{generate_path}")
-            print("count", pooling_count)
-            import time
-
+            
+            # print(f"Path:{generate_path}")
+            # print("count", pooling_count)
             start_time = time.time()
             data_pool = []
 
@@ -1060,10 +591,12 @@ class Synthesiser:
                     data_pool = ["error" for x in range(max(1, pooling_count))]
                     if data_pool == []:
                         raise Exception(f"No data pool for default:{generate_path}")
-
-            self.outputpooling[generate_path] = data_pool
+            
             elapsed_time = time.time() - start_time  # end timer
-            print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
+            self.print_path(generate_path,elapsed_time)
+            
+            self.outputpooling[generate_path] = data_pool
+            #print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
         return_value = self.outputpooling[generate_path].pop()
         if self.outputpooling[generate_path] == []:
             del self.outputpooling[generate_path]
@@ -1233,7 +766,7 @@ class Synthesiser:
             new_constraints["args"] = get_args(new_data_type)
             # print("___")
             # print(new_constraints)
-            generate_path += ".Annotated"
+            #generate_path += ".Annotated"
             output_data = self.generate_synth_data(
                 field_name, match_name, new_constraints, generate_path
             )
@@ -1470,8 +1003,14 @@ class Synthesiser:
                         for x in pooling_numbers:
                             pooling_count *= x
                         
+                        start_time = time.time()
+                        
                         data_pool = [ self.apply_constraints(func(), applied_constraints, match_name, generate_path) for _ in range(pooling_count) ]
                         #can be used better for uniqueness and bulking later
+                        
+                        elapsed_time = time.time() - start_time
+                        
+                        self.print_path(generate_path,elapsed_time)
                         
                         self.outputpooling[generate_path] = data_pool
                     output_data = self.outputpooling[generate_path].pop()
@@ -1486,7 +1025,7 @@ class Synthesiser:
                 ):
                     output_data = self.synthesise_recursive(
                         data_type, self.method, amount=1, path=generate_path+"."
-                    )[0]  # [0] because amount = 1
+                    )
                     #print("big nested")
 
                 else:
@@ -1547,27 +1086,25 @@ class Synthesiser:
         
         schema_name = schema_model.__name__
         
-        dataset = []
-        for x in range(amount):
-            synthesised_data = {}
-            # print("__")
-            for name in schema_model.model_fields.keys():
-                # print(f"Field:{name}")
-                if not self.applied_constraints[schema_name][name]["required"]:
-                    if random.randint(1, 2) == 1:
-                        continue
-                generate_path = path+f"{schema_model.__name__}({name})[{amount}]"
-
-                synthesised_data[name] = self.generate_synth_data(
-                    name,
-                    self.field_match_pairs[schema_name][name],
-                    self.applied_constraints[schema_name][name],
-                    generate_path
-                )
-                # print(f"	Data:{synthesised_data[name]}")
-            # print("__")
-            dataset.append(schema_model(**synthesised_data))
-        return dataset
+        synthesised_data = {}
+        # print("__")
+        for name in schema_model.model_fields.keys():
+            # print(f"Field:{name}")
+            if not self.applied_constraints[schema_name][name]["required"]:
+                if random.randint(1, 2) == 1:
+                    continue
+            
+            generate_path = path+f"{schema_model.__name__}({name})[{amount}]"
+            
+            synthesised_data[name] = self.generate_synth_data(
+                name,
+                self.field_match_pairs[schema_name][name],
+                self.applied_constraints[schema_name][name],
+                generate_path
+            )
+            # print(f"	Data:{synthesised_data[name]}")
+        # print("__")
+        return synthesised_data
     
     
     def synthesise(self, schema_model, method="faker", amount=1):
@@ -1581,22 +1118,14 @@ class Synthesiser:
         
         self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
         #print(self.applied_constraints)
-        
-        return self.synthesise_recursive(schema_model, method, amount)
-        
-        
-        
-        
-        
-
+        dataset = []
+        for x in range(amount):
+            
+            synthesised_data = self.synthesise_recursive(schema_model, method, amount)
+            
+            dataset.append(schema_model(**synthesised_data))
+            if (x+1)%max(1,min(100,amount//10))==0:
+                print(f"Completed: {x+1}/{amount}{' '*30}",end="\r")
+        print(f"Completed: {amount}/{amount}{' '*30}")
+        return dataset
 #'''
-
-
-def setup_func():
-    synth = Synthesiser()
-    names, instances = synth.list_match_methods("mixed")
-    print(generate_provider_return_types(names, instances))
-
-
-if __name__ == "__main__":
-    setup_func()

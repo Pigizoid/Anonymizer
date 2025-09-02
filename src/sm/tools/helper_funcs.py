@@ -229,7 +229,6 @@ def synth_func(
                 request_entries.append(data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
-    print("printed")
     if output is not None:
         if output.startswith("http"):
             send_batch_to_API(schema_model, output, request_entries)
