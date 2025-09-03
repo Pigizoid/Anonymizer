@@ -60,7 +60,6 @@ class Anonymiser:
     @staticmethod
     def anonymise(schema_model, data, method, manual, fields, amount):
         #data comes in as a dict of dicts
-        print(data)
         synth = Synthesiser(method=method)
         anonymised_data = {}
         for index,data_entry in data.items():
@@ -70,7 +69,6 @@ class Anonymiser:
             except:
                 schema_match = False
             if manual == True:
-                print("manual mode is active")
                 field_names = fields.keys()
             else:  # auto
                 if schema_match:
@@ -78,8 +76,8 @@ class Anonymiser:
                 else:
                     field_names = data_entry.keys()
                     print(f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys")
-            name_match_pairs = synth.match_fields(field_names)
-            field_names = [ field for field,match in name_match_pairs.items() if match != ""]
+            #name_match_pairs = synth.match_fields(field_names)
+            #field_names = [ field for field,match in name_match_pairs.items() if match != ""]
             result_schema = Anonymiser.new_model(data_entry,data_entry.keys())
             if schema_match:
                 new_schema_model = Anonymiser.subset_model(schema_model, field_names)

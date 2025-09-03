@@ -111,7 +111,9 @@ class Synthesiser:
         return model_data
 
     
-    def levenshtein_distance(self, word1, word2, modifiers=[0, 0, 0]):
+    def levenshtein_distance(self, word1, word2, modifiers=None):
+        if modifiers == None:
+            modifiers = [0,0,0]
         len_word1, len_word2 = len(word1), len(word2)
         distance_point = [
             [0 for _ in range(len_word2 + 1)] for _ in range(len_word1 + 1)
@@ -243,16 +245,16 @@ class Synthesiser:
         field_match_pairs = {}
         for name,match in zip([x for x in field_names], field_matches):
             field_match_pairs[name] = match
-        
         return field_match_pairs
     
-    def recursive_match_schema_fields(self, schema_model, field_match_pairs={}): #needs test
+    def recursive_match_schema_fields(self, schema_model, field_match_pairs=None): #needs test
+        if field_match_pairs == None:
+            field_match_pairs = {}  #because default dicts are stored in memory not by instance
         model_data = self.get_model_data(schema_model)
-        field_names =  [ x[0] for x in model_data]
+        field_names =  [ x[0] for x in model_data ]
+        
         if schema_model.__name__ not in field_match_pairs.keys():
             field_match_pairs[schema_model.__name__] = self.match_fields(field_names)
-        
-        
         for x in model_data:
             data_type = x[1].annotation
             if (
@@ -262,8 +264,6 @@ class Synthesiser:
                 ):
                 #print(data_type.__name__, field_match_pairs.keys())
                 field_match_pairs.update(self.recursive_match_schema_fields(data_type))
-                
-        
         return field_match_pairs
         
     
@@ -1085,7 +1085,6 @@ class Synthesiser:
     def synthesise_recursive(self, schema_model, method="faker", amount=1, path=""):
         
         schema_name = schema_model.__name__
-        
         synthesised_data = {}
         # print("__")
         for name in schema_model.model_fields.keys():
@@ -1095,7 +1094,6 @@ class Synthesiser:
                     continue
             
             generate_path = path+f"{schema_model.__name__}({name})[{amount}]"
-            
             synthesised_data[name] = self.generate_synth_data(
                 name,
                 self.field_match_pairs[schema_name][name],
@@ -1115,7 +1113,6 @@ class Synthesiser:
         self.method = method
         
         self.field_match_pairs = self.recursive_match_schema_fields(schema_model)
-        
         self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
         #print(self.applied_constraints)
         dataset = []
