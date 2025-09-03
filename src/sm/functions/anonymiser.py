@@ -49,39 +49,49 @@ class Anonymiser:
         return return_type
 
     @staticmethod
-    def new_model(data):
+    def new_model(data,field_names):
         fields = {
             name: (Anonymiser.guess_type(content))
             for name, content in data.items()
+            if name in field_names
         }
         return pydantic.create_model("new_schema_model", **fields)
 
     @staticmethod
-    def anonymise(schema_model, data, method, manual, fields):
+    def anonymise(schema_model, data, method, manual, fields, amount):
+        #data comes in as a dict of dicts
         print(data)
         synth = Synthesiser(method=method)
-        schema_match = True
-        if manual == True:
-            field_names = fields.keys()
-        else:  # auto
+        anonymised_data = {}
+        for index,data_entry in data.items():
+            schema_match = True
             try:
-                schema_model(**data)
-                field_names = [x[0] for x in synth.get_model_data(schema_model)]
+                schema_model(**data_entry)
             except:
-                field_names = data.keys()
-                print(f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys")
                 schema_match = False
+            if manual == True:
+                print("manual mode is active")
+                field_names = fields.keys()
+            else:  # auto
+                if schema_match:
+                    field_names = [x[0] for x in synth.get_model_data(schema_model)]
+                else:
+                    field_names = data_entry.keys()
+                    print(f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys")
             name_match_pairs = synth.match_fields(field_names)
             field_names = [ field for field,match in name_match_pairs.items() if match != ""]
-        if schema_match:
-            new_schema_model = Anonymiser.subset_model(schema_model, field_names)
-        else:
-            new_schema_model = Anonymiser.new_model(data)
-        return_data = [dict(x) for x in synth.synthesise(new_schema_model, method)]
-        anonymised_data = []
-        for return_entry in return_data:
-            new_fields = data.copy()
-            for field in field_names:
-                new_fields[field] = return_entry[field]
-            anonymised_data.append(new_fields)
+            result_schema = Anonymiser.new_model(data_entry,data_entry.keys())
+            if schema_match:
+                new_schema_model = Anonymiser.subset_model(schema_model, field_names)
+            else:
+                new_schema_model = Anonymiser.new_model(data_entry,field_names)
+            return_data = synth.synthesise(new_schema_model, method=method, amount=amount)
+            anonymised_data_set = []
+            for return_entry in return_data:
+                new_fields = data_entry.copy()
+                for field in field_names:
+                    new_fields[field] = getattr(return_entry, field)
+                anonymised_data_set.append(result_schema(**new_fields))
+            anonymised_data[index] = anonymised_data_set
+        #data returns as a dict of lists of models
         return anonymised_data

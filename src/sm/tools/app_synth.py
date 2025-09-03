@@ -13,15 +13,12 @@ synth_app = typer.Typer()
 # -----
 # synthesiser commands
 # -----
-@synth_app.callback(invoke_without_command=True)  #call default with no subcommand
 def synth_single(
     ctx: typer.Context,  #contains ctx.config
     method: str = None,
     output: str = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):  
-    if ctx.invoked_subcommand is not None: #this allows a default without running extra code
-        return
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
@@ -34,8 +31,28 @@ def synth_single(
     
     close_folder(output_file_path)
 
+@synth_app.callback(invoke_without_command=True)  #call default with no subcommand
+def synth_default(
+    ctx: typer.Context,  #contains ctx.config
+    method: str = None,
+    output: str = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):  
+    if ctx.invoked_subcommand is not None: #this allows a default without running extra code
+        return
+    synth_single(ctx,*ctx.params)
+
+@synth_app.command(name="single")  #call default with no subcommand
+def synth_single_command(
+    ctx: typer.Context,  #contains ctx.config
+    method: str = None,
+    output: str = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):  
+    synth_single(ctx,*ctx.params)
+
 @synth_app.command(name="batch")  #call with "batch" sub command
-def synth_batch(
+def synth_batch_command(
     ctx: typer.Context,  #contains ctx.config
     method: str = None,
     amount: int = None,

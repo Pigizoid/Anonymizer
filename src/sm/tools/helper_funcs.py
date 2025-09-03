@@ -162,23 +162,28 @@ def return_flags(ctx,config_schema):
     return flags
 
 
-def load_ingest_data(ingest, amount=1, start=0):
+def load_ingest_data(ingest, index=0):
     if ingest.startswith("http"):
-        if amount > 1:
-            data = []
-            for x in range(amount):
-                response = requests.get(ingest, params={"id_num": start + x})
-                data.append(response.json())
-        else:
-            response = requests.get(ingest, params={"id_num": start})
-            data = response.json()
+        data = {index,requests.get(ingest, params={"id_num": index})}
     elif ingest.endswith(".json"):
         with open(ingest) as dt_file:
             try:
                 data = json.load(dt_file)
+
+                if isinstance(data,list):
+                    if not all([isinstance(content,dict) for content in data]):
+                        raise Exception("Data is type, list, expected list entries as type dict")
+                    data = {x:content for x,content in enumerate(data)}
+                elif isinstance(data,dict):
+                    try:
+                        data = {int(key):content for key,content in data.items()}
+                    except:
+                        raise Exception("Data is type, dict, expected data to be indexed by int")
+                    
             except Exception as e:
-                print(e)
                 data = {}
+                raise Exception(f"Error loading ingest data: {e}")
+                
     else:
         raise Exception("Unsupported ingest type")
     return data
@@ -248,53 +253,24 @@ def synth_func(
 
 
 def anon_func(
-    schema_model, method, amount, start, ingest, cout, manual, fields, output
+    schema_model, method, amount, index, ingest, cout, manual, fields, output
 ):
-    if amount > 1:
-        data = load_ingest_data(ingest, amount=amount, start=start)
+    data = load_ingest_data(ingest, index=index)
+    #data comes in as a dict of dicts
 
-        anonymised_data = [
-            Anonymiser.anonymise(schema_model, data_item, method, manual, fields)
-            for data_item in data
-        ]
-        for index, data_entry in enumerate(anonymised_data):
-            output_data = {}
-            for key, value in dict(data_entry).items():
-                output_data[key] = make_json_safe(value)
-            anonymised_data[index] = output_data
+    anonymised_data = Anonymiser.anonymise(schema_model, data, method, manual, fields, amount)
+    #data returns as a dict of lists of dicts
+    # { index: [model, * amount] }
 
-        for x in range(amount):
-            if cout:
-                L = len(f"		{data}")
-                print("_" * L)
-                print(f"Input data:\n\t{data[x]}")
-                print(f"Anonymised:\n\t{anonymised_data[x]}")
-                print("_" * L)
-
-            flush_output = f"{start + x}:{json.dumps(anonymised_data[x], indent=8)}"
-            if output is not None:
-                with open(f"{output}.json", "a") as f:
-                    f.write(flush_output)
-
-    else:
-        data = load_ingest_data(ingest, start=start)
-        anonymised_data = Anonymiser.anonymise(
-            schema_model, data, method, manual, fields
-        )
-        for index, data_entry in enumerate(anonymised_data):
-            output_data = {}
-            for key, value in dict(data_entry).items():
-                output_data[key] = make_json_safe(value)
-            anonymised_data[index] = output_data
-
-        if cout:
-            L = len(f"		{data}")
-            print("_" * L)
-            print(f"Input data:\n\t{data}")
-            print(f"Anonymised:\n\t{anonymised_data}")
-            print("_" * L)
-
-        flush_output = f"{start}:{json.dumps(anonymised_data, indent=8)}"
-        if output is not None:
-            with open(f"{output}.json", "a") as f:
-                f.write(flush_output)
+    flush_output = {}
+    with open(f"{output}.json", "a") as f:
+        for index,content in anonymised_data.items():
+            print("-"*60)
+            print(f"Input data:\n\t{data[index]}")
+            flush_list = []
+            print("Output data:")
+            for idx,x in enumerate(content):
+                print(f"output {idx}{' '*(10-len(str(idx)))}{x.model_dump()}")
+                flush_list.append(x.model_dump())
+            flush_output[index] = flush_list
+        f.write(json.dumps(flush_output,indent=8))

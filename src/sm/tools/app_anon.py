@@ -13,17 +13,15 @@ anon_app = typer.Typer()
 # -----
 # anonymiser commands
 # -----
-@anon_app.callback(invoke_without_command=True)  #call with no subcommand
+
 def anon_auto(
     ctx: typer.Context,  #contains ctx.config
     ingest: str = None,
     method: str = None,
     output: str = None,
+    amount: int = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
-    if ctx.invoked_subcommand is not None: #this allows a default without running extra code
-        return
-    ctx.params["amount"] = 1
     ctx.params["start"] = 0
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
@@ -49,8 +47,32 @@ def anon_auto(
     
     close_folder(output_file_path)
 
+@anon_app.callback(invoke_without_command=True)  #allows default to anon_auto
+def anon_default(
+    ctx: typer.Context,  #contains ctx.config
+    ingest: str = None,
+    method: str = None,
+    output: str = None,
+    amount: int = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):
+    if ctx.invoked_subcommand is not None: #this allows a default to run code and, not run when a sub command is invoked
+        return
+    anon_auto(ctx,*ctx.params)
+
+@anon_app.command(name="auto")  #call with "auto" sub command
+def anon_auto_command(
+    ctx: typer.Context,  #contains ctx.config
+    ingest: str = None,
+    method: str = None,
+    output: str = None,
+    amount: int = None,
+    cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+):
+    anon_auto(ctx,*ctx.params)
+
 @anon_app.command(name="manual")  #call with "manual" sub command
-def anon_manual(
+def anon_manual_command(
     ctx: typer.Context,  #contains ctx.config and ctx.params  (params are the below field
     ingest: str = None,
     method: str = None,
@@ -84,7 +106,7 @@ def anon_manual(
         anon_flags.start,
         anon_flags.ingest,
         anon_flags.cout,
-        anon_flags.manual,
+        True, #manual
         anon_flags.fields,
         output_file_path,
     )
