@@ -32,6 +32,7 @@ from .pre_made_data import (
 )
 
 from ..tools import regex_builder
+from ..tools.model_funcs import get_model_fields
 
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
@@ -144,7 +145,7 @@ class Synthesiser:
 
     def get_model_data(self, model) -> List[list]:
         model_data = []
-        for field_name, model_field in model.model_fields.items():
+        for field_name, model_field in get_model_fields(model).items():
             model_data.append([field_name, model_field])
         # print(type(model_field))
         return model_data
@@ -404,7 +405,12 @@ class Synthesiser:
                 try:
                     if max(1, pooling_count) > 10000 and PERFORMANCE:
                         src = regex_builder.compile_regex_to_function_source(pattern)
-                        env = {}
+                        safe_builtins = {"len": len, "range": range, "min": min, "max": max}
+                        env = {
+                            "__builtins__": safe_builtins, #dissallow anything except random and string
+                            "random": random,
+                            "string": string,
+                        }
                         exec(src, env)
                         gen = env["gen"]
                         """
@@ -1116,7 +1122,7 @@ class Synthesiser:
     def make_applied_constraints(self, schema_model) -> Dict[str, Dict[str, Any]]:
         applied_constraints = {}
 
-        for name, field in schema_model.model_fields.items():
+        for name, field in get_model_fields(schema_model).items():
             applied_constraints[name] = self.check_generation_constraints(name, field)
 
         return applied_constraints
@@ -1161,7 +1167,7 @@ class Synthesiser:
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
-        for name in schema_model.model_fields.keys():
+        for name in get_model_fields(schema_model).keys():
             # print(f"Field:{name}")
             if not self.applied_constraints[schema_name][name]["required"]:
                 if random.randint(1, 2) == 1:
@@ -1195,8 +1201,8 @@ class Synthesiser:
             synthesised_data = self.synthesise_recursive(schema_model, method, amount)
 
             dataset.append(schema_model(**synthesised_data))
-            if (x + 1) % max(1, min(100, amount // 10)) == 0:
-                print(f"Completed: {x + 1}/{amount}{' ' * 30}", end="\r")
+            if (x + 1) % max(1, amount // 100) == 0: #1% at a time
+                print(f"Completed: {x + 1}/{amount}:{round(((x+1)/amount)*100,2)}%{' ' * 30}", end="\r")
         print(f"Completed: {amount}/{amount}{' ' * 30}")
         return dataset
 

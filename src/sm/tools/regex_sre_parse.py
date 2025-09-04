@@ -14,8 +14,51 @@
 
 import sys
 from typing import Optional, Tuple
-
-from .regex_sre_constants import (
+try: 
+    from .regex_sre_constants import (
+        LITERAL,
+        AT,
+        AT_BEGINNING_STRING,
+        AT_BOUNDARY,
+        AT_NON_BOUNDARY,
+        IN,
+        CATEGORY,
+        CATEGORY_DIGIT,
+        CATEGORY_NOT_DIGIT,
+        CATEGORY_SPACE,
+        CATEGORY_NOT_SPACE,
+        CATEGORY_WORD,
+        CATEGORY_NOT_WORD,
+        AT_END_STRING,
+        SRE_FLAG_IGNORECASE,
+        SRE_FLAG_LOCALE,
+        SRE_FLAG_MULTILINE,
+        SRE_FLAG_DOTALL,
+        SRE_FLAG_VERBOSE,
+        SRE_FLAG_TEMPLATE,
+        SRE_FLAG_UNICODE,
+        ANY,
+        RANGE,
+        NOT_LITERAL,
+        MIN_REPEAT,
+        MAX_REPEAT,
+        BRANCH,
+        CALL,
+        SUBPATTERN,
+        MAXREPEAT,
+        SUCCESS,
+        GROUPREF,
+        GROUPREF_EXISTS,
+        NEGATE,
+        ASSERT,
+        ASSERT_NOT,
+        AT_BEGINNING,
+        AT_END,
+        SRE_FLAG_DEBUG,
+        MARK,
+    )  # keep existing opcode constants
+except:
+    from regex_sre_constants import (
     LITERAL,
     AT,
     AT_BEGINNING_STRING,
@@ -56,7 +99,7 @@ from .regex_sre_constants import (
     AT_END,
     SRE_FLAG_DEBUG,
     MARK,
-)  # keep existing opcode constants
+)
 
 SPECIAL_CHARS = ".\\[{()*+?^$|"
 REPEAT_CHARS = "*+?{"

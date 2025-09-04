@@ -5,6 +5,7 @@ import pytest
 
 
 from src.sm.functions.synthesiser import Synthesiser
+from src.sm.tools.model_funcs import get_model_fields
 
 
 import pydantic
@@ -230,9 +231,8 @@ def test_calc_difference_alternate_abbreviation():
 def test_calc_difference_fail():
     pass
 
-
 def test_match_fields_expect_pass():
-    field_names = [name for name, content in test_Address.model_fields.items()]
+    field_names = [name for name, content in get_model_fields(test_Address).items()]
     return_value = synth.match_fields(field_names)
     assert isinstance(return_value, dict)
     assert all(
@@ -242,7 +242,7 @@ def test_match_fields_expect_pass():
 
 def test_match_fields_expect_alternate_methods():
     synth_match1 = Synthesiser(method="faker")
-    field_names = [name for name, content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in get_model_fields(test_Address_2).items()]
     return_value_faker = synth_match1.match_fields(field_names)
     assert return_value_faker["street"] != ""
     assert return_value_faker["city"] != ""
@@ -252,7 +252,7 @@ def test_match_fields_expect_alternate_methods():
 
 def test_match_fields_expect_alternate_methods1():
     synth_match1 = Synthesiser(method="mimesis")
-    field_names = [name for name, content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in get_model_fields(test_Address_2).items()]
     return_value_mimesis = synth_match1.match_fields(field_names)
     assert return_value_mimesis["street"] != ""
     assert return_value_mimesis["city"] != ""
@@ -262,7 +262,7 @@ def test_match_fields_expect_alternate_methods1():
 
 def test_match_fields_expect_alternate_methods2():
     synth_match1 = Synthesiser(method="mixed")
-    field_names = [name for name, content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in get_model_fields(test_Address_2).items()]
     return_value_mixed = synth_match1.match_fields(field_names)
     assert return_value_mixed["street"] != ""
     assert return_value_mixed["city"] != ""
@@ -329,7 +329,7 @@ test_check_generation_constraints_pass_schemas = [test_Address]
     [(schema_item) for schema_item in test_check_generation_constraints_pass_schemas],
 )
 def test_check_generation_constraints_expect_pass(schema_model):
-    for name, field in schema_model.model_fields.items():
+    for name, field in get_model_fields(schema_model).items():
         return_value = synth.check_generation_constraints(name, field)
         assert isinstance(return_value, dict)
         assert set(return_value.keys()) == set(
@@ -384,7 +384,7 @@ class Constraints6(BaseModel):
 def test_check_generation_constraints_expect_alternate():
     schema_model = Constraints6
     return_value = {}
-    for name, field in schema_model.model_fields.items():
+    for name, field in get_model_fields(schema_model).items():
         return_value[name] = synth.check_generation_constraints(name, field)
     assert return_value["constr_strip_whitespace"]["strip_whitespace"]
     assert return_value["constr_to_upper"]["to_upper"]
@@ -477,7 +477,7 @@ def test_generate_synth_data_expect_pass():
         schema_model
     )
     synthesised_data = {}
-    for name in schema_model.model_fields.keys():
+    for name in get_model_fields(schema_model).keys():
         generate_path = path + f"{schema_model.__name__}({name})[1]"
 
         synthesised_data[name] = synth_g.generate_synth_data(
@@ -506,7 +506,7 @@ def test_generate_synth_data_expect_fail():
     )
     synthesised_data = {}
     with pytest.raises(Exception):
-        for name in schema_model.model_fields.keys():
+        for name in get_model_fields(schema_model).keys():
             generate_path = path + f"{schema_model.__name__}({name})[1]"
 
             synthesised_data[name] = synth_g.generate_synth_data(

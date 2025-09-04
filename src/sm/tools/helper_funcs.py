@@ -24,7 +24,6 @@ import json
 
 import json_schema_to_pydantic
 
-
 def convert_schema_to_JSON(schema_model):
     if isinstance(schema_model, type) and issubclass(schema_model, BaseModel):
         JSON_schema = schema_model.model_json_schema()

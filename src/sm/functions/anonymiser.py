@@ -4,14 +4,14 @@ from pydantic import BaseModel
 from typing import Dict, List
 
 from .synthesiser import Synthesiser
-
+from ..tools.model_funcs import get_model_fields
 
 class Anonymiser:
     @staticmethod
     def subset_model(schema_model, field_names) -> BaseModel:
         fields = {
             name: (field.annotation, field.default)
-            for name, field in schema_model.model_fields.items()
+            for name, field in get_model_fields(schema_model).items()
             if name in field_names
         }
         return pydantic.create_model("new_schema_model", **fields)

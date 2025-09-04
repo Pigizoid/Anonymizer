@@ -1,5 +1,10 @@
-from . import regex_sre_parse
-from . import regex_sre_constants
+try:
+    from . import regex_sre_parse
+    from . import regex_sre_constants
+except:
+    print("running from main")
+    import regex_sre_parse
+    import regex_sre_constants
 import string
 
 DEFAULT_ALPHABET = "".join(chr(i) for i in range(32, 127))
@@ -233,7 +238,6 @@ def compile_regex_to_function_source(
     # assemble final function source
     func_lines = []
     func_lines.append(f"def {func_name}():")
-    func_lines.append("    import random, string")
     func_lines.append("    groups = {}")
     func_lines.append("    # helper block functions")
     # insert all block function defs

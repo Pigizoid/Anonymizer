@@ -2,7 +2,7 @@
 
 
 from src.sm.functions.anonymiser import Anonymiser
-
+from src.sm.tools.model_funcs import get_model_fields
 
 from pydantic import BaseModel
 
@@ -37,7 +37,7 @@ def test_subset_model_expect_pass():
     assert isinstance(return_value, type)
     assert issubclass(return_value, BaseModel)
     assert return_value.__name__ == "new_schema_model"
-    assert set(return_value.model_fields.keys()) == {"street", "city"}
+    assert set(get_model_fields(return_value).keys()) == {"street", "city"}
 
 
 def test_subset_model_expect_alternate():
