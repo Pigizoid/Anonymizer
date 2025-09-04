@@ -1,4 +1,3 @@
-
 from typing import List, Dict, Tuple, Set, Union, Literal, Optional
 
 from decimal import Decimal
@@ -476,13 +475,9 @@ default_constr_dict = {
 }
 
 
-
-
-
-
-
 def setup_func():
     from .synthesiser import Synthesiser
+
     synth = Synthesiser()
     names, instances = synth.list_match_methods("mixed")
     print(generate_provider_return_types(names, instances))

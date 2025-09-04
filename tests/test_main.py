@@ -1,17 +1,19 @@
 # test_main.py
 
 
-from src.sm.main import *
+from src.sm.main import app
 
 
 from typer.testing import CliRunner
 # from unittest.mock import patch
 
 import os
+
 runner = CliRunner()
 
 
-test_dir = os.getcwd()+"\\tests"
+test_dir = os.getcwd() + "\\tests"
+
 
 def test_synth_single():
     os.chdir(test_dir)
@@ -25,6 +27,7 @@ def test_synth_single():
     print(result)
     assert result.exit_code == 0
     assert "Args:" in result.stdout
+
 
 def test_main_config_single():
     os.chdir(test_dir)
@@ -40,6 +43,7 @@ def test_main_config_single():
     assert result.exit_code == 0
     assert "Args:" in result.stdout
     assert "output='test_output'" in result.stdout
+
 
 def test_main_config_batch():
     os.chdir(test_dir)
@@ -58,6 +62,7 @@ def test_main_config_batch():
     assert "amount=8" in result.stdout
     assert "batch=4" in result.stdout
 
+
 def test_synth_single_method():
     os.chdir(test_dir)
     print(os.getcwd())
@@ -73,6 +78,7 @@ def test_synth_single_method():
     assert "Args:" in result.stdout
     assert "method='faker'" in result.stdout
 
+
 def test_synth_single_output():
     os.chdir(test_dir)
     print(os.getcwd())
@@ -87,7 +93,7 @@ def test_synth_single_output():
     assert result.exit_code == 0
     assert "Args:" in result.stdout
     assert "output='output_file'" in result.stdout
-    
+
 
 def test_synth_single_cout():
     os.chdir(test_dir)
@@ -102,9 +108,6 @@ def test_synth_single_cout():
     assert result.exit_code == 0
     assert "Args:" in result.stdout
     assert "cout=True)" in result.stdout
-    
-
-
 
 
 def test_synth_batch():
@@ -127,8 +130,7 @@ def test_synth_batch():
     assert "batch=6" in result.stdout
 
 
-
-'''
+"""
 def test_anonymise():
     os.chdir(test_dir)
     print(os.getcwd())
@@ -149,11 +151,7 @@ def test_anonymise():
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
-'''
-
-
-
-
+"""
 
 
 """

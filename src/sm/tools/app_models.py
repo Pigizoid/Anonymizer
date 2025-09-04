@@ -1,6 +1,7 @@
-#app_models.py
+# app_models.py
 from pydantic import BaseModel, Field
 import typing
+
 
 class SynthesiserConfig(BaseModel):
     method: str = Field(default="mixed")

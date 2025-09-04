@@ -17,13 +17,16 @@ Anonymizer
 | | | |anonymizer.py
 | | | |synthesiser.py
 | | |
-| | |UTILS
+| | |tools
 | | | \
 | | | |__init__.py
-| | | |UTILS_anon.py
-| | | |UTILS_funcs.py
-| | | |UTILS_models.py
-| | | |UTILS_synth.py
+| | | |app_anon.py
+| | | |helper_funcs.py
+| | | |app_models.py
+| | | |app_synth.py
+| | | |regex_builder.py
+| | | |regex_sre_constants.py
+| | | |regex_sre_parse.py
 | | |
 | | |__init__.py
 | | |main.py

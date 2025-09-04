@@ -2,11 +2,15 @@ from pydantic import BaseModel
 
 import typing
 from typing import get_origin, get_args
-from typing import List, Dict, Tuple, Set, Union, Literal, Annotated, Optional
+from typing import List, Dict, Tuple, Set, Union, Literal, Annotated, Optional, Any
 
 from faker import Faker
 import mimesis
 from mimesis import Generic
+
+
+from multiprocessing import Pool
+from functools import partial
 
 
 import random
@@ -20,26 +24,64 @@ from decimal import Decimal, ROUND_HALF_UP
 
 import time
 
+from .pre_made_data import (
+    python_builtin_types,
+    recursive_types,
+    all_constr_attribs,
+    default_constr_dict,
+)
+
+from ..tools import regex_builder
+
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
 
-from .pre_made_data import provider_return_types,python_builtin_types,recursive_types,all_constr_attribs,default_constr_dict
+
+def make_one_string(pattern):
+    return exrex.getone(pattern)
+
+
+def make_one_decimal(x, decimal_precision, min_scaled, scaled_mult, scale):
+    potential_val = (min_scaled + (x + 1) * scaled_mult) / scale
+    if potential_val == potential_val.quantize(
+        decimal_precision, rounding=ROUND_HALF_UP
+    ):
+        return potential_val
+    else:
+        return None
+
+
+"""
+def _worker_compile_and_gen(pattern_and_idx):
+    pattern, _ = pattern_and_idx
+    src = compile_regex_to_function_source(pattern)
+    env = {}
+    exec(src, env)
+    gen = env["gen"]
+    return gen()
+"""
+string_list = string.ascii_letters + string.digits
 
 
 class Synthesiser:
-    
     def __init__(self, method="faker"):
         self.outputpooling = {}
         self.word_list, methods_map = self.list_match_methods(method)
-        self.word_tokens = {word: word.split("_") for word in self.word_list }
-        self.word_tokens_set = {word: set(word.split("_")) for word in self.word_list }
+        self.word_tokens = {word: word.split("_") for word in self.word_list}
+        self.word_tokens_set = {word: set(word.split("_")) for word in self.word_list}
         self.resolved_methods = self.make_resolved_methods(self.word_list, methods_map)
-    
-    def print_path(self,generate_path, elapsed_time):
+
+    def print_path(self, generate_path, elapsed_time):
         pooling_depth = len(list(map(int, re.findall(r"\[(\d+)\]", generate_path))))
-        print(f"Time taken: {elapsed_time:.2f} seconds","    "*pooling_depth,generate_path)
-    
-    def list_faker_methods(self):
+        time_str = f"{elapsed_time:.2f}"
+        print(
+            f"Time taken: {time_str} seconds",
+            " " * (10 - max(10, len(time_str))),
+            "    " * (pooling_depth - 1),
+            generate_path,
+        )
+
+    def list_faker_methods(self) -> Tuple[list, dict]:
         methods = []
         methods_map = {}
         fake = Faker()
@@ -52,8 +94,7 @@ class Synthesiser:
                 pass
         return (methods, methods_map)
 
-    
-    def list_mimesis_methods(self):
+    def list_mimesis_methods(self) -> Tuple[list, dict]:
         methods = []
         methods_map = {}
         for provider_name in sorted(generic.__dict__.keys()):
@@ -77,8 +118,7 @@ class Synthesiser:
                         methods_map[attr] = instance
         return (methods, methods_map)
 
-    
-    def list_match_methods(self, method):
+    def list_match_methods(self, method) -> Tuple[list, dict]:
         methods = []
         methods_map = {}
         if method == "faker":
@@ -102,18 +142,16 @@ class Synthesiser:
         # print(f"Method: {method}, Map: {methods_map[method]}")
         return (methods, methods_map)
 
-    
-    def get_model_data(self, model):
+    def get_model_data(self, model) -> List[list]:
         model_data = []
         for field_name, model_field in model.model_fields.items():
             model_data.append([field_name, model_field])
         # print(type(model_field))
         return model_data
 
-    
-    def levenshtein_distance(self, word1, word2, modifiers=None):
-        if modifiers == None:
-            modifiers = [0,0,0]
+    def levenshtein_distance(self, word1, word2, modifiers=None) -> float:
+        if modifiers is None:
+            modifiers = [0, 0, 0]
         len_word1, len_word2 = len(word1), len(word2)
         distance_point = [
             [0 for _ in range(len_word2 + 1)] for _ in range(len_word1 + 1)
@@ -132,11 +170,18 @@ class Synthesiser:
                 )
         return distance_point[len_word1][len_word2]
 
-    
-    def calc_difference(self,target_word, word, word_tokens, word_tokens_set, target_tokens, target_tokens_set):
+    def calc_difference(
+        self,
+        target_word,
+        word,
+        word_tokens,
+        word_tokens_set,
+        target_tokens,
+        target_tokens_set,
+    ) -> float:
         if target_tokens_set == word_tokens_set:  # name_first -> first_name
             return 0
-        
+
         if (
             ("".join([letter[0] for letter in word.split("_")])) == target_word.lower()
         ):  # abbreviation mapping	ssn -> social_security_number   #ssn is target word
@@ -153,16 +198,11 @@ class Synthesiser:
             return main_distance
 
         main_distance_joined = main_distance - (
-            (
-                len(target_word) - len(target_word.replace("_", ""))
-            ) 
-            +(
-                len(word) - len(word.replace("_", ""))
-            )
+            (len(target_word) - len(target_word.replace("_", "")))
+            + (len(word) - len(word.replace("_", "")))
         )
         if main_distance_joined <= 1:
             return main_distance_joined
-        
 
         token_distance = 0
         cross_points = len(word_tokens) * len(target_tokens)
@@ -189,14 +229,11 @@ class Synthesiser:
                     distance = (main_distance + token_distance) / 2
         else:
             distance = (
-                self.levenshtein_distance(target_word, word.lower())
-                * cross_points
+                self.levenshtein_distance(target_word, word.lower()) * cross_points
             )
         return distance
 
-    
-    def match_fields(self, field_names):
-
+    def match_fields(self, field_names) -> Dict[str, str]:
         field_matches = []
         for t_word in field_names:
             closest_matches = []
@@ -206,14 +243,19 @@ class Synthesiser:
             target_tokens_set = set(target_tokens)
             for word in self.word_list:
                 distance = self.calc_difference(
-                    target_word, word, self.word_tokens[word], self.word_tokens_set[word], target_tokens, target_tokens_set
+                    target_word,
+                    word,
+                    self.word_tokens[word],
+                    self.word_tokens_set[word],
+                    target_tokens,
+                    target_tokens_set,
                 )
                 distances.append([word, distance])
             sorted_by_distance = sorted(distances, key=lambda dist: dist[1])
             if sorted_by_distance != [] and sorted_by_distance[0] != []:
                 min_value = sorted_by_distance[0][1]
             else:
-                min_value = (len(target_word) // 2 - 0.5)+1
+                min_value = (len(target_word) // 2 - 0.5) + 1
             if min_value > (len(target_word) // 2 - 0.5):
                 potential_matches = []
                 for word in self.word_list:
@@ -222,11 +264,13 @@ class Synthesiser:
                             target_word, word, [-0.5, 0.5, -0.5]
                         )
                         potential_matches.append([word, distance])
-                sorted_match_by_distance = sorted(potential_matches, key=lambda dist: dist[1])
+                sorted_match_by_distance = sorted(
+                    potential_matches, key=lambda dist: dist[1]
+                )
                 if sorted_match_by_distance != [] and sorted_match_by_distance[0] != []:
                     min_value = sorted_match_by_distance[0][1]
                 else:
-                    min_value = (len(target_word) // 2)+1
+                    min_value = (len(target_word) // 2) + 1
                 if min_value > len(target_word) // 2:
                     closest_matches = [
                         item
@@ -241,18 +285,20 @@ class Synthesiser:
                 field_matches.append("")
             else:
                 field_matches.append(closest_matches[0][0])
-        
+
         field_match_pairs = {}
-        for name,match in zip([x for x in field_names], field_matches):
+        for name, match in zip([x for x in field_names], field_matches):
             field_match_pairs[name] = match
         return field_match_pairs
-    
-    def recursive_match_schema_fields(self, schema_model, field_match_pairs=None): #needs test
-        if field_match_pairs == None:
-            field_match_pairs = {}  #because default dicts are stored in memory not by instance
+
+    def recursive_match_schema_fields(
+        self, schema_model, field_match_pairs=None
+    ) -> Dict[str, Dict[str, str]]:  # needs test
+        if field_match_pairs is None:
+            field_match_pairs = {}  # because default dicts are stored in memory not by instance
         model_data = self.get_model_data(schema_model)
-        field_names =  [ x[0] for x in model_data ]
-        
+        field_names = [x[0] for x in model_data]
+
         if schema_model.__name__ not in field_match_pairs.keys():
             field_match_pairs[schema_model.__name__] = self.match_fields(field_names)
         for x in model_data:
@@ -261,13 +307,12 @@ class Synthesiser:
                 inspect.isclass(data_type)
                 and issubclass(data_type, BaseModel)
                 and data_type.__name__ not in field_match_pairs.keys()
-                ):
-                #print(data_type.__name__, field_match_pairs.keys())
+            ):
+                # print(data_type.__name__, field_match_pairs.keys())
                 field_match_pairs.update(self.recursive_match_schema_fields(data_type))
         return field_match_pairs
-        
-    
-    def check_generation_constraints(self, name, field):
+
+    def check_generation_constraints(self, name, field) -> Dict[str, Any]:
         cout = False
         if cout:
             print("__")
@@ -294,23 +339,22 @@ class Synthesiser:
 
         return constraints
 
-    
-    def generate_from_constraints(self, field_name, constraints, generate_path):
+    def generate_from_constraints(
+        self, field_name, constraints, generate_path
+    ) -> Any:  # value
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
 
-        if (generate_path not in self.outputpooling or 
-            (
-                generate_path in self.outputpooling
-                and self.outputpooling[generate_path] == []
-            )
+        if generate_path not in self.outputpooling or (
+            generate_path in self.outputpooling
+            and self.outputpooling[generate_path] == []
         ):
             pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
             amount = pooling_numbers[0]
             pooling_count = 1
             for x in pooling_numbers:
                 pooling_count *= x
-            
+
             # print(f"Path:{generate_path}")
             # print("count", pooling_count)
             start_time = time.time()
@@ -355,11 +399,33 @@ class Synthesiser:
 
                 # print(pattern)
                 # print(exrex.getone(pattern))
+                # print(self.make_one_string(pattern))
+                PERFORMANCE = True  # risky but faster
                 try:
-                    data_pool = [
-                        exrex.getone(pattern) for x in range(max(1, pooling_count))
-                    ]
-                except:
+                    if max(1, pooling_count) > 10000 and PERFORMANCE:
+                        src = regex_builder.compile_regex_to_function_source(pattern)
+                        env = {}
+                        exec(src, env)
+                        gen = env["gen"]
+                        """
+                        with Pool() as p:
+                            data_pool = p.map(
+                                _worker_compile_and_gen, 
+                                [(pattern, i) for i in range(pooling_count)]
+                            )
+                        #"""
+                        data_pool = [gen() for _ in range(max(1, pooling_count))]
+                    elif max(1, pooling_count) > 100:
+                        with Pool() as p:
+                            data_pool = p.map(
+                                make_one_string, [pattern] * max(1, pooling_count)
+                            )
+                    else:
+                        data_pool = [
+                            exrex.getone(pattern) for x in range(max(1, pooling_count))
+                        ]
+                except Exception as e:
+                    print(f"failed reg pool and used fallback: {e}")
                     data_pool = [
                         rstr.xeger(pattern) for x in range(max(1, pooling_count))
                     ]
@@ -368,25 +434,17 @@ class Synthesiser:
                     data_pool = [item.upper() for item in data_pool]
                 elif constraints["to_lower"] is not None:
                     data_pool = [item.lower() for item in data_pool]
-
-                # print(data_pool)
-                # regex_generation =
-                # if constraints["annotation"] != str:
-                # regex_generation = str(regex_generation)
-                # return_value = regex_generation
-                # print(data_pool)
-                # input("wait...")
                 if data_pool == []:
                     raise Exception(f"No data pool for {constraints['pattern']}")
             else:
                 # print("Generate from annotation",str(constraints["annotation"]))
                 data_type = constraints["annotation"]
                 if data_type is str:
-                    string_list = string.ascii_letters + string.digits
+                    temp_string_list = string_list
                     if constraints["to_upper"] is not None:
-                        string_list = [item.upper() for item in string_list]
+                        temp_string_list = [item.upper() for item in temp_string_list]
                     elif constraints["to_lower"] is not None:
-                        string_list = [item.lower() for item in string_list]
+                        temp_string_list = [item.lower() for item in temp_string_list]
                     if constraints["min_length"] is not None:
                         min_length = constraints["min_length"]
                     else:
@@ -398,7 +456,8 @@ class Synthesiser:
                     data_pool = [
                         "".join(
                             random.choices(
-                                string_list, k=(random.randint(min_length, max_length))
+                                temp_string_list,
+                                k=(random.randint(min_length, max_length)),
                             )
                         )
                         for x in range(max(1, pooling_count))
@@ -479,18 +538,39 @@ class Synthesiser:
 
                             data_pool = []
                             try:
-                                for x in range(
-                                    int((lt * scale - min_scaled) // scaled_mult) - 1
-                                ):
-                                    potential_val = (
-                                        min_scaled + (x + 1) * scaled_mult
-                                    ) / scale
-                                    if potential_val == potential_val.quantize(
-                                        decimal_precision, rounding=ROUND_HALF_UP
+                                if max(1, pooling_count) > 100:
+                                    with Pool() as p:
+                                        func = partial(
+                                            make_one_decimal,
+                                            decimal_precision=decimal_precision,
+                                            min_scaled=min_scaled,
+                                            scaled_mult=scaled_mult,
+                                            scale=scale,
+                                        )
+                                        data_pool = p.map(
+                                            func,
+                                            range(
+                                                int(
+                                                    (lt * scale - min_scaled)
+                                                    // scaled_mult
+                                                )
+                                                - 1
+                                            ),
+                                        )
+                                    data_pool = [d for d in data_pool if d is not None]
+                                else:
+                                    for x in range(
+                                        int((lt * scale - min_scaled) // scaled_mult)
+                                        - 1
                                     ):
-                                        data_pool.append(potential_val)
-                                # print(data_pool)
-                            except:
+                                        potential_val = (
+                                            min_scaled + (x + 1) * scaled_mult
+                                        ) / scale
+                                        if potential_val == potential_val.quantize(
+                                            decimal_precision, rounding=ROUND_HALF_UP
+                                        ):
+                                            data_pool.append(potential_val)
+                            except Exception:
                                 data_pool = []
                             if data_pool == []:
                                 raise Exception(
@@ -541,8 +621,8 @@ class Synthesiser:
                     random.shuffle(data_pool)
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
-                    
-                    #if the data pool doesnt have enough elements, extend it with copies of existing elements
+
+                    # if the data pool doesnt have enough elements, extend it with copies of existing elements
                     original_len = len(data_pool)
                     while len(data_pool) < pooling_count:
                         # Append elements from the original list in order
@@ -591,12 +671,12 @@ class Synthesiser:
                     data_pool = ["error" for x in range(max(1, pooling_count))]
                     if data_pool == []:
                         raise Exception(f"No data pool for default:{generate_path}")
-            
+
             elapsed_time = time.time() - start_time  # end timer
-            self.print_path(generate_path,elapsed_time)
-            
+            self.print_path(generate_path, elapsed_time)
+
             self.outputpooling[generate_path] = data_pool
-            #print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
+            # print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
         return_value = self.outputpooling[generate_path].pop()
         if self.outputpooling[generate_path] == []:
             del self.outputpooling[generate_path]
@@ -606,39 +686,23 @@ class Synthesiser:
         # exit()
         return return_value
 
-    
-    def apply_constraints(self, return_value, constraints, match_name, generate_path): #needs test
-        ("strip_whitespace",)
-        ("to_upper",)
-        ("to_lower",)
-        ("strict",)  # first 4 are from pydantic StringConstraint aka constr()
-        ("default",)
-        ("annotation",)
-        ("min_length",)
-        ("max_length",)
-        ("pattern",)
-        ("gt",)
-        ("lt",)
-        ("ge",)
-        ("le",)
-        ("multiple_of",)
-        ("allow_inf_nan",)
-        ("max_digits",)
-        ("decimal_places",)
-
-        pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
-        amount = pooling_numbers[0]
-        pooling_count = 1
-        for x in pooling_numbers:
-            pooling_count *= x
-
+    def apply_constraints(
+        self,
+        return_value,
+        constraints,
+        match_name,
+        generate_path,
+        pooling_count,
+        amount,
+    ) -> Any:  # value   # needs test
         data_type = type(return_value)
         if data_type is str:
-            string_list = string.ascii_letters + string.digits
+            # print("\tconstraining str")
+            temp_string_list = string_list
             if constraints["to_upper"] is not None:
-                string_list = [item.upper() for item in string_list]
+                temp_string_list = [item.upper() for item in string_list]
             elif constraints["to_lower"] is not None:
-                string_list = [item.lower() for item in string_list]
+                temp_string_list = [item.lower() for item in string_list]
 
             if constraints["to_upper"] is not None:
                 return_value = return_value.upper()
@@ -653,7 +717,7 @@ class Synthesiser:
 
             if len(return_value) < min_length:
                 pad_length = min_length - len(return_value)
-                return_value += "".join(random.choices(string_list, k=pad_length))
+                return_value += "".join(random.choices(temp_string_list, k=pad_length))
             if constraints["max_length"] is not None:
                 if len(return_value) > max_length:
                     return_value = return_value[:max_length]
@@ -734,13 +798,13 @@ class Synthesiser:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
-        return_value = constraints["annotation"](return_value)
-        return return_value
+        return constraints["annotation"](return_value)
 
-    
-    def generate_synth_data(self, field_name, match_name, applied_constraints, generate_path):
+    def generate_synth_data(
+        self, field_name, match_name, applied_constraints, generate_path
+    ) -> Any:  # value or collection
         # print("__")
-        #print(f"	Generating for: {field_name}")
+        # print(f"	Generating for: {field_name}")
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
         data_type = applied_constraints["origin"]
@@ -766,7 +830,7 @@ class Synthesiser:
             new_constraints["args"] = get_args(new_data_type)
             # print("___")
             # print(new_constraints)
-            #generate_path += ".Annotated"
+            generate_path += ".Annotated"
             output_data = self.generate_synth_data(
                 field_name, match_name, new_constraints, generate_path
             )
@@ -810,7 +874,7 @@ class Synthesiser:
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                list_generate_path
+                                list_generate_path,
                             )
                         )
 
@@ -846,7 +910,7 @@ class Synthesiser:
                             field_name,
                             match_name,
                             new_left_applied_constraints,
-                            generate_path_v1
+                            generate_path_v1,
                         )
 
                         dict_keys.add(v1)
@@ -865,7 +929,7 @@ class Synthesiser:
                             field_name,
                             match_name,
                             new_right_applied_constraints,
-                            generate_path_v2
+                            generate_path_v2,
                         )
                         output_data[key] = v2
 
@@ -874,7 +938,9 @@ class Synthesiser:
                     new_applied_constraints = default_constr_dict.copy()
                     new_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
-                        data_args = [str for x in range(random.randint(min_amount, max_amount))]
+                        data_args = [
+                            str for x in range(random.randint(min_amount, max_amount))
+                        ]
                     for x in range(len(data_args)):
                         chosen_type = data_args[x]
                         new_applied_constraints["annotation"] = chosen_type
@@ -888,7 +954,7 @@ class Synthesiser:
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                tuple_generate_path
+                                tuple_generate_path,
                             )
                         )
 
@@ -919,7 +985,7 @@ class Synthesiser:
                                 field_name,
                                 match_name,
                                 new_applied_constraints,
-                                set_generate_path
+                                set_generate_path,
                             )
                         )
                         current_amount = len(output_data)
@@ -965,7 +1031,7 @@ class Synthesiser:
                             field_name,
                             match_name,
                             new_applied_constraints,
-                            generate_path
+                            generate_path,
                         )
 
                 elif data_type == Literal:
@@ -992,26 +1058,36 @@ class Synthesiser:
                         field_name, applied_constraints, generate_path
                     )
                 else:
-                    if (generate_path not in self.outputpooling or 
-                        (
-                            generate_path in self.outputpooling
-                            and self.outputpooling[generate_path] == []
-                        )
+                    if generate_path not in self.outputpooling or (
+                        generate_path in self.outputpooling
+                        and self.outputpooling[generate_path] == []
                     ):
-                        pooling_numbers = list(map(int, re.findall(r"\[(\d+)\]", generate_path)))
+                        pooling_numbers = list(
+                            map(int, re.findall(r"\[(\d+)\]", generate_path))
+                        )
                         pooling_count = 1
                         for x in pooling_numbers:
                             pooling_count *= x
-                        
+
                         start_time = time.time()
-                        
-                        data_pool = [ self.apply_constraints(func(), applied_constraints, match_name, generate_path) for _ in range(pooling_count) ]
-                        #can be used better for uniqueness and bulking later
-                        
+                        data_temp_pool = [func() for _ in range(pooling_count)]
+                        data_pool = [
+                            self.apply_constraints(
+                                func_val,
+                                applied_constraints,
+                                match_name,
+                                generate_path,
+                                pooling_count,
+                                pooling_numbers[0],
+                            )
+                            for func_val in data_temp_pool
+                        ]
+                        # can be used better for uniqueness and bulking later
+
                         elapsed_time = time.time() - start_time
-                        
-                        self.print_path(generate_path,elapsed_time)
-                        
+
+                        self.print_path(generate_path, elapsed_time)
+
                         self.outputpooling[generate_path] = data_pool
                     output_data = self.outputpooling[generate_path].pop()
 
@@ -1020,57 +1096,55 @@ class Synthesiser:
                     data_type.__class__.__module__
                     == "pydantic._internal._model_construction"  # checking if its a model
                     and inspect.isclass(data_type)
-                    and issubclass(data_type, BaseModel)  
+                    and issubclass(data_type, BaseModel)
                     # extra checks to make sure its a BaseModel
                 ):
                     output_data = self.synthesise_recursive(
-                        data_type, self.method, amount=1, path=generate_path+"."
+                        data_type, self.method, amount=1, path=generate_path + "."
                     )
-                    #print("big nested")
+                    # print("big nested")
 
                 else:
                     raise Exception(
                         f"Unkown data type ({data_type}) for field {field_name}"
                     )
-
         # print(f"Data: {output_data}")
         # print("__")
-
         # apply constraints of output after data is provided
-
         return output_data
 
-    
-    def make_applied_constraints(self, schema_model):
+    def make_applied_constraints(self, schema_model) -> Dict[str, Dict[str, Any]]:
         applied_constraints = {}
 
         for name, field in schema_model.model_fields.items():
-            applied_constraints[name] = self.check_generation_constraints(
-                name, field
-            )
+            applied_constraints[name] = self.check_generation_constraints(name, field)
 
         return applied_constraints
-    
-    def recursive_make_schema_applied_constraints(self, schema_model): #needs test
+
+    def recursive_make_schema_applied_constraints(
+        self, schema_model
+    ) -> Dict[str, Dict[str, Any]]:  # needs test
         applied_constraints = {}
         model_data = self.get_model_data(schema_model)
-        
-        applied_constraints[schema_model.__name__] = self.make_applied_constraints(schema_model)
-        
+
+        applied_constraints[schema_model.__name__] = self.make_applied_constraints(
+            schema_model
+        )
+
         for x in model_data:
             data_type = x[1].annotation
             if (
                 inspect.isclass(data_type)
                 and issubclass(data_type, BaseModel)
                 and data_type.__name__ not in applied_constraints.keys()
-                ):
-                applied_constraints.update(self.recursive_make_schema_applied_constraints(data_type))
-            
-        
+            ):
+                applied_constraints.update(
+                    self.recursive_make_schema_applied_constraints(data_type)
+                )
+
         return applied_constraints
-        
-    
-    def make_resolved_methods(self, name_match_pairs, methods_map):
+
+    def make_resolved_methods(self, name_match_pairs, methods_map) -> Dict[str, Any]:
         resolved_methods = {}
         for match_name in name_match_pairs:
             if match_name != "":
@@ -1078,12 +1152,12 @@ class Synthesiser:
                 resolved_methods[match_name] = getattr(provider_instance, match_name)
             else:
                 resolved_methods[match_name] = None
-        #print("r",resolved_methods)
+        # print("r",resolved_methods)
         return resolved_methods
 
-    
-    def synthesise_recursive(self, schema_model, method="faker", amount=1, path=""):
-        
+    def synthesise_recursive(
+        self, schema_model, method="faker", amount=1, path=""
+    ) -> Dict[str, Any]:
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
@@ -1092,37 +1166,39 @@ class Synthesiser:
             if not self.applied_constraints[schema_name][name]["required"]:
                 if random.randint(1, 2) == 1:
                     continue
-            
-            generate_path = path+f"{schema_model.__name__}({name})[{amount}]"
+
+            generate_path = path + f"{schema_model.__name__}({name})[{amount}]"
+            # self.apply_constraints(func(), applied_constraints, match_name, generate_path)
             synthesised_data[name] = self.generate_synth_data(
                 name,
                 self.field_match_pairs[schema_name][name],
                 self.applied_constraints[schema_name][name],
-                generate_path
+                generate_path,
             )
             # print(f"	Data:{synthesised_data[name]}")
         # print("__")
         return synthesised_data
-    
-    
-    def synthesise(self, schema_model, method="faker", amount=1):
-        
+
+    def synthesise(self, schema_model, method="faker", amount=1) -> List[BaseModel]:
         if amount == 0:
             return []
-        
+
         self.method = method
-        
+
         self.field_match_pairs = self.recursive_match_schema_fields(schema_model)
-        self.applied_constraints = self.recursive_make_schema_applied_constraints(schema_model)
-        #print(self.applied_constraints)
+        self.applied_constraints = self.recursive_make_schema_applied_constraints(
+            schema_model
+        )
+        # print(self.applied_constraints)
         dataset = []
         for x in range(amount):
-            
             synthesised_data = self.synthesise_recursive(schema_model, method, amount)
-            
+
             dataset.append(schema_model(**synthesised_data))
-            if (x+1)%max(1,min(100,amount//10))==0:
-                print(f"Completed: {x+1}/{amount}{' '*30}",end="\r")
-        print(f"Completed: {amount}/{amount}{' '*30}")
+            if (x + 1) % max(1, min(100, amount // 10)) == 0:
+                print(f"Completed: {x + 1}/{amount}{' ' * 30}", end="\r")
+        print(f"Completed: {amount}/{amount}{' ' * 30}")
         return dataset
+
+
 #'''

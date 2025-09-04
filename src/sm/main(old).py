@@ -27,26 +27,24 @@ import time
 app = typer.Typer()
 
 
-
 def convert_schema_to_JSON(schema_model):
-    if issubclass(schema_model,BaseModel):
+    if issubclass(schema_model, BaseModel):
         JSON_schema = schema_model.model_json_schema()
-    
-    elif isinstance(schema_model,dict) or isinstance(schema_model,list):
+
+    elif isinstance(schema_model, dict) or isinstance(schema_model, list):
         JSON_schema = schema_model
     else:
         raise Exception("Unhandled schema type")
     return JSON_schema
 
+
 def normalise_JSON_schema_to_pydantic(JSON_schema):
-    
     pydantic_model = json_schema_to_pydantic.create_model(JSON_schema)
     return pydantic_model
 
-def normalise_schema_to_pydantic(schema_model):
-    
-    return normalise_JSON_schema_to_pydantic(convert_schema_to_JSON(schema_model))
 
+def normalise_schema_to_pydantic(schema_model):
+    return normalise_JSON_schema_to_pydantic(convert_schema_to_JSON(schema_model))
 
 
 def make_json_safe(obj):
@@ -103,13 +101,9 @@ def synth_func(
             else:
                 front_string = ""
             json_str = json.dumps(
-                data.model_dump(), 
-                indent=8, 
-                default=lambda v: repr(v)
+                data.model_dump(), indent=8, default=lambda v: repr(v)
             )
-            flush.append(
-                f'{front_string}"{index + start_index}": {json_str}'
-            )
+            flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if output.startswith("http"):
                 request_entries.append(data)
         else:
@@ -304,7 +298,6 @@ def send_batch_to_API(schema_model, output, data):
     return response
 
 
-
 class SynthesiserConfig(BaseModel):
     method: str = Field(default="mixed")
     amount: int = Field(default=1)
@@ -327,6 +320,7 @@ class AnonymiserConfig(BaseModel):
 class ConfigSettings(BaseModel):
     synth: typing.Optional[SynthesiserConfig]
     anon: typing.Optional[AnonymiserConfig]
+
 
 def load_flags(func_type, flags):
     if func_type == "s":

@@ -8,10 +8,10 @@ from src.sm.functions.synthesiser import Synthesiser
 
 
 import pydantic
-from pydantic import *
+from pydantic import Field, BaseModel, constr
 
-from typing import *
-
+from typing import List, Dict, Tuple, Set, Union, Literal, Annotated, Optional
+import decimal
 
 from faker import Faker
 import mimesis
@@ -52,9 +52,6 @@ for x in range(test_word_num):
     test_words_2.extend([test_words[x] for y in range(test_word_num)])
 
 
-
-
-
 synth = Synthesiser(method="mixed")
 word_list = synth.word_list
 word_tokens = synth.word_tokens
@@ -84,8 +81,8 @@ default_constr_dict = {
     "args": None,
 }
 
+
 def test_list_faker_methods_pass():
-    
     return_Data = synth.list_faker_methods()
     assert isinstance(return_Data, tuple)
     assert isinstance(return_Data[0], list)
@@ -101,7 +98,6 @@ def test_list_faker_methods_fail():
 
 
 def test_list_mimesis_methods_pass():
-    
     return_Data = synth.list_mimesis_methods()
     assert isinstance(return_Data, tuple)
     assert isinstance(return_Data[0], list)
@@ -118,7 +114,6 @@ def test_list_mimesis_methods_fail():
 
 @pytest.mark.parametrize("method", [("faker"), ("mimesis"), ("mixed")])
 def test_list_match_methods_pass(method):
-    
     return_Data = synth.list_match_methods(method)
     assert isinstance(return_Data, tuple)
     assert isinstance(return_Data[0], list)
@@ -130,9 +125,8 @@ def test_list_match_methods_alternate():
 
 
 def test_list_match_methods_fail():
-    
     with pytest.raises(Exception):
-        return_Data = synth.list_match_methods("bad_method")
+        synth.list_match_methods("bad_method")
 
 
 test_get_model_data_pass_schemas = [test_Address]
@@ -142,7 +136,6 @@ test_get_model_data_pass_schemas = [test_Address]
     "schema_model", [(schema_item) for schema_item in test_get_model_data_pass_schemas]
 )
 def test_get_model_data_pass(schema_model):
-    
     model_data = synth.get_model_data(schema_model)
     assert isinstance(model_data, list)
     assert all([isinstance(item, list) for item in model_data])
@@ -165,7 +158,6 @@ def test_get_model_data_fail():
     [(word1, word2, [0, 0, 0]) for word1, word2 in zip(test_words_1, test_words_2)],
 )
 def test_levenshtein_distance_pass(word1, word2, modifiers):
-    
     value = synth.levenshtein_distance(word1, word2, modifiers)
     assert isinstance(value, int) or isinstance(value, float)
 
@@ -175,7 +167,6 @@ def test_levenshtein_distance_pass(word1, word2, modifiers):
     [(word1, word2, [0, 0, 0]) for word1, word2 in zip(test_words_1, test_words_2)],
 )
 def test_levenshtein_distance_alternate_modifiers(word1, word2, modifiers):
-    
     value = synth.levenshtein_distance(word1, word2, modifiers)
     value_nm = synth.levenshtein_distance(word1, word2)
     value_m1 = synth.levenshtein_distance(word1, word2, [1, 0, 0])
@@ -188,7 +179,6 @@ def test_levenshtein_distance_alternate_modifiers(word1, word2, modifiers):
 
 
 def test_levenshtein_distance_alternate_value_check():
-    
     value = synth.levenshtein_distance("test", "tester")
     assert value == 2
 
@@ -205,28 +195,31 @@ def test_levenshtein_distance_fail():
     ],
 )
 def test_calc_difference_pass(target_word, word, target_tokens, target_tokens_set):
-    
     value = synth.calc_difference(
-        target_word, word, word_tokens, word_tokens_set, target_tokens, target_tokens_set
+        target_word,
+        word,
+        word_tokens,
+        word_tokens_set,
+        target_tokens,
+        target_tokens_set,
     )
     assert isinstance(value, int) or isinstance(value, float)
 
 
 def test_calc_difference_alternate_abbreviation():
-    
     value = synth.calc_difference(
         "ssn",
         "social_security_number",
         word_tokens,
         word_tokens_set,
         "ssn".split("_"),
-        set("ssn".split("_"))
+        set("ssn".split("_")),
     )
     assert value == 0
     value = synth.calc_difference(
         "social_security_number",
         "ssn",
-        word_tokens, 
+        word_tokens,
         word_tokens_set,
         "social_security_number".split("_"),
         set("social_security_number".split("_")),
@@ -239,23 +232,17 @@ def test_calc_difference_fail():
 
 
 def test_match_fields_expect_pass():
-    field_names = [name for name,content in test_Address.model_fields.items()]
+    field_names = [name for name, content in test_Address.model_fields.items()]
     return_value = synth.match_fields(field_names)
     assert isinstance(return_value, dict)
-    assert all([isinstance(x, str) and isinstance(y, str) for x,y in return_value.items()])
+    assert all(
+        [isinstance(x, str) and isinstance(y, str) for x, y in return_value.items()]
+    )
 
-
-
-class test_Address_2(BaseModel):
-    street: str
-    city: str
-    social_security_number: str
-    continent: str
 
 def test_match_fields_expect_alternate_methods():
-    
     synth_match1 = Synthesiser(method="faker")
-    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in test_Address_2.model_fields.items()]
     return_value_faker = synth_match1.match_fields(field_names)
     assert return_value_faker["street"] != ""
     assert return_value_faker["city"] != ""
@@ -264,9 +251,8 @@ def test_match_fields_expect_alternate_methods():
 
 
 def test_match_fields_expect_alternate_methods1():
-    
     synth_match1 = Synthesiser(method="mimesis")
-    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in test_Address_2.model_fields.items()]
     return_value_mimesis = synth_match1.match_fields(field_names)
     assert return_value_mimesis["street"] != ""
     assert return_value_mimesis["city"] != ""
@@ -275,9 +261,8 @@ def test_match_fields_expect_alternate_methods1():
 
 
 def test_match_fields_expect_alternate_methods2():
-    
     synth_match1 = Synthesiser(method="mixed")
-    field_names = [name for name,content in test_Address_2.model_fields.items()]
+    field_names = [name for name, content in test_Address_2.model_fields.items()]
     return_value_mixed = synth_match1.match_fields(field_names)
     assert return_value_mixed["street"] != ""
     assert return_value_mixed["city"] != ""
@@ -344,8 +329,6 @@ test_check_generation_constraints_pass_schemas = [test_Address]
     [(schema_item) for schema_item in test_check_generation_constraints_pass_schemas],
 )
 def test_check_generation_constraints_expect_pass(schema_model):
-    method = "mixed"
-    
     for name, field in schema_model.model_fields.items():
         return_value = synth.check_generation_constraints(name, field)
         assert isinstance(return_value, dict)
@@ -375,9 +358,6 @@ def test_check_generation_constraints_expect_pass(schema_model):
         )
 
 
-import decimal
-
-
 class Constraints6(BaseModel):
     constr_strip_whitespace: constr(strip_whitespace=True)
     constr_to_upper: constr(to_upper=True)
@@ -403,17 +383,15 @@ class Constraints6(BaseModel):
 
 def test_check_generation_constraints_expect_alternate():
     schema_model = Constraints6
-    method = "mixed"
-    
     return_value = {}
     for name, field in schema_model.model_fields.items():
         return_value[name] = synth.check_generation_constraints(name, field)
-    assert return_value["constr_strip_whitespace"]["strip_whitespace"] == True
-    assert return_value["constr_to_upper"]["to_upper"] == True
-    assert return_value["constr_to_lower"]["to_lower"] == True
-    assert return_value["constr_strict"]["strict"] == True
+    assert return_value["constr_strip_whitespace"]["strip_whitespace"]
+    assert return_value["constr_to_upper"]["to_upper"]
+    assert return_value["constr_to_lower"]["to_lower"]
+    assert return_value["constr_strict"]["strict"]
     assert return_value["constr_default"]["default"] == "AAA"
-    assert return_value["constr_annotation"]["annotation"] == str
+    assert return_value["constr_annotation"]["annotation"] is str
     assert return_value["constr_min_length"]["min_length"] == 5
     assert return_value["constr_max_length"]["max_length"] == 5
     assert return_value["constr_pattern"]["pattern"] == r"^\d{5}(-\d{4})?$"
@@ -422,36 +400,24 @@ def test_check_generation_constraints_expect_alternate():
     assert return_value["constr_ge"]["ge"] == 5
     assert return_value["constr_le"]["le"] == 5
     assert return_value["constr_multiple_of"]["multiple_of"] == 5
-    assert return_value["constr_allow_inf_nan"]["allow_inf_nan"] == True
+    assert return_value["constr_allow_inf_nan"]["allow_inf_nan"]
     assert return_value["constr_max_digits"]["max_digits"] == 5
     assert return_value["constr_decimal_places"]["decimal_places"] == 5
     assert return_value["constr_origin"]["origin"] in [List, list]
     assert return_value["constr_args"]["args"]
-    assert return_value["constr_required"]["required"] == True
+    assert return_value["constr_required"]["required"]
 
 
 def test_check_generation_constraints_expect_fail():
     pass
 
 
-class generate_constraints1(BaseModel):
-    test: list[Dict[constr(pattern=r"^a$"), constr(pattern=r"^a$")]]
-
-
-class generate_constraints2(BaseModel):
-    test: list[Dict[str, str]]
-
-
 def test_generate_from_constraints_expect_pass():
-    
     generate_path = "test[100].List(0)[10].Dict(Right)[10].Annotated"
-    schema_model = generate_constraints1
     constraints = default_constr_dict.copy()
     constraints["annotation"] = str
     constraints["pattern"] = r"^a$"
-    return_value = synth.generate_from_constraints(
-        "test", constraints, generate_path
-    )
+    return_value = synth.generate_from_constraints("test", constraints, generate_path)
     assert return_value == "a"
     data_pool = synth.outputpooling
     assert (
@@ -463,15 +429,11 @@ def test_generate_from_constraints_expect_pass():
 
 
 def test_generate_from_constraints_expect_alternate():
-    
     generate_path = "test[100].List(0)[10].Dict(Right)[10]"
-    schema_model = generate_constraints2
     constraints = default_constr_dict.copy()
     constraints["annotation"] = str
     constraints["pattern"] = None
-    return_value = synth.generate_from_constraints(
-        "test", constraints, generate_path
-    )
+    return_value = synth.generate_from_constraints("test", constraints, generate_path)
     assert isinstance(return_value, str)
 
 
@@ -504,24 +466,25 @@ class generate_test2(BaseModel):
 
 
 def test_generate_synth_data_expect_pass():
-    
-    synth_g = Synthesiser("mixed")
-    
-    schema_model = generate_test1
     method = "mixed"
-    path = "" 
+    synth_g = Synthesiser(method)
+
+    schema_model = generate_test1
+    path = ""
     schema_name = schema_model.__name__
     synth_g.field_match_pairs = synth_g.recursive_match_schema_fields(schema_model)
-    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(schema_model)
+    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(
+        schema_model
+    )
     synthesised_data = {}
     for name in schema_model.model_fields.keys():
-        generate_path = path+f"{schema_model.__name__}({name})[1]"
+        generate_path = path + f"{schema_model.__name__}({name})[1]"
 
         synthesised_data[name] = synth_g.generate_synth_data(
             name,
             synth_g.field_match_pairs[schema_name][name],
             synth_g.applied_constraints[schema_name][name],
-            generate_path
+            generate_path,
         )
     assert schema_model(**synthesised_data)
 
@@ -531,30 +494,30 @@ def test_generate_synth_data_expect_alternate():
 
 
 def test_generate_synth_data_expect_fail():
-    
-    synth_g = Synthesiser("mixed")
-    
-    schema_model = generate_test2
     method = "mixed"
-    path = "" 
+    synth_g = Synthesiser(method)
+
+    schema_model = generate_test2
+    path = ""
     schema_name = schema_model.__name__
     synth_g.field_match_pairs = synth_g.recursive_match_schema_fields(schema_model)
-    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(schema_model)
+    synth_g.applied_constraints = synth_g.recursive_make_schema_applied_constraints(
+        schema_model
+    )
     synthesised_data = {}
     with pytest.raises(Exception):
         for name in schema_model.model_fields.keys():
-            generate_path = path+f"{schema_model.__name__}({name})[1]"
+            generate_path = path + f"{schema_model.__name__}({name})[1]"
 
             synthesised_data[name] = synth_g.generate_synth_data(
                 name,
                 synth_g.field_match_pairs[schema_name][name],
                 synth_g.applied_constraints[schema_name][name],
-                generate_path
+                generate_path,
             )
 
 
 def test_make_applied_constraints_expect_pass():
-    
     return_value = synth.make_applied_constraints(generate_test1)
     assert isinstance(return_value, dict)
     assert all([isinstance(value, dict) for value in return_value.values()])
@@ -600,8 +563,10 @@ def test_make_resolved_methods_expect_pass():
     assert isinstance(return_value, dict)
     assert all([callable(item) for item in return_value.values()])
 
+
 def test_make_resolved_methods_expect_alternate():
     pass
+
 
 def test_make_resolved_methods_expect_fail():
     pass
@@ -621,8 +586,9 @@ synthesise_schema_model = generate_test1
         (synthesise_schema_model, "mixed", 3),
     ],
 )
-def test_synthesise_expect_pass_test_recursive_synthesiser_expect_pass(schema_model, method, amount):
-    
+def test_synthesise_expect_pass_test_recursive_synthesiser_expect_pass(
+    schema_model, method, amount
+):
     return_data = synth.synthesise(schema_model, method, amount)
     assert isinstance(return_data, list)
     assert len(return_data) == amount

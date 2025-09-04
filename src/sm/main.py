@@ -1,6 +1,4 @@
-#UTILS_main.py
-
-
+# UTILS_main.py
 
 
 from pydantic_settings import BaseSettings
@@ -13,41 +11,34 @@ import typer
 
 import yaml
 
+from .tools.app_synth import synth_app
+from .tools.app_anon import anon_app
+from .tools.app_models import SynthesiserConfig, AnonymiserConfig
 
 app = typer.Typer()
 
-from .tools.app_synth import synth_app
-from .tools.app_anon import anon_app
-from .tools.helper_funcs import *
-from .tools.app_models import SynthesiserConfig, AnonymiserConfig
 
 app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
 
-
-
-
-
 def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
-    
     def yaml_settings_source() -> Dict[str, Any]:
-        
         if not Path(config_path).exists():
-            return {}  #returning {} as empty to allow defaults to parse
+            return {}  # returning {} as empty to allow defaults to parse
 
         try:
             raw = yaml.safe_load(Path(config_path).read_text()) or {}
         except Exception as e:
             print(f"Yaml doesnt exist: {e}")
             return {}
-        
+
         mapping: Dict[str, Any] = {}
         if "schema" in raw:
             mapping["schema_path"] = raw["schema"]
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
-        
+
         if "synthesiser" in raw:
             mapping["synth"] = raw["synthesiser"]
         elif "synth" in raw:
@@ -61,15 +52,19 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
             mapping["anon"] = raw["anon"]
 
         return mapping
-    
+
     def schema_defaults_source() -> Dict[str, Any]:
-        
-        synth_defaults = {name: field.default for name, field in SynthesiserConfig.model_fields.items()}
-        anon_defaults = {name: field.default for name, field in AnonymiserConfig.model_fields.items()}
+        synth_defaults = {
+            name: field.default
+            for name, field in SynthesiserConfig.model_fields.items()
+        }
+        anon_defaults = {
+            name: field.default for name, field in AnonymiserConfig.model_fields.items()
+        }
         defaults = {
             "schema_path": "schema.py",
             "synth": synth_defaults,
-            "anon": anon_defaults
+            "anon": anon_defaults,
         }
         return defaults
 
@@ -100,19 +95,19 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
             if isinstance(anon, Mapping) and "fields" in anon:
                 last_anon_fields = anon["fields"]
             result = deep_merge(result, data)
-        
+
         if last_anon_fields is not None:
             if "anon" not in result or not isinstance(result["anon"], Mapping):
                 result["anon"] = {}
             result["anon"]["fields"] = last_anon_fields
 
         return result
-    
+
     class Settings(BaseSettings):
         schema_path: str
         synth: typing.Optional[SynthesiserConfig]
         anon: typing.Optional[AnonymiserConfig]
-    
+
     def _settings_customise_sources(
         cls,
         settings_cls,
@@ -122,18 +117,22 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         file_secret_settings,
     ):
         def build_source():
-            return composite_source([
-                init_settings,          # highest priority: values passed into the constructor
-                yaml_settings_source,   # next priority: values from YAML file
-                schema_defaults_source, # then schema defaults loaded from schema.py
-                env_settings,
-                dotenv_settings,
-                file_secret_settings,
-            ])
+            return composite_source(
+                [
+                    init_settings,  # highest priority: values passed into the constructor
+                    yaml_settings_source,  # next priority: values from YAML file
+                    schema_defaults_source,  # then schema defaults loaded from schema.py
+                    env_settings,
+                    dotenv_settings,
+                    file_secret_settings,
+                ]
+            )
+
         return (build_source,)
-    
+
     Settings.settings_customise_sources = classmethod(_settings_customise_sources)
     return Settings
+
 
 # -----
 # main app
@@ -142,17 +141,17 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
 def main(
     ctx: typer.Context,
     config: Optional[str] = typer.Option(
-        "config.yaml",  #default
-        exists=False,         #dont check if path exists before allowing it as option
+        "config.yaml",  # default
+        exists=False,  # dont check if path exists before allowing it as option
         file_okay=True,
-        dir_okay=False,       #these 3 check its readable and a file
+        dir_okay=False,  # these 3 check its readable and a file
         readable=True,
         help="Path to YAML config file",
     ),
     schema_path: Optional[str] = typer.Option(
         "schema.py",
         exists=False,
-    )
+    ),
 ):
     Settings = make_settings_class(config)
     ctx.obj = {
@@ -161,10 +160,7 @@ def main(
     }
 
 
-
-
-
-'''
+"""
 config = "config.yaml"
 Settings = make_settings_class(config)
 print(Settings)
@@ -180,9 +176,9 @@ flags = {key:param for key,param in flags.items() if param is not None}
 synth = SynthesiserConfig(**flags)
 
 print(Settings(synth=synth))
-'''
+"""
 
-'''
+"""
 
 
 
@@ -204,18 +200,4 @@ sm anonymise manual *args
 
 
 
-'''
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"""

@@ -4,9 +4,7 @@
 from src.sm.functions.anonymiser import Anonymiser
 
 
-from pydantic import *
-
-from typing import *
+from pydantic import BaseModel
 
 import json
 
@@ -60,16 +58,34 @@ def test_anonymise_expect_pass():
     manual = True
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = Anonymiser.anonymise(schema_model, data, method, manual, fields, amount)
-    #print(return_data)
+    return_data = Anonymiser.anonymise(
+        schema_model, data, method, manual, fields, amount
+    )
+    # print(return_data)
     assert isinstance(return_data, dict)
-    assert all([isinstance(y, list) for x,y in return_data.items()])
-    assert all([len(y)==amount for x,y in return_data.items()])
-    assert all([isinstance(z, BaseModel) for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "street") != "street" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "city") != "city" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "social_security_number") == "social_security_number" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "continent") == "continent" for x,y in return_data.items() for z in y])
+    assert all([isinstance(y, list) for _, y in return_data.items()])
+    assert all([len(y) == amount for _, y in return_data.items()])
+    assert all([isinstance(z, BaseModel) for _, y in return_data.items() for z in y])
+    assert all(
+        [getattr(z, "street") != "street" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [getattr(z, "city") != "city" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [
+            getattr(z, "social_security_number") == "social_security_number"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
+    assert all(
+        [
+            getattr(z, "continent") == "continent"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
 
 
 def test_anonymise_expect_alternate_manual_false():
@@ -79,16 +95,35 @@ def test_anonymise_expect_alternate_manual_false():
     manual = False
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = Anonymiser.anonymise(schema_model, data, method, manual, fields, amount)
-    #print(return_data)
+    return_data = Anonymiser.anonymise(
+        schema_model, data, method, manual, fields, amount
+    )
+    # print(return_data)
     assert isinstance(return_data, dict)
-    assert all([isinstance(y, list) for x,y in return_data.items()])
-    assert all([len(y)==amount for x,y in return_data.items()])
-    assert all([isinstance(z, BaseModel) for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "street") != "street" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "city") != "city" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "social_security_number") != "social_security_number" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "continent") != "continent" for x,y in return_data.items() for z in y])
+    assert all([isinstance(y, list) for _, y in return_data.items()])
+    assert all([len(y) == amount for _, y in return_data.items()])
+    assert all([isinstance(z, BaseModel) for _, y in return_data.items() for z in y])
+    assert all(
+        [getattr(z, "street") != "street" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [getattr(z, "city") != "city" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [
+            getattr(z, "social_security_number") != "social_security_number"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
+    assert all(
+        [
+            getattr(z, "continent") != "continent"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
+
 
 def test_anonymise_expect_alternate_more_data():
     data = '{"0":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"},"1":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"}}'
@@ -97,16 +132,35 @@ def test_anonymise_expect_alternate_more_data():
     manual = True
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = Anonymiser.anonymise(schema_model, data, method, manual, fields, amount)
-    #print(return_data)
+    return_data = Anonymiser.anonymise(
+        schema_model, data, method, manual, fields, amount
+    )
+    # print(return_data)
     assert isinstance(return_data, dict)
-    assert all([isinstance(y, list) for x,y in return_data.items()])
-    assert all([len(y)==amount for x,y in return_data.items()])
-    assert all([isinstance(z, BaseModel) for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "street") != "street" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "city") != "city" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "social_security_number") == "social_security_number" for x,y in return_data.items() for z in y])
-    assert all([getattr(z, "continent") == "continent" for x,y in return_data.items() for z in y])
+    assert all([isinstance(y, list) for _, y in return_data.items()])
+    assert all([len(y) == amount for _, y in return_data.items()])
+    assert all([isinstance(z, BaseModel) for _, y in return_data.items() for z in y])
+    assert all(
+        [getattr(z, "street") != "street" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [getattr(z, "city") != "city" for _, y in return_data.items() for z in y]
+    )
+    assert all(
+        [
+            getattr(z, "social_security_number") == "social_security_number"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
+    assert all(
+        [
+            getattr(z, "continent") == "continent"
+            for _, y in return_data.items()
+            for z in y
+        ]
+    )
+
 
 def test_anonymise_expect_fail():
     pass

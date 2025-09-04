@@ -1,11 +1,14 @@
 import pydantic
 
+from pydantic import BaseModel
+from typing import Dict, List
+
 from .synthesiser import Synthesiser
 
 
 class Anonymiser:
     @staticmethod
-    def subset_model(schema_model, field_names):
+    def subset_model(schema_model, field_names) -> BaseModel:
         fields = {
             name: (field.annotation, field.default)
             for name, field in schema_model.model_fields.items()
@@ -14,7 +17,7 @@ class Anonymiser:
         return pydantic.create_model("new_schema_model", **fields)
 
     @staticmethod
-    def guess_type(value):
+    def guess_type(value) -> type:
         if value is None:
             return_type = type(None)
         try:
@@ -49,7 +52,7 @@ class Anonymiser:
         return return_type
 
     @staticmethod
-    def new_model(data,field_names):
+    def new_model(data, field_names) -> BaseModel:
         fields = {
             name: (Anonymiser.guess_type(content))
             for name, content in data.items()
@@ -58,32 +61,48 @@ class Anonymiser:
         return pydantic.create_model("new_schema_model", **fields)
 
     @staticmethod
-    def anonymise(schema_model, data, method, manual, fields, amount):
-        #data comes in as a dict of dicts
+    def anonymise(
+        schema_model, data, method, manual, fields, amount
+    ) -> Dict[str, List[BaseModel]]:
+        # data comes in as a dict of dicts
         synth = Synthesiser(method=method)
         anonymised_data = {}
-        for index,data_entry in data.items():
+
+        print(fields.values())
+
+        # add top level config arg for seeded generation 
+        # handle defaults -> use synth
+        # value types
+        # - default
+        # - mask
+        # - ...
+
+        for index, data_entry in data.items():
             schema_match = True
             try:
                 schema_model(**data_entry)
             except:
                 schema_match = False
-            if manual == True:
+            if manual:
                 field_names = fields.keys()
             else:  # auto
                 if schema_match:
                     field_names = [x[0] for x in synth.get_model_data(schema_model)]
                 else:
                     field_names = data_entry.keys()
-                    print(f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys")
-            #name_match_pairs = synth.match_fields(field_names)
-            #field_names = [ field for field,match in name_match_pairs.items() if match != ""]
-            result_schema = Anonymiser.new_model(data_entry,data_entry.keys())
+                    print(
+                        f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
+                    )
+            # name_match_pairs = synth.match_fields(field_names)
+            # field_names = [ field for field,match in name_match_pairs.items() if match != ""]
+            result_schema = Anonymiser.new_model(data_entry, data_entry.keys())
             if schema_match:
                 new_schema_model = Anonymiser.subset_model(schema_model, field_names)
             else:
-                new_schema_model = Anonymiser.new_model(data_entry,field_names)
-            return_data = synth.synthesise(new_schema_model, method=method, amount=amount)
+                new_schema_model = Anonymiser.new_model(data_entry, field_names)
+            return_data = synth.synthesise(
+                new_schema_model, method=method, amount=amount
+            )
             anonymised_data_set = []
             for return_entry in return_data:
                 new_fields = data_entry.copy()
@@ -91,5 +110,5 @@ class Anonymiser:
                     new_fields[field] = getattr(return_entry, field)
                 anonymised_data_set.append(result_schema(**new_fields))
             anonymised_data[index] = anonymised_data_set
-        #data returns as a dict of lists of models
+        # data returns as a dict of lists of models
         return anonymised_data
