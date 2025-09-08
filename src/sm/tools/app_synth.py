@@ -31,11 +31,13 @@ def synth_single(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
+    seed = flags.seed
     synth_flags = flags.synth
     output_file_path = load_file_path(synth_flags.output)
 
     synth_func(
         schema_model,
+        seed,
         synth_flags.method,
         synth_flags.amount,
         output_file_path,
@@ -81,6 +83,7 @@ def synth_batch_command(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
+    seed = flags.seed
     synth_flags = flags.synth
     output_file_path = load_file_path(synth_flags.output)
 
@@ -98,6 +101,7 @@ def synth_batch_command(
         )
         synth_func(
             schema_model,
+            seed,
             method,
             batch,
             output_file_path,
@@ -108,6 +112,7 @@ def synth_batch_command(
     if amount - batch_index != 0:
         synth_func(
             schema_model,
+            seed,
             method,
             amount - batch_index,
             output_file_path,

@@ -19,5 +19,5 @@ class AnonymiserConfig(BaseModel):
     output: str = Field(default="")
     cout: bool = Field(default=False)
     manual: bool = Field(default=False)
-    seed: typing.Union[bool, int] = Field(default=False)
+    default: typing.Literal["mask","synth","perturb"] = Field(default="mask")
     fields: typing.Dict[str, str] = Field(default={})

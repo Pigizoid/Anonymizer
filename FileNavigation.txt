@@ -1,6 +1,8 @@
 Anonymizer
 |basicapp
 |\
+| |apiroutes.py
+| |database.csv
 |
 |
 |img
@@ -15,15 +17,17 @@ Anonymizer
 | | | \
 | | | |__init__.py
 | | | |anonymizer.py
+| | | |pre_made_data.py
 | | | |synthesiser.py
 | | |
 | | |tools
 | | | \
 | | | |__init__.py
 | | | |app_anon.py
-| | | |helper_funcs.py
 | | | |app_models.py
 | | | |app_synth.py
+| | | |helper_funcs.py
+| | | |model_funcs.py
 | | | |regex_builder.py
 | | | |regex_sre_constants.py
 | | | |regex_sre_parse.py

@@ -1,6 +1,6 @@
 # UTILS_main.py
 
-
+from pydantic import Field
 from pydantic_settings import BaseSettings
 import typing
 from typing import Optional, Dict, Any
@@ -24,6 +24,7 @@ app.add_typer(anon_app, name="anon")
 
 class Settings(BaseSettings):
     schema_path: str
+    seed: typing.Union[int,str,bool,None] = Field(default=False)
     synth: typing.Optional[SynthesiserConfig]
     anon: typing.Optional[AnonymiserConfig]
 
@@ -153,11 +154,16 @@ def main(
         "schema.py",
         exists=False,
     ),
+    seed: Optional[str] = typer.Option(
+        False,
+        exists=False,
+    ),
 ):
     Settings = make_settings_class(config)
     ctx.obj = {
         "settings": Settings,
         "schema_path": schema_path,
+        "seed": seed
     }
 
 

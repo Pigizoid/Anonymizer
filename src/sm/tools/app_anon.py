@@ -28,12 +28,14 @@ def anon_auto(
     output: str = None,
     amount: int = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    default: str = "mask"
 ):
     ctx.params["start"] = 0
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
+    seed = flags.seed
     anon_flags = flags.anon
     output_file_path = load_file_path(anon_flags.output)
 
@@ -42,12 +44,14 @@ def anon_auto(
 
     anon_func(
         schema_model,
+        seed,
         anon_flags.method,
         anon_flags.amount,
         anon_flags.start,
         anon_flags.ingest,
         anon_flags.cout,
         anon_flags.manual,
+        anon_flags.default,
         anon_flags.fields,
         output_file_path,
     )
@@ -63,6 +67,7 @@ def anon_default(
     output: str = None,
     amount: int = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    default: str = "mask"
 ):
     if (
         ctx.invoked_subcommand is not None
@@ -79,6 +84,7 @@ def anon_auto_command(
     output: str = None,
     amount: int = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    default: str = "mask"
 ):
     anon_auto(ctx, *ctx.params)
 
@@ -92,9 +98,11 @@ def anon_manual_command(
     start: int = None,
     output: str = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
-    seed: int = None,
+    default: typing.Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
 ):
+    if default not in ["mask","synth","perturb"]:
+        raise ValueError(f"Default:'{default}' not in {["mask","synth","perturb"]}")
     if fields:
         try:
             ctx.params["fields"] = json.loads(fields)
@@ -102,12 +110,11 @@ def anon_manual_command(
             raise typer.BadParameter(f"Invalid JSON for --fields: {e}")
     else:
         ctx.params["fields"] = None
-    if seed is None:
-        ctx.params["seed"] = False
 
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)
+    seed = flags.seed
     anon_flags = flags.anon
     output_file_path = load_file_path(anon_flags.output)
 
@@ -116,13 +123,14 @@ def anon_manual_command(
 
     anon_func(
         schema_model,
+        seed,
         anon_flags.method,
         anon_flags.amount,
         anon_flags.start,
         anon_flags.ingest,
         anon_flags.cout,
         True,  # manual
-        anon_flags.seed,
+        anon_flags.default,
         anon_flags.fields,
         output_file_path,
     )

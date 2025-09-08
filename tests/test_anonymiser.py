@@ -31,9 +31,10 @@ class test_Address_subset(BaseModel):
 
 
 def test_subset_model_expect_pass():
+    anon = Anonymiser()
     schema_model = test_Address
     field_names = ["street", "city"]
-    return_value = Anonymiser.subset_model(schema_model, field_names)
+    return_value = anon.subset_model(schema_model, field_names)
     assert isinstance(return_value, type)
     assert issubclass(return_value, BaseModel)
     assert return_value.__name__ == "new_schema_model"
@@ -52,13 +53,14 @@ schema_model = test_Address
 
 
 def test_anonymise_expect_pass():
+    anon = Anonymiser()
     data = '{"0":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"}}'
     data = json.loads(data)
     method = "mixed"
     manual = True
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = Anonymiser.anonymise(
+    return_data = anon.anonymise(
         schema_model, data, method, manual, fields, amount
     )
     # print(return_data)
@@ -89,13 +91,14 @@ def test_anonymise_expect_pass():
 
 
 def test_anonymise_expect_alternate_manual_false():
+    anon = Anonymiser()
     data = '{"0":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"}}'
     data = json.loads(data)
     method = "mixed"
     manual = False
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = Anonymiser.anonymise(
+    return_data = anon.anonymise(
         schema_model, data, method, manual, fields, amount
     )
     # print(return_data)
@@ -126,6 +129,7 @@ def test_anonymise_expect_alternate_manual_false():
 
 
 def test_anonymise_expect_alternate_more_data():
+    anon = Anonymiser()
     data = '{"0":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"},"1":{"street":"street","city":"city","social_security_number":"social_security_number","continent":"continent"}}'
     data = json.loads(data)
     method = "mixed"

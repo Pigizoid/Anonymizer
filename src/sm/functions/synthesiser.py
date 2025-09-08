@@ -809,6 +809,11 @@ class Synthesiser:
                 )
         return constraints["annotation"](return_value)
 
+    def make_new_contraints(self,applied_constraints):
+        new_applied_constraints = default_constr_dict.copy()
+        new_applied_constraints.update(applied_constraints)
+        return new_applied_constraints
+
     def generate_synth_data(
         self, field_name, match_name, applied_constraints, generate_path
     ) -> Any:  # value or collection
@@ -863,10 +868,11 @@ class Synthesiser:
                     max_amount = applied_constraints["max_length"]
                 else:
                     max_amount = min_amount + 4
+                
+                new_applied_constraints = self.make_new_contraints(applied_constraints)
+
                 if data_type in [List, list]:
                     output_data = []
-                    new_applied_constraints = default_constr_dict.copy()
-                    new_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
                         data_args = [str]
                     for x in range(random.randint(min_amount, max_amount)):
@@ -888,10 +894,8 @@ class Synthesiser:
                         )
 
                 elif data_type in [Dict, dict]:
-                    new_left_applied_constraints = default_constr_dict.copy()
-                    new_left_applied_constraints.update(applied_constraints)
-                    new_right_applied_constraints = default_constr_dict.copy()
-                    new_right_applied_constraints.update(applied_constraints)
+                    new_left_applied_constraints = new_applied_constraints.copy()
+                    new_right_applied_constraints = new_applied_constraints.copy()
                     if len(data_args) == 0:
                         data_args = [str, str]
                     chosen_type_left = data_args[0]
@@ -944,8 +948,6 @@ class Synthesiser:
 
                 elif data_type in [Tuple, tuple]:
                     output_data = []
-                    new_applied_constraints = default_constr_dict.copy()
-                    new_applied_constraints.update(applied_constraints)
                     if len(data_args) == 0:
                         data_args = [
                             str for x in range(random.randint(min_amount, max_amount))
@@ -969,8 +971,6 @@ class Synthesiser:
 
                 elif data_type in [Set, set, frozenset]:
                     output_data = []
-                    new_applied_constraints = default_constr_dict.copy()
-                    new_applied_constraints.update(applied_constraints)
                     current_amount = 0
                     target_amount = random.randint(min_amount, max_amount)
                     if len(data_args) == 0:
@@ -1010,8 +1010,6 @@ class Synthesiser:
                         output_data = frozenset(output_data)
 
                 elif data_type == Union:
-                    new_applied_constraints = default_constr_dict.copy()
-                    new_applied_constraints.update(applied_constraints)
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
                     new_applied_constraints["annotation"] = chosen_type
@@ -1024,8 +1022,6 @@ class Synthesiser:
 
                 elif data_type == Optional:
                     # should use Union, but still here for fallback
-                    new_applied_constraints = default_constr_dict.copy()
-                    new_applied_constraints.update(applied_constraints)
                     data_args.extend(None)
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
@@ -1044,25 +1040,18 @@ class Synthesiser:
                         )
 
                 elif data_type == Literal:
-                    # print("Literal Here")
-                    # print(data_args)
                     output_data = random.choice(data_args)
-                    # print(output_data)
 
                 else:
                     raise Exception(
                         f"Recersive data type| {data_type} : {data_args} |not handled"
                     )
-                # print("	recursive")
             elif data_type in python_builtin_types:
-                # print("	generate data")
-                func = self.resolved_methods.get(match_name)
-                # print(applied_constraints["pattern"])
-                # print(func)
-                # print(match_name)
+                if match_name == "":
+                    func = None
+                else:
+                    func = self.resolved_methods[match_name]
                 if applied_constraints["pattern"] or not func or match_name == "":
-                    # print("generating,",field_name)
-                    # print(inspect.getsource(self.generate_from_constraints))
                     output_data = self.generate_from_constraints(
                         field_name, applied_constraints, generate_path
                     )
@@ -1080,6 +1069,7 @@ class Synthesiser:
 
                         start_time = time.time()
                         data_temp_pool = [func() for _ in range(pooling_count)]
+                        
                         data_pool = [
                             self.apply_constraints(
                                 func_val,
@@ -1091,7 +1081,6 @@ class Synthesiser:
                             )
                             for func_val in data_temp_pool
                         ]
-                        # can be used better for uniqueness and bulking later
 
                         elapsed_time = time.time() - start_time
 
@@ -1121,6 +1110,17 @@ class Synthesiser:
         # print("__")
         # apply constraints of output after data is provided
         return output_data
+
+    def generate_single_value(self,field_name,field_type):
+        matched_field = self.match_fields([field_name])
+        if matched_field[field_name] != "":
+            func = self.resolved_methods[matched_field[field_name]]
+            value = func()
+        else:
+            applied_constraints = default_constr_dict.copy()
+            applied_constraints["annotation"] = field_type
+            value = self.generate_from_constraints(field_name, applied_constraints, "self()[1].generate")
+        return value
 
     def make_applied_constraints(self, schema_model) -> Dict[str, Dict[str, Any]]:
         applied_constraints = {}
@@ -1188,9 +1188,29 @@ class Synthesiser:
         # print("__")
         return synthesised_data
 
-    def synthesise(self, schema_model, method="faker", amount=1) -> List[BaseModel]:
+    def synthesise(self, schema_model, method="faker", amount=1, seed="random") -> List[BaseModel]:
         if amount == 0:
             return []
+        
+        if seed == "random":
+            self.input_seed = "random"
+            self.seed = random.randint(0,1_000_000_000_000)
+            random.seed(seed)
+        elif seed == "relational": #not done
+            self.input_seed = seed
+            self.seed = random.randint(0,1_000_000_000_000)
+            random.seed(seed)
+        else:
+            try:
+                seed = int(seed)
+                self.input_seed = seed
+                random.seed(seed)
+            except:
+                self.input_seed = seed
+                self.seed = random.randint(0,1_000_000_000_000)
+                random.seed(seed)
+            
+            
 
         self.method = method
 
@@ -1201,7 +1221,7 @@ class Synthesiser:
         # print(self.applied_constraints)
         dataset = []
         for x in range(amount):
-            synthesised_data = self.synthesise_recursive(schema_model, method, amount)
+            synthesised_data = self.synthesise_recursive(schema_model, method=method, amount=amount)
 
             dataset.append(schema_model(**synthesised_data))
             if (x + 1) % max(1, amount // 100) == 0: #1% at a time

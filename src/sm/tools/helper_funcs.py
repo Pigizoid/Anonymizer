@@ -193,19 +193,11 @@ def load_ingest_data(ingest, index=0):
     return data
 
 
-def synth_func(schema_model, method, amount, output, start_index=0, cout: bool = False):
-    """
-    from line_profiler import LineProfiler
-    lp = LineProfiler()
-    synth = Synthesiser()
-    lp_wrapper = lp(synth.synthesise)
-    lp_wrapper(schema_model,method,amount)
-    lp.print_stats()
-    #"""
+def synth_func(schema_model, seed, method, amount, output, start_index=0, cout: bool = False):
     start_time = time.time()
     synth = Synthesiser(method=method)
     dataset = synth.synthesise(
-        schema_model, method, amount
+        schema_model, method, amount, seed
     )  # returns as [ data, data, ... ]
     elapsed_time = time.time() - start_time  # end timer
     print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
@@ -251,13 +243,13 @@ def synth_func(schema_model, method, amount, output, start_index=0, cout: bool =
 
 
 def anon_func(
-    schema_model, method, amount, index, ingest, cout, manual, seed, fields, output
+    schema_model, seed, method, amount, index, ingest, cout, manual, default, fields, output
 ):
     data = load_ingest_data(ingest, index=index)
     # data comes in as a dict of dicts
-
-    anonymised_data = Anonymiser.anonymise(
-        schema_model, data, method, manual, seed, fields, amount
+    anon = Anonymiser()
+    anonymised_data = anon.anonymise(
+        schema_model, data, method, manual, seed, default, fields, amount
     )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
