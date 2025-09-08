@@ -405,7 +405,10 @@ class Synthesiser:
                 try:
                     if max(1, pooling_count) > 10000 and PERFORMANCE:
                         src = regex_builder.compile_regex_to_function_source(pattern)
-                        safe_builtins = {"len": len, "range": range, "min": min, "max": max}
+                        safe_builtins = {
+                            "len": len, "range": range, "min": min, "max": max,
+                            "list": list, "chr": chr, "ord": ord, "set": set, "map": map,
+                        }
                         env = {
                             "__builtins__": safe_builtins, #dissallow anything except random and string
                             "random": random,

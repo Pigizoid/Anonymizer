@@ -568,15 +568,30 @@ def _parse(source: Tokenizer, state: Pattern):
                             code2 = _class_escape(source, this)
                         else:
                             code2 = (LITERAL, ord(this))
-                        if code1[0] != LITERAL or code2[0] != LITERAL:
-                            raise Exception("bad character range")
-                        lo = code1[1]
-                        hi = code2[1]
-                        if hi < lo:
-                            raise Exception("bad character range")
-                        setappend((RANGE, (lo, hi)))
+
+                        # If both sides are plain literals, it's a true range (a-b).
+                        if code1[0] == LITERAL and code2[0] == LITERAL:
+                            lo = code1[1]
+                            hi = code2[1]
+                            if hi < lo:
+                                raise Exception("bad character range")
+                            setappend((RANGE, (lo, hi)))
+                        else:
+                            # Ambiguous range like [\w-\.] — treat '-' as a literal.
+                            # Append the left item (unwrapping IN if necessary), then '-',
+                            # then append the right item (unwrapping IN if necessary).
+                            if code1[0] == IN:
+                                code1 = code1[1][0]
+                            setappend(code1)
+
+                            setappend((LITERAL, ord("-")))
+
+                            if code2[0] == IN:
+                                code2 = code2[1][0]
+                            setappend(code2)
                     else:
                         raise Exception("unexpected end of regular expression")
+
                 else:
                     if code1[0] == IN:
                         code1 = code1[1][0]
