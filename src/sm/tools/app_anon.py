@@ -92,6 +92,7 @@ def anon_manual_command(
     start: int = None,
     output: str = None,
     cout: Annotated[typing.Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    seed: int = None,
     fields: str = typer.Option(None, help="Fields as JSON string"),
 ):
     if fields:
@@ -101,6 +102,8 @@ def anon_manual_command(
             raise typer.BadParameter(f"Invalid JSON for --fields: {e}")
     else:
         ctx.params["fields"] = None
+    if seed is None:
+        ctx.params["seed"] = False
 
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
@@ -119,6 +122,7 @@ def anon_manual_command(
         anon_flags.ingest,
         anon_flags.cout,
         True,  # manual
+        anon_flags.seed,
         anon_flags.fields,
         output_file_path,
     )

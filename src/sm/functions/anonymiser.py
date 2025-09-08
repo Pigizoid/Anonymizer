@@ -62,14 +62,14 @@ class Anonymiser:
 
     @staticmethod
     def anonymise(
-        schema_model, data, method, manual, fields, amount
+        schema_model, data, method, manual, seed, fields, amount
     ) -> Dict[str, List[BaseModel]]:
         # data comes in as a dict of dicts
         synth = Synthesiser(method=method)
         anonymised_data = {}
 
         print(fields.values())
-
+        print(f"Seed: {seed}")
         # add top level config arg for seeded generation 
         # handle defaults -> use synth
         # value types

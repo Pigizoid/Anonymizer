@@ -251,13 +251,13 @@ def synth_func(schema_model, method, amount, output, start_index=0, cout: bool =
 
 
 def anon_func(
-    schema_model, method, amount, index, ingest, cout, manual, fields, output
+    schema_model, method, amount, index, ingest, cout, manual, seed, fields, output
 ):
     data = load_ingest_data(ingest, index=index)
     # data comes in as a dict of dicts
 
     anonymised_data = Anonymiser.anonymise(
-        schema_model, data, method, manual, fields, amount
+        schema_model, data, method, manual, seed, fields, amount
     )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }

@@ -22,6 +22,12 @@ app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
 
+class Settings(BaseSettings):
+    schema_path: str
+    synth: typing.Optional[SynthesiserConfig]
+    anon: typing.Optional[AnonymiserConfig]
+
+
 def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
     def yaml_settings_source() -> Dict[str, Any]:
         if not Path(config_path).exists():
@@ -102,11 +108,6 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
             result["anon"]["fields"] = last_anon_fields
 
         return result
-
-    class Settings(BaseSettings):
-        schema_path: str
-        synth: typing.Optional[SynthesiserConfig]
-        anon: typing.Optional[AnonymiserConfig]
 
     def _settings_customise_sources(
         cls,
