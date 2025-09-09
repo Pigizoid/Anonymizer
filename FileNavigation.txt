@@ -15,18 +15,27 @@ Anonymizer
 |  |  \
 |  |  |anonymiser
 |  |  |  \
+|  |  |  |anon_methods
+|  |  |  |  \
+|  |  |  |  |methods.py
+|  |  |  |
+|  |  |  |handling
+|  |  |  |  \
+|  |  |  |  |data_handling.py
+|  |  |  |  |model_handling.py
+|  |  |  |
 |  |  |  |anonymiser.py
 |  |  |
 |  |  |synthesiser
 |  |  |  \
 |  |  |  |field_match
 |  |  |  |  \
-|  |  |  |  |levenshtein.py
+|  |  |  |  |calc_difference.py
 |  |  |  |  |match.py
 |  |  |  |
 |  |  |  |generator
 |  |  |  |  \
-|  |  |  |  |constrain_based_generator.py
+|  |  |  |  |constraint_based_generator.py
 |  |  |  |  |synth_based_generator.py
 |  |  |  |
 |  |  |  |initialiser
