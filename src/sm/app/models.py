@@ -1,5 +1,6 @@
 # app_models.py
 from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 import typing
 
 
@@ -21,3 +22,11 @@ class AnonymiserConfig(BaseModel):
     manual: bool = Field(default=False)
     default: typing.Literal["mask","synth","perturb"] = Field(default="mask")
     fields: typing.Dict[str, str] = Field(default={})
+
+
+
+class Settings(BaseSettings):
+    schema_path: str
+    seed: typing.Union[int,str,bool,None] = Field(default=False)
+    synth: typing.Optional[SynthesiserConfig]
+    anon: typing.Optional[AnonymiserConfig]

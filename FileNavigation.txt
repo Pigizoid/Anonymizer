@@ -1,48 +1,88 @@
 Anonymizer
-|basicapp
-|\
-| |apiroutes.py
-| |database.csv
+|api_app
+|  \
+|  |apiroutes.py
+|  |database.csv
 |
 |
 |img
-| \
-| |test.png
+|  \
+|  |test.png
 |
 |src
-| \
-| |sm
-| | \
-| | |functions
-| | | \
-| | | |__init__.py
-| | | |anonymizer.py
-| | | |pre_made_data.py
-| | | |synthesiser.py
-| | |
-| | |tools
-| | | \
-| | | |__init__.py
-| | | |app_anon.py
-| | | |app_models.py
-| | | |app_synth.py
-| | | |helper_funcs.py
-| | | |model_funcs.py
-| | | |regex_builder.py
-| | | |regex_sre_constants.py
-| | | |regex_sre_parse.py
-| | |
-| | |__init__.py
-| | |main.py
-| | |main(old).py
+|  \
+|  |sm
+|  |  \
+|  |  |anonymiser
+|  |  |  \
+|  |  |  |anonymiser.py
+|  |  |
+|  |  |synthesiser
+|  |  |  \
+|  |  |  |field_match
+|  |  |  |  \
+|  |  |  |  |levenshtein.py
+|  |  |  |  |match.py
+|  |  |  |
+|  |  |  |generator
+|  |  |  |  \
+|  |  |  |  |constrain_based_generator.py
+|  |  |  |  |synth_based_generator.py
+|  |  |  |
+|  |  |  |initialiser
+|  |  |  |  \
+|  |  |  |  |class_init.py
+|  |  |  |  |get_constraints.py
+|  |  |  |  |match_methods.py
+|  |  |  |
+|  |  |  |misc.py
+|  |  |  |synthesiser.py
+|  |  |
+|  |  |app
+|  |  |  \
+|  |  |  |anon
+|  |  |  |  \
+|  |  |  |  |subcommands
+|  |  |  |  |  \
+|  |  |  |  |  |auto.py
+|  |  |  |  |  |manual.py
+|  |  |  |  |
+|  |  |  |  |funcs.py
+|  |  |  |  |main.py
+|  |  |  |
+|  |  |  |synth
+|  |  |  |  \
+|  |  |  |  |subcommands
+|  |  |  |  |  \
+|  |  |  |  |  |batch.py
+|  |  |  |  |  |single.py
+|  |  |  |  |
+|  |  |  |  |funcs.py
+|  |  |  |  |main.py
+|  |  |  |
+|  |  |  |helper_funcs.py
+|  |  |  |main.py
+|  |  |  |models.py
+|  |  |
+|  |  |tools
+|  |  |  \
+|  |  |  |regex_generator
+|  |  |  |  \
+|  |  |  |  |regex_builder.py
+|  |  |  |  |regex_sre_constants.py
+|  |  |  |  |regex_sre_parse.py
+|  |  |  |
+|  |  |  |model_funcs.py
+|  |  |
+|  |  |pre_made_data.py
+|  |  |main(old).py
 |
 |tests
-| \
-| |__init__.py
-| |schema.py
-| |test_anonymiser.py
-| |test_main.py
-| |test_synthesiser.py
+|  \
+|  |schema.py
+|  |test_anonymiser.py
+|  |test_main.py
+|  |test_synthesiser.py
 |
 |.gitignore
 |.python-version

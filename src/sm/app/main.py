@@ -1,19 +1,12 @@
-# UTILS_main.py
-
-from pydantic import Field
 from pydantic_settings import BaseSettings
-import typing
 from typing import Optional, Dict, Any
 from pathlib import Path
-
+from .synth.main import synth_app
+from .anon.main import anon_app
+from .models import SynthesiserConfig, AnonymiserConfig, Settings
 import typer
-
-
 import yaml
 
-from .tools.app_synth import synth_app
-from .tools.app_anon import anon_app
-from .tools.app_models import SynthesiserConfig, AnonymiserConfig
 
 app = typer.Typer()
 
@@ -21,12 +14,6 @@ app = typer.Typer()
 app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
-
-class Settings(BaseSettings):
-    schema_path: str
-    seed: typing.Union[int,str,bool,None] = Field(default=False)
-    synth: typing.Optional[SynthesiserConfig]
-    anon: typing.Optional[AnonymiserConfig]
 
 
 def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
@@ -136,9 +123,6 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
     return Settings
 
 
-# -----
-# main app
-# -----
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -166,45 +150,3 @@ def main(
         "seed": seed
     }
 
-
-"""
-config = "config.yaml"
-Settings = make_settings_class(config)
-print(Settings)
-
-flags = {
-    "method": None,
-    "amount": 10000,
-    "batch": 50,
-    "output": "outputs.json",
-    "cout": False
-    }
-flags = {key:param for key,param in flags.items() if param is not None}
-synth = SynthesiserConfig(**flags)
-
-print(Settings(synth=synth))
-"""
-
-"""
-
-
-
-
-
-sm             
-
-->  synthesise -> single
-    -> batch
-    
-->  anonymise -> auto
-    -> manual
-
-
-sm synthesise *args (default is to use the "single" flag)
-sm synthesise batch *args
-sm anonymise *args (default is to use the "auto" flag)
-sm anonymise manual *args
-
-
-
-"""

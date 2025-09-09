@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
-
-from typing import Union, Type, Dict, Any
+from typing import Union, Type, Dict, Any, List
 
 ModelLike = Union[Type[BaseModel], BaseModel]
 
@@ -18,3 +17,11 @@ def get_model_fields(schema_model: ModelLike) -> Dict[str, Any]:
     
     model_fields: Dict[str, FieldInfo] = getattr(model_cls, "model_fields", {})
     return model_fields
+
+
+
+def get_model_data(model) -> List[list]:
+    model_data = []
+    for field_name, model_field in get_model_fields(model).items():
+        model_data.append([field_name, model_field])
+    return model_data

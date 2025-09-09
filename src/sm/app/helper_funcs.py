@@ -1,28 +1,14 @@
-# helper_funcs.py
-
 from pydantic import BaseModel
 from decimal import Decimal
-
-try:
-    from ..functions.synthesiser import Synthesiser
-    from ..functions.anonymiser import Anonymiser
-except:
-    print("running main directly?")
-    from ..functions.synthesiser import Synthesiser
-    from ..functions.anonymiser import Anonymiser
-
-from .app_models import SynthesiserConfig, AnonymiserConfig
-
+from .models import SynthesiserConfig, AnonymiserConfig
 import importlib.util
 import inspect
-
 import requests
-
 import time
-
 import json
-
 import json_schema_to_pydantic
+
+
 
 def convert_schema_to_JSON(schema_model):
     if isinstance(schema_model, type) and issubclass(schema_model, BaseModel):
@@ -101,7 +87,6 @@ def send_to_API(schema_model, output, data):
         print(response)
 
 
-# import time
 def send_batch_to_API(schema_model, output, data):
     start_time = time.time()
 
@@ -126,7 +111,6 @@ def load_schema(schema_path):
     spec.loader.exec_module(module)
 
     classes = inspect.getmembers(module, inspect.isclass)
-    # print(classes)
     filtered = [
         (name, cls)
         for name, cls in classes
@@ -191,78 +175,3 @@ def load_ingest_data(ingest, index=0):
     else:
         raise Exception("Unsupported ingest type")
     return data
-
-
-def synth_func(schema_model, seed, method, amount, output, start_index=0, cout: bool = False):
-    start_time = time.time()
-    synth = Synthesiser(method=method)
-    dataset = synth.synthesise(
-        schema_model, method, amount, seed
-    )  # returns as [ data, data, ... ]
-    elapsed_time = time.time() - start_time  # end timer
-    print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
-    flush = []
-    if output.startswith("http"):
-        request_entries = []
-
-    for index, data in enumerate(dataset):
-        if output is not None:
-            """
-            output_data = {}
-            for key, value in dict(data).items():
-                output_data[key] = make_json_safe(value)
-            """
-            if (index + 1 + start_index) != 1:
-                front_string = ",\n	"
-            else:
-                front_string = ""
-            json_str = json.dumps(
-                data.model_dump(), indent=8, default=lambda v: repr(v)
-            )
-            flush.append(f'{front_string}"{index + start_index}": {json_str}')
-            if output.startswith("http"):
-                request_entries.append(data)
-        else:
-            flush.append(f"{index + 1 + start_index}: {data}")
-    if output is not None:
-        if output.startswith("http"):
-            send_batch_to_API(schema_model, output, request_entries)
-        else:
-            flush_out = "".join(flush)
-            with open(f"{output}.json", "a") as f:
-                f.write(flush_out)
-    else:
-        flush_out = "".join(flush)
-    if cout:
-        print(flush_out)
-    flush.clear()
-    if output.startswith("http"):
-        request_entries.clear()
-    if output is not None and cout:
-        print(f"To file_path -> {output}")
-
-
-def anon_func(
-    schema_model, seed, method, amount, index, ingest, cout, manual, default, fields, output
-):
-    data = load_ingest_data(ingest, index=index)
-    # data comes in as a dict of dicts
-    anon = Anonymiser()
-    anonymised_data = anon.anonymise(
-        schema_model, data, method, manual, seed, default, fields, amount
-    )
-    # data returns as a dict of lists of dicts
-    # { index: [model, * amount] }
-
-    flush_output = {}
-    with open(f"{output}.json", "a") as f:
-        for index, content in anonymised_data.items():
-            print("-" * 60)
-            print(f"Input data:\n\t{data[index]}")
-            flush_list = []
-            print("Output data:")
-            for idx, x in enumerate(content):
-                print(f"output {str(idx)}{' ' * (10 - len(str(idx)))}{x.model_dump()}")
-                flush_list.append(x.model_dump())
-            flush_output[index] = flush_list
-        f.write(json.dumps(flush_output, indent=8))
