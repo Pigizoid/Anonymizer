@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple, Set
 
-from ..anonymisation_methods.methods import mask_value,perturb_value,synth_value
+from ..anon_methods.methods import mask_value,perturb_value,synth_value
 from .model_handling import guess_type
 
 from ...pre_made_data import recursive_types
