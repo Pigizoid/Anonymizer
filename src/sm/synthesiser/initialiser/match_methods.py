@@ -7,13 +7,13 @@ fake = Faker()
 generic = mimesis.Generic(mimesis.locales.Locale.EN)
 
 
-class match_methods_class():
+class match_methods_class:
     def list_faker_methods(self) -> Tuple[list, dict]:
-        '''
+        """
         method for listing all generation providers in Faker
         returns tuple of (methods,methods_map)
             methods_map = {provider_name, parent callable}
-        '''
+        """
         methods = []
         methods_map = {}
         fake = Faker()
@@ -27,12 +27,12 @@ class match_methods_class():
         return (methods, methods_map)
 
     def list_mimesis_methods(self) -> Tuple[list, dict]:
-        '''
+        """
         method for listing all generation providers in Mimesis
         returns tuple of (methods,methods_map)
             methods_map = {provider_name, parent callable}
         parent callable can be different across methods, as Mimesis uses sub providers
-        '''
+        """
         methods = []
         methods_map = {}
         for provider_name in sorted(generic.__dict__.keys()):
@@ -57,7 +57,7 @@ class match_methods_class():
         return (methods, methods_map)
 
     def list_match_methods(self, method) -> Tuple[list, dict]:
-        '''
+        """
         method for listing all generation providers based on input method
         method in "faker","mimesis","mixed"
             faker is slower but more robust
@@ -66,7 +66,7 @@ class match_methods_class():
                 very robust with varying performance
         returns tuple of (methods,methods_map)
             methods_map = {provider_name, parent callable}
-        '''
+        """
         methods = []
         methods_map = {}
         if method == "faker":
@@ -90,16 +90,15 @@ class match_methods_class():
         # print(f"Method: {method}, Map: {methods_map[method]}")
         return (methods, methods_map)
 
-
     def make_resolved_methods(self, name_match_pairs, methods_map) -> Dict[str, Any]:
-        '''
-        Inputs: 
+        """
+        Inputs:
             list of provider names
             dict of {name:provider parent callables}
         instanciates each parent callable
         Outputs:
             dict of {name:instance}
-        '''
+        """
         resolved_methods = {}
         for match_name in name_match_pairs:
             if match_name != "":
@@ -109,4 +108,3 @@ class match_methods_class():
                 resolved_methods[match_name] = None
         # print("r",resolved_methods)
         return resolved_methods
-

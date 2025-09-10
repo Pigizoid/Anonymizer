@@ -9,7 +9,6 @@ import json
 anon_manual_subcommand = typer.Typer()
 
 
-
 @anon_manual_subcommand.command(name="manual")
 def anon_manual_command(
     ctx: typer.Context,  # contains ctx.config and ctx.params  (params are the below field
@@ -22,7 +21,7 @@ def anon_manual_command(
     default: Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
 ):
-    '''
+    """
     A subcommand for the anon command
     Inputs:
         a path as str to an ingest file
@@ -36,9 +35,9 @@ def anon_manual_command(
             json string key and value requires double quotes
             example:  sm --config config.yaml anon manual --fields '{"name":"mask"}'
     Runs the anonymisation tool in manual mode
-    '''
-    if default not in ["mask","synth","perturb"]:
-        raise ValueError(f"Default:'{default}' not in {["mask","synth","perturb"]}")
+    """
+    if default not in ["mask", "synth", "perturb"]:
+        raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     if fields:
         try:
             ctx.params["fields"] = json.loads(fields)

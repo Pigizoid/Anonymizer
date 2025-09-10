@@ -60,9 +60,7 @@ def test_anonymise_expect_pass():
     manual = True
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = anon.anonymise(
-        schema_model, data, method, manual, fields, amount
-    )
+    return_data = anon.anonymise(schema_model, data, method, manual, fields, amount)
     # print(return_data)
     assert isinstance(return_data, dict)
     assert all([isinstance(y, list) for _, y in return_data.items()])
@@ -98,9 +96,7 @@ def test_anonymise_expect_alternate_manual_false():
     manual = False
     fields = {"street": "default", "city": "default"}
     amount = 5
-    return_data = anon.anonymise(
-        schema_model, data, method, manual, fields, amount
-    )
+    return_data = anon.anonymise(schema_model, data, method, manual, fields, amount)
     # print(return_data)
     assert isinstance(return_data, dict)
     assert all([isinstance(y, list) for _, y in return_data.items()])

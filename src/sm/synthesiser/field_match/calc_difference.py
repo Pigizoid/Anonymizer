@@ -1,19 +1,16 @@
-
 def levenshtein_distance(word1, word2, modifiers=None) -> float:
-    '''
+    """
     algorithm for calculating difference of two strings
-    e.g.  
+    e.g.
         cat -> car = 1
         books -> bo = 3
         books -> cooks = 1
         cat -> cat = 0
-    '''
+    """
     if modifiers is None:
         modifiers = [0, 0, 0]
     len_word1, len_word2 = len(word1), len(word2)
-    distance_point = [
-        [0 for _ in range(len_word2 + 1)] for _ in range(len_word1 + 1)
-    ]
+    distance_point = [[0 for _ in range(len_word2 + 1)] for _ in range(len_word1 + 1)]
     for i in range(len_word1 + 1):
         distance_point[i][0] = i
     for j in range(len_word2 + 1):
@@ -28,6 +25,7 @@ def levenshtein_distance(word1, word2, modifiers=None) -> float:
             )
     return distance_point[len_word1][len_word2]
 
+
 def calc_difference(
     target_word,
     word,
@@ -36,7 +34,7 @@ def calc_difference(
     target_tokens,
     target_tokens_set,
 ) -> float:
-    '''
+    """
     algorithm for calculating difference of two strings
     while implementing robust fuzzy matching
     e.g.
@@ -45,11 +43,11 @@ def calc_difference(
         name_first -> first_name = 0
         social_security_number -> ssn = 0
         ssn -> social_security_number = 0
-    
+
     additionally matches by stripping underscores
     and matching based on word positioning
     with later positioned words adding a higher cost rating
-    '''
+    """
     if target_tokens_set == word_tokens_set:  # name_first -> first_name
         return 0
 
@@ -62,9 +60,7 @@ def calc_difference(
     ) == word:  # abbreviation mapping	social_security_number -> ssn
         return 0
 
-    main_distance = levenshtein_distance(
-        target_word, word.lower()
-    )  # close early exit
+    main_distance = levenshtein_distance(target_word, word.lower())  # close early exit
     if main_distance <= 1 or main_distance >= len(target_word):
         return main_distance
 
@@ -84,8 +80,7 @@ def calc_difference(
                 distance = (main_distance / 2 + token_distance) / 2
             else:
                 token_distance = (
-                    levenshtein_distance(target_word, word.lower())
-                    * cross_points
+                    levenshtein_distance(target_word, word.lower()) * cross_points
                 )
                 distance = (main_distance + token_distance) / 2
         else:
@@ -94,13 +89,9 @@ def calc_difference(
                 distance = (main_distance / 2 + token_distance) / 2
             else:
                 token_distance = (
-                    levenshtein_distance(target_word, word.lower())
-                    * cross_points
+                    levenshtein_distance(target_word, word.lower()) * cross_points
                 )
                 distance = (main_distance + token_distance) / 2
     else:
-        distance = (
-            levenshtein_distance(target_word, word.lower()) * cross_points
-        )
+        distance = levenshtein_distance(target_word, word.lower()) * cross_points
     return distance
-

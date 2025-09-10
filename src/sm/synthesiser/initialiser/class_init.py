@@ -1,8 +1,9 @@
 from .match_methods import match_methods_class
 
+
 class init_class(match_methods_class):
     def __init__(self, method="faker"):
-        '''Initialises data to be used across class instances'''
+        """Initialises data to be used across class instances"""
         self.outputpooling = {}
         self.word_list, methods_map = self.list_match_methods(method)
         self.word_tokens = {word: word.split("_") for word in self.word_list}

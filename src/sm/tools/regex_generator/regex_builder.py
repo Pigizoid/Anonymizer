@@ -1,4 +1,3 @@
-
 try:
     from . import regex_sre_parse
     from . import regex_sre_constants
@@ -16,6 +15,7 @@ CATEGORY_TO_EXPR = {
     regex_sre_constants.CATEGORY_SPACE: "string.whitespace",
     regex_sre_constants.CATEGORY_WORD: "string.ascii_letters + string.digits + '_'",
 }
+
 
 def _expand_in_child_static(arg, flags, alphabet):
     """
@@ -60,6 +60,7 @@ def _expand_in_child_static(arg, flags, alphabet):
         out = list(alphabet)
     return out
 
+
 def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
     """
     Walk a parsed subpattern and collect a list of (count, choices_list) requirements.
@@ -93,7 +94,10 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
                     # conservative fallback
                     choices = list(alphabet)
                 reqs.append((mult, choices))
-            elif tok in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, inner = arg
                 # use lo as minimum number of occurrences
                 inner_mult = mult * max(1, lo)
@@ -120,6 +124,7 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
     combined = []
     # Use canonical tuple of sorted choices as key
     from collections import defaultdict
+
     agg = defaultdict(int)
     choice_map = {}
     for cnt, choices in reqs:
@@ -127,8 +132,9 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
         agg[key] += cnt
         choice_map[key] = choices
     for k, cnt in agg.items():
-        combined.append({'count': cnt, 'choices': choice_map[k]})
+        combined.append({"count": cnt, "choices": choice_map[k]})
     return combined
+
 
 def compile_regex_to_function_source(
     pattern: str,
@@ -155,6 +161,7 @@ def compile_regex_to_function_source(
         if first_tok is regex_sre_constants.ASSERT:
             dirn, sub = first_arg  # dirn < 0 -> lookbehind; dirn > 0 -> lookahead
             if dirn < 0:
+
                 def fixed_width(subpat):
                     width = 0
                     for tok, arg in subpat:
@@ -176,6 +183,7 @@ def compile_regex_to_function_source(
                         else:
                             return None
                     return width
+
                 w = fixed_width(sub)
                 if w is not None and w > 0:
                     raise ValueError(
@@ -189,7 +197,7 @@ def compile_regex_to_function_source(
     block_counter = 0
 
     # --- NEW: a pool to deduplicate concrete choice-lists (compiled-time)
-    choices_pool = {}   # key: tuple(choices) -> name (e.g. "c0")
+    choices_pool = {}  # key: tuple(choices) -> name (e.g. "c0")
     choices_list_by_name = {}  # name -> list(chars)
     choices_counter = 0
 
@@ -224,22 +232,30 @@ def compile_regex_to_function_source(
                 ch = chr(arg)
                 # small concrete list with one element -> dedupe it too
                 cname = get_choice_name_for([ch])
-                lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                lines.append(
+                    f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                )
             elif token is regex_sre_constants.NOT_LITERAL:
                 forbidden = chr(arg)
                 choices = [c for c in alphabet if c != forbidden]
                 if not choices:
                     choices = list(alphabet)
                 cname = get_choice_name_for(choices)
-                lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                lines.append(
+                    f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                )
             elif token is regex_sre_constants.ANY:
                 choices = [c for c in alphabet if c != "\n"]
                 cname = get_choice_name_for(choices)
-                lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                lines.append(
+                    f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                )
             elif token is regex_sre_constants.IN:
                 choices = _expand_in_child_static(arg, flags, alphabet)
                 cname = get_choice_name_for(choices)
-                lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                lines.append(
+                    f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                )
             elif token is regex_sre_constants.CATEGORY:
                 if arg in CATEGORY_TO_EXPR:
                     expr = CATEGORY_TO_EXPR[arg]
@@ -247,9 +263,13 @@ def compile_regex_to_function_source(
                     lines.append("        parts.append(_choose_from_list(choices))")
                 else:
                     if arg == regex_sre_constants.CATEGORY_NOT_DIGIT:
-                        choices = "".join(ch for ch in alphabet if ch not in string.digits)
+                        choices = "".join(
+                            ch for ch in alphabet if ch not in string.digits
+                        )
                     elif arg == regex_sre_constants.CATEGORY_NOT_SPACE:
-                        choices = "".join(ch for ch in alphabet if ch not in string.whitespace)
+                        choices = "".join(
+                            ch for ch in alphabet if ch not in string.whitespace
+                        )
                     elif arg == regex_sre_constants.CATEGORY_NOT_WORD:
                         word_chars = set(string.ascii_letters + string.digits + "_")
                         choices = "".join(ch for ch in alphabet if ch not in word_chars)
@@ -257,7 +277,9 @@ def compile_regex_to_function_source(
                         choices = alphabet
                     # These are concrete at compile-time; dedupe them too
                     cname = get_choice_name_for(list(choices))
-                    lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                    lines.append(
+                        f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                    )
             elif token is regex_sre_constants.BRANCH:
                 _, branches = arg
                 n = len(branches)
@@ -266,12 +288,12 @@ def compile_regex_to_function_source(
                 for idx, bid2 in enumerate(branch_ids):
                     prefix = "        if" if idx == 0 else "        elif"
                     lines.append(f"{prefix} i == {idx}:")
-                    lines.append(f"            t, lg = _b{bid2}()" )
+                    lines.append(f"            t, lg = _b{bid2}()")
                     lines.append("            local_groups.update(lg)")
                     lines.append("            groups.update(lg)")
                     lines.append("            parts.append(t)")
                 lines.append("        else:")
-                lines.append(f"            t, lg = _b{branch_ids[0]}()" )
+                lines.append(f"            t, lg = _b{branch_ids[0]}()")
                 lines.append("            local_groups.update(lg)")
                 lines.append("            groups.update(lg)")
                 lines.append("            parts.append(t)")
@@ -288,14 +310,17 @@ def compile_regex_to_function_source(
                     groupnum = None
                     sub = arg
                 sub_bid = build_block_for_subpattern(sub)
-                lines.append(f"        t, lg = _b{sub_bid}()" )
+                lines.append(f"        t, lg = _b{sub_bid}()")
                 lines.append("        local_groups.update(lg)")
                 lines.append("        groups.update(lg)")
                 if groupnum and groupnum > 0:
                     lines.append(f"        local_groups[{groupnum}] = t")
                     lines.append(f"        groups[{groupnum}] = t")
                 lines.append("        parts.append(t)")
-            elif token in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif token in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, sub = arg
                 sub_bid = build_block_for_subpattern(sub)
                 if hi == regex_sre_constants.MAXREPEAT or hi is None:
@@ -303,10 +328,12 @@ def compile_regex_to_function_source(
                 else:
                     hi_eff = min(hi, lo + max_repeat)
                 if hi_eff < lo:
-                    raise ValueError(f"Maximum value {hi_eff} is smaller than minimum value {lo}")
+                    raise ValueError(
+                        f"Maximum value {hi_eff} is smaller than minimum value {lo}"
+                    )
                 lines.append(f"        count = random.randint({lo}, {hi_eff})")
                 lines.append("        for _ in range(count):")
-                lines.append(f"            t, lg = _b{sub_bid}()" )
+                lines.append(f"            t, lg = _b{sub_bid}()")
                 lines.append("            local_groups.update(lg)")
                 lines.append("            groups.update(lg)")
                 lines.append("            parts.append(t)")
@@ -322,7 +349,9 @@ def compile_regex_to_function_source(
                 a, b = arg
                 choices = [chr(c) for c in range(a, b + 1)]
                 cname = get_choice_name_for(choices)
-                lines.append(f"        parts.append(_choose_from_list(_CHOICES['{cname}']))")
+                lines.append(
+                    f"        parts.append(_choose_from_list(_CHOICES['{cname}']))"
+                )
             elif token in (regex_sre_constants.ASSERT, regex_sre_constants.ASSERT_NOT):
                 # (unchanged ASSERT/ASSERT_NOT behavior) ...
                 # For brevity in this snippet, reuse your existing ASSERT handling code as-is.
@@ -332,50 +361,77 @@ def compile_regex_to_function_source(
                 dirn, sub = arg
                 if token is regex_sre_constants.ASSERT and dirn > 0:
                     reqs = _collect_atomic_requirements(sub, flags, alphabet)
-                    lines.append("        # ASSERT (positive lookahead) - register minimal atomic requirements")
+                    lines.append(
+                        "        # ASSERT (positive lookahead) - register minimal atomic requirements"
+                    )
                     if reqs:
                         lines.append(f"        _register_requirements({repr(reqs)})")
                     else:
                         sub_bid = build_block_for_subpattern(sub)
-                        lines.append("        # fallback: couldn't collect atomic requirements; use generated assertion string")
+                        lines.append(
+                            "        # fallback: couldn't collect atomic requirements; use generated assertion string"
+                        )
                         lines.append("        old_stack = list(lookahead_stack)")
                         lines.append("        lookahead_stack.clear()")
-                        lines.append(f"        t_assert, lg_assert = _b{sub_bid}()" )
+                        lines.append(f"        t_assert, lg_assert = _b{sub_bid}()")
                         lines.append("        lookahead_stack[:] = old_stack")
                         lines.append("        if %d > 0:" % (dirn))
-                        lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})")
+                        lines.append(
+                            "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})"
+                        )
                         lines.append("        else:")
                         lines.append("            total = ''.join(parts)")
                         lines.append("            if len(total) < len(t_assert):")
                         lines.append("                if not t_assert.endswith(total):")
-                        lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
-                        lines.append("                missing = len(t_assert) - len(total)")
-                        lines.append("                parts.insert(0, t_assert[:missing])")
+                        lines.append(
+                            "                    raise AssertionError('lookbehind failed - mismatch')"
+                        )
+                        lines.append(
+                            "                missing = len(t_assert) - len(total)"
+                        )
+                        lines.append(
+                            "                parts.insert(0, t_assert[:missing])"
+                        )
                         lines.append("            else:")
-                        lines.append("                if total[-len(t_assert):] != t_assert:")
-                        lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                        lines.append(
+                            "                if total[-len(t_assert):] != t_assert:"
+                        )
+                        lines.append(
+                            "                    raise AssertionError('lookbehind assertion failed')"
+                        )
                 elif token is regex_sre_constants.ASSERT and dirn < 0:
                     sub_bid = build_block_for_subpattern(sub)
-                    lines.append("        # ASSERT (lookbehind) - fallback to previous behavior")
+                    lines.append(
+                        "        # ASSERT (lookbehind) - fallback to previous behavior"
+                    )
                     lines.append("        old_stack = list(lookahead_stack)")
                     lines.append("        lookahead_stack.clear()")
-                    lines.append(f"        t_assert, lg_assert = _b{sub_bid}()" )
+                    lines.append(f"        t_assert, lg_assert = _b{sub_bid}()")
                     lines.append("        lookahead_stack[:] = old_stack")
                     lines.append("        if %d > 0:" % (dirn))
-                    lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})")
+                    lines.append(
+                        "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})"
+                    )
                     lines.append("        else:")
                     lines.append("            total = ''.join(parts)")
                     lines.append("            if len(total) < len(t_assert):")
                     lines.append("                if not t_assert.endswith(total):")
-                    lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
+                    lines.append(
+                        "                    raise AssertionError('lookbehind failed - mismatch')"
+                    )
                     lines.append("                missing = len(t_assert) - len(total)")
                     lines.append("                parts.insert(0, t_assert[:missing])")
                     lines.append("            else:")
-                    lines.append("                if total[-len(t_assert):] != t_assert:")
-                    lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                    lines.append(
+                        "                if total[-len(t_assert):] != t_assert:"
+                    )
+                    lines.append(
+                        "                    raise AssertionError('lookbehind assertion failed')"
+                    )
                 elif token is regex_sre_constants.ASSERT_NOT:
                     can_extract_literal = True
                     literal_chars = []
+
                     def try_extract_literal(pat):
                         nonlocal can_extract_literal, literal_chars
                         for tok2, arg2 in pat:
@@ -389,54 +445,81 @@ def compile_regex_to_function_source(
                                 try_extract_literal(sub2)
                             elif tok2 is regex_sre_constants.BRANCH:
                                 can_extract_literal = False
-                            elif tok2 in (regex_sre_constants.IN, regex_sre_constants.CATEGORY,
-                                          regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+                            elif tok2 in (
+                                regex_sre_constants.IN,
+                                regex_sre_constants.CATEGORY,
+                                regex_sre_constants.MAX_REPEAT,
+                                regex_sre_constants.MIN_REPEAT,
+                            ):
                                 can_extract_literal = False
                             else:
                                 can_extract_literal = False
+
                     try_extract_literal(sub)
                     if can_extract_literal and literal_chars:
-                        seq = ''.join(literal_chars)
-                        lines.append("        # ASSERT_NOT (negative lookahead) - register forbidden literal sequence")
-                        lines.append(f"        _register_forbidden_literal({repr(seq)})")
+                        seq = "".join(literal_chars)
+                        lines.append(
+                            "        # ASSERT_NOT (negative lookahead) - register forbidden literal sequence"
+                        )
+                        lines.append(
+                            f"        _register_forbidden_literal({repr(seq)})"
+                        )
                     else:
                         sub_bid = build_block_for_subpattern(sub)
-                        lines.append("        # ASSERT_NOT fallback (complex): use generated forbidden sequence as before")
+                        lines.append(
+                            "        # ASSERT_NOT fallback (complex): use generated forbidden sequence as before"
+                        )
                         lines.append("        old_stack = list(lookahead_stack)")
                         lines.append("        lookahead_stack.clear()")
-                        lines.append(f"        t_assert, lg_assert = _b{sub_bid}()" )
+                        lines.append(f"        t_assert, lg_assert = _b{sub_bid}()")
                         lines.append("        lookahead_stack[:] = old_stack")
                         lines.append("        if %d > 0:" % (dirn))
-                        lines.append("            lookahead_stack.append({'forbidden': list(t_assert), 'pos': 0})")
+                        lines.append(
+                            "            lookahead_stack.append({'forbidden': list(t_assert), 'pos': 0})"
+                        )
                         lines.append("        else:")
                         lines.append("            total = ''.join(parts)")
                         lines.append("            if len(total) < len(t_assert):")
                         lines.append("                pass")
                         lines.append("            else:")
-                        lines.append("                if total[-len(t_assert):] == t_assert:")
-                        lines.append("                    raise AssertionError('negative lookbehind failed')")
+                        lines.append(
+                            "                if total[-len(t_assert):] == t_assert:"
+                        )
+                        lines.append(
+                            "                    raise AssertionError('negative lookbehind failed')"
+                        )
                 else:
                     sub_bid = build_block_for_subpattern(sub)
                     lines.append("        # ASSERT unexpected form - fallback")
                     lines.append("        old_stack = list(lookahead_stack)")
                     lines.append("        lookahead_stack.clear()")
-                    lines.append(f"        t_assert, lg_assert = _b{sub_bid}()" )
+                    lines.append(f"        t_assert, lg_assert = _b{sub_bid}()")
                     lines.append("        lookahead_stack[:] = old_stack")
                     lines.append("        if %d > 0:" % (dirn))
-                    lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})")
+                    lines.append(
+                        "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0})"
+                    )
                     lines.append("        else:")
                     lines.append("            total = ''.join(parts)")
                     lines.append("            if len(total) < len(t_assert):")
                     lines.append("                if not t_assert.endswith(total):")
-                    lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
+                    lines.append(
+                        "                    raise AssertionError('lookbehind failed - mismatch')"
+                    )
                     lines.append("                missing = len(t_assert) - len(total)")
                     lines.append("                parts.insert(0, t_assert[:missing])")
                     lines.append("            else:")
-                    lines.append("                if total[-len(t_assert):] != t_assert:")
-                    lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                    lines.append(
+                        "                if total[-len(t_assert):] != t_assert:"
+                    )
+                    lines.append(
+                        "                    raise AssertionError('lookbehind assertion failed')"
+                    )
                 # --- END ASSERT/ASSERT_NOT handling ---
             else:
-                raise NotImplementedError(f"Token not implemented in compiler: {token} ({arg})")
+                raise NotImplementedError(
+                    f"Token not implemented in compiler: {token} ({arg})"
+                )
         lines.append("        return (''.join(parts), local_groups)")
         block_src = "\n".join(lines)
         blocks_src.append(block_src)
@@ -446,65 +529,97 @@ def compile_regex_to_function_source(
 
     func_lines = []
     func_lines.append(f"def {func_name}():")
-    func_lines.append("    groups = {}" )
+    func_lines.append("    groups = {}")
     func_lines.append("    lookahead_stack = []")
-    func_lines.append("    # pending_requirements holds dicts: {'count': int, 'choices': [chars]}")
+    func_lines.append(
+        "    # pending_requirements holds dicts: {'count': int, 'choices': [chars]}"
+    )
     func_lines.append("    pending_requirements = []")
-    func_lines.append("    # forbidden_literals is a set of literal sequences we should avoid emitting later")
+    func_lines.append(
+        "    # forbidden_literals is a set of literal sequences we should avoid emitting later"
+    )
     func_lines.append("    forbidden_literals = set()")
     func_lines.append("    def _register_requirements(reqs):")
-    func_lines.append("        # expect reqs as list of {'count': int, 'choices': [chars]}")
+    func_lines.append(
+        "        # expect reqs as list of {'count': int, 'choices': [chars]}"
+    )
     func_lines.append("        for r in reqs:")
     func_lines.append("            # shallow copy to keep local lists independent")
-    func_lines.append("            pending_requirements.append({'count': int(r['count']), 'choices': list(r['choices'])})")
+    func_lines.append(
+        "            pending_requirements.append({'count': int(r['count']), 'choices': list(r['choices'])})"
+    )
     func_lines.append("    def _register_forbidden_literal(seq):")
     func_lines.append("        forbidden_literals.add(seq)")
     func_lines.append("    def _choose_from_list(choices):")
-    func_lines.append("        # Prefer to consume a pending requirement if possible (FIFO).")
-    func_lines.append("        # If the top of lookahead_stack contains a forced/forbidden sequence (legacy fallback), honor it first.")
+    func_lines.append(
+        "        # Prefer to consume a pending requirement if possible (FIFO)."
+    )
+    func_lines.append(
+        "        # If the top of lookahead_stack contains a forced/forbidden sequence (legacy fallback), honor it first."
+    )
     func_lines.append("        if lookahead_stack:")
     func_lines.append("            top = lookahead_stack[-1]")
     func_lines.append("            pos = top.get('pos', 0)")
-    func_lines.append("            if 'forced' in top and top['forced'] is not None and pos < len(top['forced']):")
+    func_lines.append(
+        "            if 'forced' in top and top['forced'] is not None and pos < len(top['forced']):"
+    )
     func_lines.append("                required = top['forced'][pos]")
     func_lines.append("                if required not in choices:")
-    func_lines.append("                    raise AssertionError('lookahead forced char not available')")
+    func_lines.append(
+        "                    raise AssertionError('lookahead forced char not available')"
+    )
     func_lines.append("                ch = required")
     func_lines.append("                top['pos'] = pos + 1")
     func_lines.append("                if top['pos'] >= len(top['forced']):")
     func_lines.append("                    lookahead_stack.pop()")
-    func_lines.append("                # consume any pending requirement matched by this char")
+    func_lines.append(
+        "                # consume any pending requirement matched by this char"
+    )
     func_lines.append("                for r in pending_requirements:")
     func_lines.append("                    if r['count'] > 0 and ch in r['choices']:")
     func_lines.append("                        r['count'] -= 1")
     func_lines.append("                        break")
     func_lines.append("                return ch")
-    func_lines.append("            if 'forbidden' in top and top['forbidden'] is not None and pos < len(top['forbidden']):")
+    func_lines.append(
+        "            if 'forbidden' in top and top['forbidden'] is not None and pos < len(top['forbidden']):"
+    )
     func_lines.append("                forb = top['forbidden'][pos]")
     func_lines.append("                filtered = [c for c in choices if c != forb]")
     func_lines.append("                if not filtered:")
-    func_lines.append("                    raise AssertionError('lookahead forbidden removed all choices')")
+    func_lines.append(
+        "                    raise AssertionError('lookahead forbidden removed all choices')"
+    )
     func_lines.append("                ch = random.choice(filtered)")
     func_lines.append("                top['pos'] = pos + 1")
     func_lines.append("                if top['pos'] >= len(top['forbidden']):")
     func_lines.append("                    lookahead_stack.pop()")
-    func_lines.append("                # consume any pending requirement matched by this char")
+    func_lines.append(
+        "                # consume any pending requirement matched by this char"
+    )
     func_lines.append("                for r in pending_requirements:")
     func_lines.append("                    if r['count'] > 0 and ch in r['choices']:")
     func_lines.append("                        r['count'] -= 1")
     func_lines.append("                        break")
     func_lines.append("                return ch")
-    func_lines.append("        # Try to satisfy the earliest pending requirement if possible")
+    func_lines.append(
+        "        # Try to satisfy the earliest pending requirement if possible"
+    )
     func_lines.append("        if pending_requirements:")
     func_lines.append("            for r in pending_requirements:")
     func_lines.append("                if r['count'] > 0:")
-    func_lines.append("                    # if any choice intersects r['choices'], pick from intersection")
-    func_lines.append("                    inter = [c for c in choices if c in r['choices']]")
+    func_lines.append(
+        "                    # if any choice intersects r['choices'], pick from intersection"
+    )
+    func_lines.append(
+        "                    inter = [c for c in choices if c in r['choices']]"
+    )
     func_lines.append("                    if inter:")
     func_lines.append("                        ch = random.choice(inter)")
     func_lines.append("                        r['count'] -= 1")
     func_lines.append("                        return ch")
-    func_lines.append("                    # otherwise, fallback to random choice; we will append missing required chars later")
+    func_lines.append(
+        "                    # otherwise, fallback to random choice; we will append missing required chars later"
+    )
     func_lines.append("                    break")
     func_lines.append("        if not choices:")
     func_lines.append("            raise AssertionError('no choices available')")
@@ -517,7 +632,9 @@ def compile_regex_to_function_source(
     func_lines.append("        return ch")
 
     # --- NEW: inject _CHOICES dict with all deduplicated concrete lists.
-    func_lines.append("    # Precomputed concrete choice-lists (deduplicated) used by nested blocks")
+    func_lines.append(
+        "    # Precomputed concrete choice-lists (deduplicated) used by nested blocks"
+    )
     func_lines.append("    _CHOICES = {}")
     for name, lst in choices_list_by_name.items():
         # safe literal representation of list
@@ -530,32 +647,45 @@ def compile_regex_to_function_source(
     func_lines.append(f"    attempts = {(max_attempts)}")
     func_lines.append("    while True:")
     func_lines.append("        try:")
-    func_lines.append(f"            t, lg = _b{top_block_id}()" )
+    func_lines.append(f"            t, lg = _b{top_block_id}()")
     func_lines.append("            groups.update(lg)")
-    func_lines.append("            # After generation, ensure pending requirements are satisfied by appending missing chars.")
+    func_lines.append(
+        "            # After generation, ensure pending requirements are satisfied by appending missing chars."
+    )
     func_lines.append("            missing = []")
     func_lines.append("            for r in pending_requirements:")
     func_lines.append("                while r['count'] > 0:")
-    func_lines.append("                    # pick one of the allowed choices for this requirement")
+    func_lines.append(
+        "                    # pick one of the allowed choices for this requirement"
+    )
     func_lines.append("                    missing.append(random.choice(r['choices']))")
     func_lines.append("                    r['count'] -= 1")
-    func_lines.append("            # Try to avoid forbidden literal sequences by inserting suffix carefully.")
+    func_lines.append(
+        "            # Try to avoid forbidden literal sequences by inserting suffix carefully."
+    )
     func_lines.append("            s = t")
     func_lines.append("            if missing:")
-    func_lines.append("                # naive strategy: append the missing characters in random order.")
+    func_lines.append(
+        "                # naive strategy: append the missing characters in random order."
+    )
     func_lines.append("                random.shuffle(missing)")
     func_lines.append("                s = s + ''.join(missing)")
-    func_lines.append("            # If any registered forbidden literal sequence is now present, fail this attempt to let a retry happen")
+    func_lines.append(
+        "            # If any registered forbidden literal sequence is now present, fail this attempt to let a retry happen"
+    )
     func_lines.append("            for forb in list(forbidden_literals):")
     func_lines.append("                if forb and forb in s:")
-    func_lines.append("                    raise AssertionError('forbidden literal produced') ")
+    func_lines.append(
+        "                    raise AssertionError('forbidden literal produced') "
+    )
     func_lines.append("            return s")
     func_lines.append("        except AssertionError as e:")
     func_lines.append("            attempts -= 1")
     func_lines.append("            if attempts <= 0:")
-    func_lines.append("                raise RuntimeError('Failed to generate matching string: ' + str(e))")
+    func_lines.append(
+        "                raise RuntimeError('Failed to generate matching string: ' + str(e))"
+    )
     return "\n".join(func_lines)
-
 
 
 # ------------------------------
@@ -609,33 +739,40 @@ if __name__ == "__main__":
         r"^[a-z]{1000}$",
     ]
 
-
     amount = 100_000
     for pat in patterns:
-        print("=== pattern:", pat, "===amount:",amount)
+        print("=== pattern:", pat, "===amount:", amount)
         import time
         import random
         import re
+
         start = time.time()
         src = compile_regex_to_function_source(
             pat, flags=0, max_repeat=6, func_name="gen"
         )
-        #print(src)
+        # print(src)
         # execute generated source to get a real function
         safe_builtins = {
-            "len": len, "range": range, "min": min, "max": max,
-            "list": list, "chr": chr, "ord": ord, "set": set, "map": map,
-            "int": int
+            "len": len,
+            "range": range,
+            "min": min,
+            "max": max,
+            "list": list,
+            "chr": chr,
+            "ord": ord,
+            "set": set,
+            "map": map,
+            "int": int,
         }
         env = {
-            "__builtins__": safe_builtins, #dissallow anything except random and string
+            "__builtins__": safe_builtins,  # dissallow anything except random and string
             "random": random,
             "string": string,
         }
         exec(src, env)
         gen = env["gen"]
         samples = [gen() for _ in range(amount)]
-        print("="*30)
+        print("=" * 30)
         print("Samples:", samples[0:2], len(samples))
         for s in samples:
             if not re.search(pat, s):

@@ -3,10 +3,21 @@ from ..helper_funcs import load_ingest_data
 
 from sm.anonymiser.anonymiser import Anonymiser
 
+
 def anon_func(
-    schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output
+    schema_model,
+    seed,
+    method,
+    amount,
+    start_index,
+    ingest,
+    cout,
+    manual,
+    default,
+    fields,
+    output,
 ):
-    '''
+    """
     Inputs:
         a pydantic schema model
         a generation seed as an int
@@ -22,7 +33,7 @@ def anon_func(
     Loads data from ingest file
     Runs the anonymiser tool
     Outputs data to the output file and optionally prints output to the screen
-    '''
+    """
     data = load_ingest_data(ingest, start_index=start_index)
     # data comes in as a dict of dicts
     anon = Anonymiser()
@@ -42,7 +53,9 @@ def anon_func(
             flush_list = []
             for idx, x in enumerate(content):
                 if cout:
-                    print(f"output {str(idx)}{' ' * (10 - len(str(idx)))}{x.model_dump()}")
+                    print(
+                        f"output {str(idx)}{' ' * (10 - len(str(idx)))}{x.model_dump()}"
+                    )
                 flush_list.append(x.model_dump())
             flush_output[index] = flush_list
         f.write(json.dumps(flush_output, indent=8))

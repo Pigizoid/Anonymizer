@@ -3,11 +3,10 @@ from pydantic import BaseModel, create_model
 from sm.tools.model_funcs import get_model_fields
 
 
-
 def subset_model(schema_model, field_names) -> BaseModel:
-    '''Inputs a pydantic schema model and a list of field names
+    """Inputs a pydantic schema model and a list of field names
     Ouputs a newly created model with the name "new_schema_model"
-    containing only the fields in the list of field names'''
+    containing only the fields in the list of field names"""
     fields = {
         name: (field.annotation, field.default)
         for name, field in get_model_fields(schema_model).items()
@@ -15,8 +14,9 @@ def subset_model(schema_model, field_names) -> BaseModel:
     }
     return create_model("new_schema_model", **fields)
 
+
 def guess_type(value) -> type:
-    '''Inputs a value and determines its type and outputs the type'''
+    """Inputs a value and determines its type and outputs the type"""
     if value is None:
         return type(None)
     try:
@@ -54,11 +54,12 @@ def guess_type(value) -> type:
     else:
         return str
 
+
 def new_model(data, field_names) -> BaseModel:
-    '''Inputs a dict of data and a list of field_names
+    """Inputs a dict of data and a list of field_names
     Ouputs a newly created schema with the name "new_schema_model"
     containing the fields in the data that match the field names
-    and each field has its data type automatically added'''
+    and each field has its data type automatically added"""
     fields = {
         name: (guess_type(content))
         for name, content in data.items()

@@ -231,6 +231,7 @@ def test_calc_difference_alternate_abbreviation():
 def test_calc_difference_fail():
     pass
 
+
 def test_match_fields_expect_pass():
     field_names = [name for name, content in get_model_fields(test_Address).items()]
     return_value = synth.match_fields(field_names)

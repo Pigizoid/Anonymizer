@@ -5,9 +5,10 @@ from ..helper_funcs import send_batch_to_API
 from sm.synthesiser.synthesiser import Synthesiser
 
 
-
-def synth_func(schema_model, seed, method, amount, output, start_index=0, cout: bool = False):
-    '''
+def synth_func(
+    schema_model, seed, method, amount, output, start_index=0, cout: bool = False
+):
+    """
     Inputs:
         a pydantic schema model
         a generation seed as an int
@@ -20,7 +21,7 @@ def synth_func(schema_model, seed, method, amount, output, start_index=0, cout: 
     Loads data from ingest file
     Runs the anonymiser tool
     Outputs data to the output file and optionally prints output to the screen
-    '''
+    """
     start_time = time.time()
     synth = Synthesiser(method=method)
     dataset = synth.synthesise(

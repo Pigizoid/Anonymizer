@@ -15,16 +15,16 @@ app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
 
-
 def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
-    '''
+    """
     Inputs:
         an optional config path string to the config.yaml file
     Ouputs:
         a BaseSettings class type, unprocessed with source functionality modified
-    '''
+    """
+
     def yaml_settings_source() -> Dict[str, Any]:
-        '''loads a config.yaml file and gets the data and outputs it as a dict'''
+        """loads a config.yaml file and gets the data and outputs it as a dict"""
         if not Path(config_path).exists():
             return {}  # returning {} as empty to allow defaults to parse
 
@@ -55,7 +55,7 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         return mapping
 
     def schema_defaults_source() -> Dict[str, Any]:
-        '''outputs the defaults for the anon and synth schemas'''
+        """outputs the defaults for the anon and synth schemas"""
         synth_defaults = {
             name: field.default
             for name, field in SynthesiserConfig.model_fields.items()
@@ -113,7 +113,8 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         dotenv_settings,
         file_secret_settings,
     ):
-        '''the builtin settings customiser for source input organising for pydantic'''
+        """the builtin settings customiser for source input organising for pydantic"""
+
         def build_source():
             return composite_source(
                 [
@@ -152,14 +153,13 @@ def main(
         exists=False,
     ),
 ):
-    '''
+    """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
-
-    '''
+    examples:
+        sm --config config.yaml anon manual
+        sm --config config.yaml anon auto
+        sm --config config.yaml synth single
+        sm --config config.yaml synth batch
+    """
     Settings = make_settings_class(config)
-    ctx.obj = {
-        "settings": Settings,
-        "schema_path": schema_path,
-        "seed": seed
-    }
-
+    ctx.obj = {"settings": Settings, "schema_path": schema_path, "seed": seed}
