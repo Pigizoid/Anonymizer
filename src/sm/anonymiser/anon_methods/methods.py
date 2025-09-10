@@ -58,4 +58,4 @@ def perturb_value(field_value, field_type):
 
 def synth_value(synth, field_name, field_type):
     """Inputs a field name and type and uses the synthesiser to generate a value from the generator"""
-    synth.generate_single_value(field_name, field_type)
+    return synth.generate_single_value(field_name, field_type)
