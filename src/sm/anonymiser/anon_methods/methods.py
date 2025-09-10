@@ -2,6 +2,7 @@ import random
 import string
 
 def mask_value(field_value,field_type):
+    '''Creates a default masked value based on the given input type, if no type matches, return original value'''
     if field_type == bool:
         return False
     elif field_type == float:
@@ -16,6 +17,7 @@ def mask_value(field_value,field_type):
         return field_value
 
 def perturb_value(field_value,field_type):
+    '''Takes a value and value type and adds random noise to the value, if no type matches, returns original value'''
     if field_type == bool:
         return bool(random.randint(0,1))
     elif field_type == float:
@@ -46,4 +48,5 @@ def perturb_value(field_value,field_type):
         return field_value
 
 def synth_value(synth,field_name,field_type):
+    '''Inputs a field name and type and uses the synthesiser to generate a value from the generator'''
     synth.generate_single_value(field_name,field_type)

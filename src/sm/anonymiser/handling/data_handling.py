@@ -9,6 +9,8 @@ from ...pre_made_data import recursive_types
 
 
 def anonymise_value(seed, field_value, anon_methods, synth=None):
+    '''Inputs a value and anonymisation method and returns an anonymised value
+    anon_method = [field_name,method] of the methods "mask","synth","perturb"'''
     field_name = anon_methods[0]
     anon_method = anon_methods[1]
     field_type = guess_type(field_value)
@@ -23,6 +25,9 @@ def anonymise_value(seed, field_value, anon_methods, synth=None):
         raise ValueError(f"Invalid anonymisation method '{anon_method}' for field '{field_name}'")
 
 def anonymise_data(seed, input_data, anon_methods, synth=None):
+    '''A recursive data nonymiser, inputs json data as python structure and, a dict of anon_methods
+    Outputs the same structure anonymised
+    anon_methods = {field_name:method} of the methods "mask","synth","perturb"'''
     input_data_type = type(input_data)
     if input_data_type in recursive_types:
         if input_data_type in [List,list, Tuple,tuple, Set,set]:

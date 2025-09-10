@@ -13,18 +13,30 @@ class Anonymiser:
     def anonymise(
         self, schema_model, data, method, manual, seed, default, fields, amount
     ) -> Dict[str, List[BaseModel]]:
-        # data comes in as a dict of dicts
+        '''
+        Inputs:
+            a schema model
+            data as a dict of dicts
+                {index:  #index as integer
+                    {json data}
+                }
+            a method of the methods"mixed","mimesis","faker"
+            a "manual" boolean, to flag automatic or manual anonymisation
+            an anonymisation seed
+            the default anonymisation method of the methods "mask","synth","perturb"
+            a dict of fields = [field_name,method] of the methods "default","mask","synth","perturb"
+            an amount as an int
+        Outputs:
+            a dict of lists of schema BaseModel
+                {index:  #index as integer
+                    [{BaseModel}] * amount
+                }
+        '''
         anonymised_data = {}
 
         print(fields.values())
         print(f"Seed: {seed}")
         print(default)
-        # default : val
-        # value types
-        # - default
-        # - mask
-        # - synth
-        # - perturb
 
         for index, data_entry in data.items():
             schema_match = True
@@ -77,5 +89,4 @@ class Anonymiser:
                         new_fields[field] = getattr(return_entry, field)
                 anonymised_data_set.append(result_schema(**new_fields))
             anonymised_data[index] = anonymised_data_set
-        # data returns as a dict of lists of models
         return anonymised_data

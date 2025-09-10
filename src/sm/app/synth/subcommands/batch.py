@@ -7,7 +7,7 @@ from ...models import SynthesiserConfig
 
 synth_batch_subcommand = typer.Typer()
 
-@synth_batch_subcommand.command(name="batch")  # call with "batch" sub command
+@synth_batch_subcommand.command(name="batch")
 def synth_batch_command(
     ctx: typer.Context,  # contains ctx.config
     method: str = None,
@@ -16,6 +16,18 @@ def synth_batch_command(
     output: str = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
+    '''
+    A subcommand for the synth command
+    Inputs:
+        a method of the methods "mixed","mimesis","faker"
+        an amount to generate per schema as an int
+        a batch amount as an int
+            generate "amount" total in "batch" sizes
+            e.g. amount=100 batch=50 means 2 batches of 50
+        a filename as str for the output file (.json added by default)
+        cout boolean to toggle verbose printing
+    Runs the synthesiser tool in batch mode
+    '''
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_model = load_schema(flags.schema_path)

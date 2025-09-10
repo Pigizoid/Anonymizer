@@ -1,5 +1,13 @@
 
 def levenshtein_distance(word1, word2, modifiers=None) -> float:
+    '''
+    algorithm for calculating difference of two strings
+    e.g.  
+        cat -> car = 1
+        books -> bo = 3
+        books -> cooks = 1
+        cat -> cat = 0
+    '''
     if modifiers is None:
         modifiers = [0, 0, 0]
     len_word1, len_word2 = len(word1), len(word2)
@@ -28,6 +36,20 @@ def calc_difference(
     target_tokens,
     target_tokens_set,
 ) -> float:
+    '''
+    algorithm for calculating difference of two strings
+    while implementing robust fuzzy matching
+    e.g.
+        books -> cooks = 1
+        books -> bo = 3
+        name_first -> first_name = 0
+        social_security_number -> ssn = 0
+        ssn -> social_security_number = 0
+    
+    additionally matches by stripping underscores
+    and matching based on word positioning
+    with later positioned words adding a higher cost rating
+    '''
     if target_tokens_set == word_tokens_set:  # name_first -> first_name
         return 0
 

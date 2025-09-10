@@ -10,7 +10,7 @@ anon_manual_subcommand = typer.Typer()
 
 
 
-@anon_manual_subcommand.command(name="manual")  # call with "manual" sub command
+@anon_manual_subcommand.command(name="manual")
 def anon_manual_command(
     ctx: typer.Context,  # contains ctx.config and ctx.params  (params are the below field
     ingest: str = None,
@@ -22,6 +22,21 @@ def anon_manual_command(
     default: Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
 ):
+    '''
+    A subcommand for the anon command
+    Inputs:
+        a path as str to an ingest file
+        a method of the methods "mixed","mimesis","faker"
+        an amount to generate per data index as an int
+        a starting index (to optionally skip data indexes in the ingest)
+        a filename as str for the output file (.json added by default)
+        cout boolean to toggle verbose printing
+        a default anonymisation method of the methods "mask","synth","perturb"
+        a json string of type dict = {field_name:method} of the methods "default","mask","synth","perturb"
+            json string key and value requires double quotes
+            example:  sm --config config.yaml anon manual --fields '{"name":"mask"}'
+    Runs the anonymisation tool in manual mode
+    '''
     if default not in ["mask","synth","perturb"]:
         raise ValueError(f"Default:'{default}' not in {["mask","synth","perturb"]}")
     if fields:

@@ -17,7 +17,14 @@ app.add_typer(anon_app, name="anon")
 
 
 def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
+    '''
+    Inputs:
+        an optional config path string to the config.yaml file
+    Ouputs:
+        a BaseSettings class type, unprocessed with source functionality modified
+    '''
     def yaml_settings_source() -> Dict[str, Any]:
+        '''loads a config.yaml file and gets the data and outputs it as a dict'''
         if not Path(config_path).exists():
             return {}  # returning {} as empty to allow defaults to parse
 
@@ -48,6 +55,7 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         return mapping
 
     def schema_defaults_source() -> Dict[str, Any]:
+        '''outputs the defaults for the anon and synth schemas'''
         synth_defaults = {
             name: field.default
             for name, field in SynthesiserConfig.model_fields.items()
@@ -105,6 +113,7 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         dotenv_settings,
         file_secret_settings,
     ):
+        '''the builtin settings customiser for source input organising for pydantic'''
         def build_source():
             return composite_source(
                 [
@@ -132,7 +141,7 @@ def main(
         file_okay=True,
         dir_okay=False,  # these 3 check its readable and a file
         readable=True,
-        help="Path to YAML config file",
+        help="Path to YAML config file (must be called at top level)",
     ),
     schema_path: Optional[str] = typer.Option(
         "schema.py",
@@ -143,6 +152,10 @@ def main(
         exists=False,
     ),
 ):
+    '''
+    the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
+
+    '''
     Settings = make_settings_class(config)
     ctx.obj = {
         "settings": Settings,

@@ -11,6 +11,10 @@ from .generator.synth_based_generator import synth_based_generator_class
 
 from sm.tools.model_funcs import get_model_fields
 
+'''
+The main synthesiser class
+pulls from sub classes to buidl full functionality
+'''
 class Synthesiser(
     init_class,
     get_constraints_class,
@@ -24,6 +28,15 @@ class Synthesiser(
     def synthesise_recursive(
         self, schema_model, method="faker", amount=1, path=""
     ) -> Dict[str, Any]:
+        '''
+        The main recursive call of the synthesiser class
+        Used internally by generate_synth_data for nested schema models
+        Inputs:
+            schema model
+            method
+            amount
+            generation path
+        '''
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
@@ -46,6 +59,18 @@ class Synthesiser(
         return synthesised_data
 
     def synthesise(self, schema_model, method="faker", amount=1, seed="random") -> List[BaseModel]:
+        '''
+        The main call function of the synthesiser class
+        Inputs:
+            schema model
+            method of methods "faker","mimesis","mixed"
+            amount of returned data to generate as int
+            data seed as either int or as "random","relational"
+        calls recursive synthesis on schema model after initial setup
+        Ouputs:
+            list of pydantic BaseModel with synthesised data
+            [BaseModel]*amount
+        '''
         if amount == 0:
             return []
         
