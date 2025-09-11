@@ -518,7 +518,7 @@ def compile_regex_to_function_source(
     func_lines.append("        for r in reqs:")
     func_lines.append("            tpl = tuple(r['choices'])")
     func_lines.append("            pending_requirements.append({'count': int(r['count']), 'choices': tpl})")
-
+    
     func_lines.append("    def _register_forbidden_literal(seq):")
     func_lines.append("        forbidden_literals.add(seq)")
     func_lines.append("        nonlocal LFORB_MAX")
@@ -574,21 +574,35 @@ def compile_regex_to_function_source(
     func_lines.append("                            pending_requirements.popleft()")
     func_lines.append("                        break")
     func_lines.append("                return ch")
-
-    func_lines.append("        # Try to satisfy the earliest pending requirement (FIFO)")
+    
     func_lines.append("        if pending_requirements:")
-    func_lines.append("            # look at the leftmost requirement only (optimistic)")
     func_lines.append("            r = pending_requirements[0]")
     func_lines.append("            if r['count'] > 0:")
     func_lines.append("                # find any char in choices_tpl that matches r['choices']")
-    func_lines.append("                for c in choices_tpl:")
-    func_lines.append("                    if c in r['choices']:")
-    func_lines.append("                        ch = c")
+    func_lines.append("                # def _return_ch(choices_tpl,pending_requirements):")
+    func_lines.append("                if pending_requirements:")
+    func_lines.append("                    # union of all currently-required characters")
+    func_lines.append("                    req_choices_union = set()")
+    func_lines.append("                    for r in pending_requirements:")
+    func_lines.append("                        if r['count'] > 0:")
+    func_lines.append("                            req_choices_union.update(r['choices'])")
+    func_lines.append("                    valid_candidates = [c for c in choices_tpl if c in req_choices_union]")
+    func_lines.append("                else:")
+    func_lines.append("                    valid_candidates = []")
+    func_lines.append("                if valid_candidates:")
+    func_lines.append("                    ch = random.choice(valid_candidates)")
+    func_lines.append("                else:")
+    func_lines.append("                    ch = _rand_choice(choices_tpl)")
+    func_lines.append("                # consume from all requirements that match this char")
+    func_lines.append("                to_remove = []")
+    func_lines.append("                for idx, r in enumerate(pending_requirements):")
+    func_lines.append("                    if r['count'] > 0 and ch in r['choices']:")
     func_lines.append("                        r['count'] -= 1")
     func_lines.append("                        if r['count'] <= 0:")
-    func_lines.append("                            pending_requirements.popleft()")
-    func_lines.append("                        return ch")
-    func_lines.append("                # no intersection; fall through to random pick")
+    func_lines.append("                            to_remove.append(idx)")
+    func_lines.append("                for idx in reversed(to_remove):")
+    func_lines.append("                    del pending_requirements[idx]")
+    func_lines.append("                return ch")
 
     func_lines.append("        # If forbidden_literals exist, prefer characters that don't create them when appended")
     func_lines.append("        if forbidden_literals and LFORB_MAX > 0:")
@@ -606,7 +620,7 @@ def compile_regex_to_function_source(
     func_lines.append("                if not bad:")
     func_lines.append("                    # consume requirement if matched")
     func_lines.append("                    for _ in range(len(pending_requirements)):")
-    func_lines.append("                        r = pending_requirements[0]")
+    func_lines.append("                        r = pending_requirements[r_i]")
     func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
     func_lines.append("                            r['count'] -= 1")
     func_lines.append("                            if r['count'] <= 0:")
@@ -695,6 +709,7 @@ def compile_regex_to_function_source(
 
 if __name__ == "__main__":
     patterns = [
+        r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
         r"^\d{5}(-\d{4})?$",
         r"^(?=(?:.*[A-Z]){2})(?=(?:.*[a-z]){2})(?=.*\d).{5,15}$",
         r"foo(?=bar)bar",
@@ -753,7 +768,7 @@ if __name__ == "__main__":
         safe_builtins = {
             "len": len, "range": range, "min": min, "max": max,
             "list": list, "tuple": tuple, "deque": deque, "chr": chr, "ord": ord, "set": set, "map": map,
-            "int": int, "AssertionError": AssertionError
+            "int": int, "AssertionError": AssertionError, "enumerate":enumerate, "reversed":reversed
         }
         env = {
             "__builtins__": safe_builtins,
