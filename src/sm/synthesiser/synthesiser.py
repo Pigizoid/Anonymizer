@@ -8,11 +8,11 @@ from .field_match.match import match_class
 from .generator.constraint_based_generator import constraint_based_generator_class
 from .generator.synth_based_generator import synth_based_generator_class
 
-from sm.tools.model_funcs import get_model_fields
+from ..tools.model_funcs import get_model_fields
 
 """
 The main synthesiser class
-pulls from sub classes to buidl full functionality
+pulls from sub classes to build full functionality
 """
 
 

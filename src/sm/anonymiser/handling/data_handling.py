@@ -12,6 +12,7 @@ def anonymise_value(seed, field_value, anon_methods, synth=None):
     field_name = anon_methods[0]
     anon_method = anon_methods[1]
     field_type = guess_type(field_value)
+    print(field_type)
     field_value = field_type(field_value)
     if anon_method == "mask":
         return mask_value(field_value, field_type)

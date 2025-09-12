@@ -10,8 +10,8 @@ import random
 import rstr
 from ..misc import print_path
 
-from sm.pre_made_data import all_constr_attribs
-from sm.tools.regex_generator import regex_builder
+from ...pre_made_data import all_constr_attribs
+from ...tools.regex_generator import regex_builder
 
 
 def make_one_string(pattern):
@@ -19,6 +19,18 @@ def make_one_string(pattern):
 
 
 def make_one_decimal(x, decimal_precision, min_scaled, scaled_mult, scale):
+    '''
+    Inputs:
+        index for data pool selection (the amount of scaled mult to add)
+        decimal precision
+        minimum value (scaled)
+        multiple of (scaled): multiple of e.g. mo = 3 -> 300
+        scale
+    
+        decimal_places = e.g. 2
+        scale = 10 ** decimal_places
+        decimal_precision = 10 ** (decimal_places * -1)
+    '''
     potential_val = (min_scaled + (x + 1) * scaled_mult) / scale
     if potential_val == potential_val.quantize(
         decimal_precision, rounding=ROUND_HALF_UP
@@ -436,7 +448,10 @@ class constraint_based_generator_class:
         if self.outputpooling[generate_path] == []:
             del self.outputpooling[generate_path]
 
-        return_value = constraints["annotation"](return_value)
+        if constraints["annotation"] == bytes:
+            return_value = constraints["annotation"](str(return_value),'utf-8')
+        else:
+            return_value = constraints["annotation"](return_value)
         # input("wait...")
         # exit()
         return return_value
@@ -461,7 +476,7 @@ class constraint_based_generator_class:
         Output:
             generates and alters value with constraints applied to it
         """
-        data_type = type(return_value)
+        data_type = constraints["annotation"]
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
@@ -564,4 +579,8 @@ class constraint_based_generator_class:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
-        return constraints["annotation"](return_value)
+        if constraints["annotation"] == bytes:
+            return_value = constraints["annotation"](str(return_value),'utf-8')
+        else:
+            return_value = constraints["annotation"](return_value)
+        return return_value

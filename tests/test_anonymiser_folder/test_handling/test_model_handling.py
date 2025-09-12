@@ -19,12 +19,11 @@ values = [
     True,
     10,
     1.5,
-    "5+5j",
+    5+5j,
     b'hello',
     ("a","b"),
     ["a","b"],
-    set("a","b"),
-    frozenset("a","b"),
+    set(["a","b"]),
     {"a":"b"},
     "hello"
     ]

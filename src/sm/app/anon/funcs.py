@@ -1,7 +1,7 @@
 import json
 from ..helper_funcs import load_ingest_data
 
-from sm.anonymiser.anonymiser import Anonymiser
+from ...anonymiser.anonymiser import Anonymiser
 
 
 def anon_func(

@@ -89,9 +89,39 @@ Anonymizer
 |tests
 |  \
 |  |schema.py
-|  |test_anonymiser.py
-|  |test_main.py
-|  |test_synthesiser.py
+|  |test_anonymiser_folder
+|  |  \
+|  |  |test_anon_methods
+|  |  |  \
+|  |  |  |test_methods.py
+|  |  |
+|  |  |test_handling
+|  |  |  \
+|  |  |  |test_data_handling.py
+|  |  |  |test_model_handling.py
+|  |  |
+|  |  |test_anonymiser.py
+|  |
+|  |test_synthesiser_folder
+|  |  \
+|  |  |test_field_match
+|  |  |  \
+|  |  |  |test_calc_difference.py
+|  |  |  |test_match.py
+|  |  |
+|  |  |test_generator
+|  |  |  \
+|  |  |  |test_constraint_based_generator.py
+|  |  |  |test_synth_based_generator.py
+|  |  |
+|  |  |test_initialiser
+|  |  |  \
+|  |  |  |test_class_init.py
+|  |  |  |test_get_constraints.py
+|  |  |  |test_match_methods.py
+|  |  |
+|  |  |test_misc.py
+|  |  |test_synthesiser.py
 |
 |.gitignore
 |.python-version

@@ -27,13 +27,13 @@ def perturb_value(field_value, field_type):
         noise = (
             field_value * amount * (random.random() * 2 - 1)
         )  # (0 to 1)*2 -1   ->   -1 to 1
-        return field_value + noise
+        return float(field_value + noise)
     elif field_type == int:
         amount = 0.2  # 10%
         noise = (
             field_value * amount * (random.random() * 2 - 1)
         )  # (0 to 1)*2 -1   ->   -1 to 1
-        return round(field_value + noise) + random.randint(0, 2) - 1
+        return int(round(field_value + noise) + random.randint(0, 2) - 1)
     elif field_type == bytes:
         new_field_value = bytearray(field_value)
         for x in range(len(new_field_value)):
@@ -51,7 +51,7 @@ def perturb_value(field_value, field_type):
             )
         for x in range(additional_letters):
             new_field_value += random.choice(string.ascii_letters + string.digits + "_")
-        return new_field_value
+        return str(new_field_value)
     else:
         return field_value
 

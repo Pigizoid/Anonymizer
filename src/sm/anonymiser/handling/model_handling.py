@@ -1,6 +1,8 @@
 from pydantic import BaseModel, create_model
 
-from sm.tools.model_funcs import get_model_fields
+from ...tools.model_funcs import get_model_fields
+
+import ast
 
 
 def subset_model(schema_model, field_names) -> BaseModel:
@@ -17,41 +19,18 @@ def subset_model(schema_model, field_names) -> BaseModel:
 
 def guess_type(value) -> type:
     """Inputs a value and determines its type and outputs the type"""
-    if value is None:
-        return type(None)
+    for caster in (bool, int, float, complex, bytes, tuple, list, set, dict):
+        if isinstance(value,caster):
+            return caster
+    if value == "true":
+        return True
+    elif value == "false":
+        return False
+    elif value == "null" or value == None:
+        return None
     try:
-        if value.lower() in {"true", "false"}:
-            return bool
+        return type(ast.literal_eval(value))
     except:
-        pass
-    try:
-        int(value)
-        return int
-    except:
-        pass
-    try:
-        float(value)
-        return float
-    except:
-        pass
-    try:
-        complex(value)
-        return complex
-    except:
-        pass
-    if isinstance(value, bytes):
-        return bytes
-    elif isinstance(value, tuple):
-        return tuple
-    elif isinstance(value, list):
-        return list
-    elif isinstance(value, set):
-        return set
-    elif isinstance(value, frozenset):
-        return frozenset
-    elif isinstance(value, dict):
-        return dict
-    else:
         return str
 
 

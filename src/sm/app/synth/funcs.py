@@ -2,7 +2,7 @@ import json
 import time
 from ..helper_funcs import send_batch_to_API
 
-from sm.synthesiser.synthesiser import Synthesiser
+from ...synthesiser.synthesiser import Synthesiser
 
 
 def synth_func(

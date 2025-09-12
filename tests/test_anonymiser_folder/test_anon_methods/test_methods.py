@@ -1,8 +1,8 @@
 import pytest
 
 from src.sm.synthesiser.synthesiser import Synthesiser
-from src.sm.anonymiser.anon_methods.methods import mask_value,perturb_value,synth_value
 
+from src.sm.anonymiser.anon_methods.methods import mask_value,perturb_value,synth_value
 
 @pytest.mark.parametrize("field_value,field_type,expected", [
     (True,bool,False),

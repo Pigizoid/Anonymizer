@@ -3,8 +3,8 @@ from typing import Dict, List
 from .handling.model_handling import new_model, subset_model
 from .handling.data_handling import anonymise_data
 
-from sm.tools.model_funcs import get_model_data
-from sm.synthesiser.synthesiser import Synthesiser
+from ..tools.model_funcs import get_model_data
+from ..synthesiser.synthesiser import Synthesiser
 
 
 class Anonymiser:
@@ -12,7 +12,6 @@ class Anonymiser:
         self, schema_model, data, method, manual, seed, default, fields, amount
     ) -> Dict[str, List[BaseModel]]:
         """
-
         Inputs:
             a schema model
             data as a dict of dicts
@@ -86,8 +85,8 @@ class Anonymiser:
                 return_data = synth.synthesise(
                     new_schema_model, method=method, amount=amount, seed=seed
                 )
-            anonymised_data_set = []
             for return_entry in return_data:
+                anonymised_data_set = []
                 new_fields = data_entry.copy()
                 for field in field_names:
                     if isinstance(return_entry, dict):
