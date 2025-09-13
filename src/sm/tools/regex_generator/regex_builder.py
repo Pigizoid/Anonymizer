@@ -329,7 +329,7 @@ def compile_regex_to_function_source(
                 lo, hi, sub = arg
                 sub_bid = build_block_for_subpattern(sub)
                 if hi == regex_sre_constants.MAXREPEAT or hi is None:
-                    hi_eff = min(lo + max_repeat, max_repeat)
+                    hi_eff = max(lo + max_repeat, max_repeat)
                 else:
                     hi_eff = min(hi, lo + max_repeat)
                 if hi_eff < lo:
@@ -357,8 +357,7 @@ def compile_regex_to_function_source(
                     else:
                         lines.append("            if count:")
                         lines.append(f"                picks = random.choices(_CHOICES['{cname}'], k=count)")
-                        lines.append("                for ch in picks:")
-                        lines.append("                    out.append(ch)")
+                        lines.append("                out.extend(picks)")
                 else:
                     # fallback: previous behavior (per-iteration call)
                     lines.append(f"        count = random.randint({lo}, {hi_eff})")
@@ -620,7 +619,7 @@ def compile_regex_to_function_source(
     func_lines.append("                if not bad:")
     func_lines.append("                    # consume requirement if matched")
     func_lines.append("                    for _ in range(len(pending_requirements)):")
-    func_lines.append("                        r = pending_requirements[r_i]")
+    func_lines.append("                        r = pending_requirements[0]")
     func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
     func_lines.append("                            r['count'] -= 1")
     func_lines.append("                            if r['count'] <= 0:")
@@ -709,6 +708,13 @@ def compile_regex_to_function_source(
 
 if __name__ == "__main__":
     patterns = [
+        r"^(0?[1-9]|1[0-2])[\/](0?[1-9]|[12]\d|3[01])[\/](19|20)\d{2}$",
+        r"^\s*(?:\+?(\d{1,3}))?([-. (]*(\d{3})[-. )]*)?((\d{3})[-. ]*(\d{2,4})(?:[-.x ]*(\d+))?)\s*$",
+        r"\b(?:A[cglmr-u]|B[aehikr]?|C[adefl-orsu]?|D[bsy]|E[rsu]|F[elmr]?|G[ade]|H[efgos]?|I[nr]?|Kr?|L[airuv]|M[dgont]|N[abdeiop]?|Os?|P[abdmortu]?|R[abe-hnu]|S[bcegimnr]?|T[abcehilm]|U(?:u[opst])?|V|W|Xe|Yb?|Z[nr])\b",
+        r"[-a-zA-Z0-9@:%_\+.~#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~#?&//=]*)?",
+        r"<.*?script.*\/?>",
+        r"\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b",
+        r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$",
         r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
         r"^\d{5}(-\d{4})?$",
         r"^(?=(?:.*[A-Z]){2})(?=(?:.*[a-z]){2})(?=.*\d).{5,15}$",
@@ -780,9 +786,10 @@ if __name__ == "__main__":
         gen = env["gen"]
         samples = [gen() for _ in range(amount)]
         print("Samples example:", samples[0:2], len(samples))
+        end = time.time()
+        print("time:", end - start)
         for s in samples:
             if not re.fullmatch(pat, s):
                 raise AssertionError("Generated string does not match pattern", pat, s)
-        end = time.time()
-        print("time:", end - start)
         print()
+
