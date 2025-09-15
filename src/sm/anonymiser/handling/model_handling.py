@@ -20,13 +20,13 @@ def subset_model(schema_model, field_names) -> BaseModel:
 def guess_type(value) -> type:
     """Inputs a value and determines its type and outputs the type"""
     for caster in (bool, int, float, complex, bytes, tuple, list, set, dict):
-        if isinstance(value,caster):
+        if isinstance(value, caster):
             return caster
     if value == "true":
         return True
     elif value == "false":
         return False
-    elif value == "null" or value == None:
+    elif value == "null" or value is None:
         return None
     try:
         return type(ast.literal_eval(value))

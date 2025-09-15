@@ -20,10 +20,20 @@ class ConstraintsNested(BaseModel):
     test_set: Set[str]
     test_union: Union[str, None]
     test_literal: Literal["1", "2", "3", "4"]
-    test_recursive: List[Dict[Annotated[str, constr(pattern=r"^\d{50}$")], List[Tuple[str, str]]]]
-    test_list_length: List[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(min_length=20)
-    test_list_length: Dict[Annotated[str, constr(pattern=r"^\d{50}$")], Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(min_length=20)
-    test_list_length: Set[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(min_length=20)
+    test_recursive: List[
+        Dict[Annotated[str, constr(pattern=r"^\d{50}$")], List[Tuple[str, str]]]
+    ]
+    test_list_length: List[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(
+        min_length=20
+    )
+    test_list_length: Dict[
+        Annotated[str, constr(pattern=r"^\d{50}$")],
+        Annotated[str, constr(pattern=r"^\d{50}$")],
+    ] = Field(min_length=20)
+    test_list_length: Set[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(
+        min_length=20
+    )
+
 
 class Constraints(BaseModel):
     constr_strip_whitespace: str = constr(strip_whitespace=True)
@@ -50,29 +60,47 @@ class Constraints(BaseModel):
     nested_2: ConstraintsNested
 
 
-model_tests= [Constraints,ConstraintsNested]
-@pytest.mark.parametrize("schema_model",[(schema_model) for schema_model in model_tests])
+model_tests = [Constraints, ConstraintsNested]
+
+
+@pytest.mark.parametrize(
+    "schema_model", [(schema_model) for schema_model in model_tests]
+)
 def test_get_applied_constraints(schema_model):
     return_data = synth.get_applied_constraints(schema_model)
-    assert isinstance(return_data,dict)
-    assert all([isinstance(x,dict) for x in return_data.values()])
-    assert all([z in x.keys() for x in return_data.values() for z in all_constr_attribs])
-
-
+    assert isinstance(return_data, dict)
+    assert all([isinstance(x, dict) for x in return_data.values()])
+    assert all(
+        [z in x.keys() for x in return_data.values() for z in all_constr_attribs]
+    )
 
 
 def test_recursive_get_applied_constraints():
     return_data = synth.recursive_get_applied_constraints(Constraints)
-    assert isinstance(return_data,dict)
-    assert list(return_data.keys()) == ["Constraints","ConstraintsNested"]
-    assert all([isinstance(x,dict) for x in return_data.values()])
-    assert all([isinstance(x,dict) for y in return_data.values() for x in y.values()])
-    assert all([z in x.keys() for y in return_data.values() for x in y.values() for z in all_constr_attribs])
+    assert isinstance(return_data, dict)
+    assert list(return_data.keys()) == ["Constraints", "ConstraintsNested"]
+    assert all([isinstance(x, dict) for x in return_data.values()])
+    assert all([isinstance(x, dict) for y in return_data.values() for x in y.values()])
+    assert all(
+        [
+            z in x.keys()
+            for y in return_data.values()
+            for x in y.values()
+            for z in all_constr_attribs
+        ]
+    )
+
 
 def test_recursive_get_applied_constraints_alternate():
     return_data = synth.recursive_get_applied_constraints(ConstraintsNested)
-    assert isinstance(return_data,dict)
+    assert isinstance(return_data, dict)
     assert list(return_data.keys()) == ["ConstraintsNested"]
-    assert all([isinstance(x,dict) for x in return_data.values()])
-    assert all([z in x.keys() for y in return_data.values() for x in y.values() for z in all_constr_attribs])
-    
+    assert all([isinstance(x, dict) for x in return_data.values()])
+    assert all(
+        [
+            z in x.keys()
+            for y in return_data.values()
+            for x in y.values()
+            for z in all_constr_attribs
+        ]
+    )

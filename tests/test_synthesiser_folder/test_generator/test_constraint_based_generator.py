@@ -5,12 +5,17 @@ from pydantic import BaseModel, Field, constr
 from typing import List, Dict
 from src.sm.synthesiser.synthesiser import Synthesiser
 from src.sm.pre_made_data import default_constr_dict
-from src.sm.synthesiser.generator.constraint_based_generator import make_one_decimal,make_one_string
+from src.sm.synthesiser.generator.constraint_based_generator import (
+    make_one_decimal,
+    make_one_string,
+)
 from src.sm.tools.model_funcs import get_model_fields
 from faker import Faker
+
 fake = Faker()
 
 synth = Synthesiser()
+
 
 def test_make_one_string_basic():
     pattern = r"[a-z]{5}"
@@ -22,16 +27,16 @@ def test_make_one_string_basic():
 def test_make_one_decimal():
     dp = Decimal("0.01")
     scale = Decimal(100)
-    min_scaled = Decimal(100)   # represents 1.00
+    min_scaled = Decimal(100)  # represents 1.00
     scaled_mult = Decimal(100)  # multiple of 1.00
     result = make_one_decimal(0, dp, min_scaled, scaled_mult, scale)
     assert result == Decimal("2.00")  # 1 + 1 * 1
 
 
-
 class test_Address(BaseModel):
     street: str
     city: str
+
 
 class test_Address_2(BaseModel):
     street: str
@@ -39,8 +44,14 @@ class test_Address_2(BaseModel):
     social_security_number: str
     continent: str
 
-test_check_generation_constraints_pass_schemas = [test_Address,test_Address_2]
-@pytest.mark.parametrize("schema_model",[(schema_item) for schema_item in test_check_generation_constraints_pass_schemas],)
+
+test_check_generation_constraints_pass_schemas = [test_Address, test_Address_2]
+
+
+@pytest.mark.parametrize(
+    "schema_model",
+    [(schema_item) for schema_item in test_check_generation_constraints_pass_schemas],
+)
 def test_check_generation_constraints_expect_pass(schema_model):
     for name, field in get_model_fields(schema_model).items():
         return_value = synth.check_generation_constraints(name, field)
@@ -69,6 +80,7 @@ def test_check_generation_constraints_expect_pass(schema_model):
                 "required",
             ]
         )
+
 
 class Constraints6(BaseModel):
     constr_strip_whitespace: str = constr(strip_whitespace=True)
@@ -120,7 +132,6 @@ def test_check_generation_constraints_expect_alternate():
     assert return_value["constr_required"]["required"]
 
 
-
 def test_generate_from_constraints():
     generate_path = "test[100].List(0)[10].Dict(Right)[10].Annotated"
     constraints = default_constr_dict.copy()
@@ -136,8 +147,11 @@ def test_generate_from_constraints():
         [re.search(r"a", text).group() == text for text in data_pool[generate_path]]
     )
 
-val_types = [bool,int,float,complex,bytes,str]
-@pytest.mark.parametrize("val_type",[(val_type) for val_type in val_types])
+
+val_types = [bool, int, float, complex, bytes, str]
+
+
+@pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
 def test_generate_from_constraints_alternate(val_type):
     generate_path = "test[100].List(0)[10].Dict(Right)[10]"
     constraints = default_constr_dict.copy()
@@ -147,18 +161,10 @@ def test_generate_from_constraints_alternate(val_type):
     assert isinstance(return_value, val_type)
 
 
-val_types = [bool,int,float,complex,bytes,str]
-@pytest.mark.parametrize("val_type",[(val_type) for val_type in val_types])
-def test_generate_from_constraints_alternate(val_type):
-    generate_path = "test[100].List(0)[10].Dict(Right)[10]"
-    constraints = default_constr_dict.copy()
-    constraints["annotation"] = val_type
-    constraints["pattern"] = None
-    return_value = synth.generate_from_constraints("test", constraints, generate_path)
-    assert isinstance(return_value, val_type)
+val_types = [bool, int, float, complex, bytes, str]
 
-val_types = [bool,int,float,complex,bytes,str]
-@pytest.mark.parametrize("val_type",[(val_type) for val_type in val_types])
+
+@pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
 def test_apply_constraints(val_type):
     generate_path = "test(name)[100].List(0)[10].Dict(Right)[10]"
     constraints = default_constr_dict.copy()
@@ -166,5 +172,7 @@ def test_apply_constraints(val_type):
     constraints["pattern"] = None
     value = fake.name()
     match_name = "name"
-    return_value = synth.apply_constraints(value,constraints,match_name,generate_path,10000,100)
+    return_value = synth.apply_constraints(
+        value, constraints, match_name, generate_path, 10000, 100
+    )
     assert isinstance(return_value, val_type)

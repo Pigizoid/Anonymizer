@@ -5,6 +5,7 @@ from .calc_difference import calc_difference, levenshtein_distance
 
 from ...tools.model_funcs import get_model_data
 
+
 class match_class:
     def match_fields(self, field_names) -> Dict[str, str]:
         """

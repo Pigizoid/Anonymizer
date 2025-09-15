@@ -19,7 +19,7 @@ class get_constraints_class:
 
     def recursive_get_applied_constraints(
         self, schema_model
-    ) -> Dict[str, Dict[str, Dict[str,Any]]]:  # needs test
+    ) -> Dict[str, Dict[str, Dict[str, Any]]]:  # needs test
         """
         Recursive function to get applied constraint of input schema and all nested schemas
         """

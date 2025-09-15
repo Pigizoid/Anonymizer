@@ -2,6 +2,7 @@ import pytest
 
 from src.sm.synthesiser.misc import print_path
 
+
 def test_print_path_simple(capsys):
     path = "[0]"
     elapsed_time = 1.2345

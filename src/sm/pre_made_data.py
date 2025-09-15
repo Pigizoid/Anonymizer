@@ -2,6 +2,12 @@ from typing import List, Dict, Tuple, Set, Union, Literal, Optional
 
 from decimal import Decimal
 
+from faker import Faker
+import mimesis
+from mimesis import Generic
+import inspect
+from enum import Enum
+
 
 def generate_provider_return_types(provider_names, provider_instances):
     return_types = {}
@@ -48,9 +54,6 @@ def generate_provider_return_types(provider_names, provider_instances):
             return_types[name] = str
 
     return dict(sorted(return_types.items()))
-
-
-from enum import Enum
 
 
 class provider_return_types(Enum):
@@ -475,12 +478,6 @@ default_constr_dict = {
     "origin": None,
     "args": None,
 }
-
-
-from faker import Faker
-import mimesis
-from mimesis import Generic
-import inspect
 
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)

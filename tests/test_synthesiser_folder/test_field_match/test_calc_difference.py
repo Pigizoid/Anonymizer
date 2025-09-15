@@ -1,9 +1,13 @@
 import pytest
 
-from src.sm.synthesiser.field_match.calc_difference import levenshtein_distance,calc_difference
+from src.sm.synthesiser.field_match.calc_difference import (
+    levenshtein_distance,
+    calc_difference,
+)
 from src.sm.synthesiser.synthesiser import Synthesiser
-synth = Synthesiser()
 from faker import Faker
+
+synth = Synthesiser()
 fake = Faker()
 
 test_word_num = 10
@@ -15,6 +19,7 @@ test_words_2 = []
 for x in range(test_word_num):
     test_words_2.extend([test_words[x] for y in range(test_word_num)])
 
+
 @pytest.mark.parametrize(
     "word1,word2,modifiers",
     [(word1, word2, [0, 0, 0]) for word1, word2 in zip(test_words_1, test_words_2)],
@@ -22,6 +27,7 @@ for x in range(test_word_num):
 def test_levenshtein_distance_pass(word1, word2, modifiers):
     value = levenshtein_distance(word1, word2, modifiers)
     assert isinstance(value, int) or isinstance(value, float)
+
 
 @pytest.mark.parametrize(
     "word1,word2,modifiers",
@@ -38,16 +44,16 @@ def test_levenshtein_distance_alternate_modifiers(word1, word2, modifiers):
     assert value_m2 >= value
     assert value_m3 >= value
 
+
 def test_levenshtein_distance_alternate_value_check():
     value = levenshtein_distance("test", "tester")
     assert value == 2
 
 
-
-
 word_list = synth.word_list
 word_tokens = synth.word_tokens
 word_tokens_set = synth.word_tokens_set
+
 
 @pytest.mark.parametrize(
     "target_word,word,target_tokens,target_tokens_set",

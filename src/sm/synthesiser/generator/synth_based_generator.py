@@ -384,7 +384,14 @@ class synth_based_generator_class:
             except:
                 applied_constraints = default_constr_dict.copy()
                 applied_constraints["annotation"] = field_type
-                value = self.apply_constraints(value, applied_constraints, matched_field[field_name], "self()[1].generate", 1, 1)
+                value = self.apply_constraints(
+                    value,
+                    applied_constraints,
+                    matched_field[field_name],
+                    "self()[1].generate",
+                    1,
+                    1,
+                )
         else:
             applied_constraints = default_constr_dict.copy()
             applied_constraints["annotation"] = field_type

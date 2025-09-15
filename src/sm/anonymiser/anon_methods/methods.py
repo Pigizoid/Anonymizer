@@ -4,15 +4,15 @@ import string
 
 def mask_value(field_value, field_type):
     """Creates a default masked value based on the given input type, if no type matches, return original value"""
-    if field_type == bool:
+    if field_type is bool:
         return False
-    elif field_type == float:
+    elif field_type is float:
         return 0.0
-    elif field_type == int:
+    elif field_type is int:
         return 0
-    elif field_type == bytes:
+    elif field_type is bytes:
         return b"0"
-    elif field_type == str:
+    elif field_type is str:
         return "****"
     else:
         return field_value
@@ -20,26 +20,26 @@ def mask_value(field_value, field_type):
 
 def perturb_value(field_value, field_type):
     """Takes a value and value type and adds random noise to the value, if no type matches, returns original value"""
-    if field_type == bool:
+    if field_type is bool:
         return bool(random.randint(0, 1))
-    elif field_type == float:
+    elif field_type is float:
         amount = 0.1  # 10%
         noise = (
             field_value * amount * (random.random() * 2 - 1)
         )  # (0 to 1)*2 -1   ->   -1 to 1
         return float(field_value + noise)
-    elif field_type == int:
+    elif field_type is int:
         amount = 0.2  # 10%
         noise = (
             field_value * amount * (random.random() * 2 - 1)
         )  # (0 to 1)*2 -1   ->   -1 to 1
         return int(round(field_value + noise) + random.randint(0, 2) - 1)
-    elif field_type == bytes:
+    elif field_type is bytes:
         new_field_value = bytearray(field_value)
         for x in range(len(new_field_value)):
             new_field_value[x] ^= random.randint(1, 255)  # XOR with random bitmask
         return bytes(new_field_value)
-    elif field_type == str:
+    elif field_type is str:
         new_field_value = ""
         field_val_len = len(field_value)
         length_change = random.randint(1, field_val_len * 2)

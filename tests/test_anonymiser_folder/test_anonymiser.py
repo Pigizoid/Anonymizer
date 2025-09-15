@@ -1,32 +1,41 @@
-import pytest
 from pydantic import BaseModel
 from src.sm.synthesiser.synthesiser import Synthesiser
 from src.sm.anonymiser.anonymiser import Anonymiser
+
 anon = Anonymiser()
 
 
 class schema_model(BaseModel):
-    foo : str
-    bar : int
-    zar : bool
-vals = [True,1.5,15,b'hello',"hello",[]]
-methods = ["mask","synth","perturb"]
+    foo: str
+    bar: int
+    zar: bool
+
+
+vals = [True, 1.5, 15, b"hello", "hello", []]
+methods = ["mask", "synth", "perturb"]
 synth = Synthesiser()
-input_data = { f"field_{val}":val for val in vals }
+input_data = {f"field_{val}": val for val in vals}
 recursive_input_data = {
     "list": [x for x in range(10)],
     "tuple": (x for x in range(10)),
     "set": set(x for x in range(10)),
-    "dict": {f"field_{x}":x for x in range(10)},
+    "dict": {f"field_{x}": x for x in range(10)},
 }
 input_data.update(recursive_input_data)
-schema_input_data = {"foo":"hello","bar":10,"zar":True}
+schema_input_data = {"foo": "hello", "bar": 10, "zar": True}
 input_data.update(recursive_input_data)
-manuals = [True,False]
+manuals = [True, False]
 defaults = methods.copy()
-field_sets = [["foo"],["bar"],["zar"],["foo","bar"],["bar","zar"],["foo","bar","zar"]]
-amounts = [1,5,10]
-'''
+field_sets = [
+    ["foo"],
+    ["bar"],
+    ["zar"],
+    ["foo", "bar"],
+    ["bar", "zar"],
+    ["foo", "bar", "zar"],
+]
+amounts = [1, 5, 10]
+"""
 input_sets = []
 for method in methods:
     for manual in manuals:
@@ -43,4 +52,4 @@ def test_anonymise(schema_model, data, method, manual, seed, default, fields, am
     assert all([isinstance(x,BaseModel) for y in return_data.values() for x in y])
     assert all([len(x)==amount for x in return_data.values()])
     
-'''
+"""
