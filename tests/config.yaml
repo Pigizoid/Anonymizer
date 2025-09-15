@@ -16,7 +16,7 @@
     manual: false
     default: "mask"
     fields:
-      street: default
-      zip_code: default
-      continent: default
+      name: default
+      email: default
+      age: default
   

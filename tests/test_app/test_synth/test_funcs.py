@@ -1,65 +1,49 @@
-import json
-import time
-from ..test_helper_funcs import send_batch_to_API
+import pytest
 
-from src.sm.synthesiser.synthesiser import Synthesiser
+import os
 
+from tests.schema import test_user as schema_model
+from src.sm.app.synth.funcs import synth_func
 
-def synth_func(
-    schema_model, seed, method, amount, output, start_index=0, cout: bool = False
-):
-    """
-    Inputs:
-        a pydantic schema model
-        a generation seed as an int
-        a generation method of the methods "mixed","mimesis","faker"
-        an amount as an int, to generate per schema
-        a string path to the ingest file
-        a filename as str for the output file (.json added by default)
-        a starting index used in batching to specify what the output index should start at
-        a cout boolean toggle for verbose printing
-    Loads data from ingest file
-    Runs the anonymiser tool
-    Outputs data to the output file and optionally prints output to the screen
-    """
-    start_time = time.time()
-    synth = Synthesiser(method=method)
-    dataset = synth.synthesise(
-        schema_model, method, amount, seed
-    )  # returns as [ data, data, ... ]
-    elapsed_time = time.time() - start_time  # end timer
-    print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
-    flush = []
-    if output.startswith("http"):
-        request_entries = []
+seed = "random"
+methods = ["mixed","mimesis","faker"]
+amounts = [1,2]
+start_index = 0
+ingest = "data.json"
+cout = False
 
-    for index, data in enumerate(dataset):
-        if output is not None:
-            if (index + 1 + start_index) != 1:
-                front_string = ",\n	"
-            else:
-                front_string = ""
-            json_str = json.dumps(
-                data.model_dump(), indent=8, default=lambda v: repr(v)
-            )
-            flush.append(f'{front_string}"{index + start_index}": {json_str}')
-            if output.startswith("http"):
-                request_entries.append(data)
-        else:
-            flush.append(f"{index + 1 + start_index}: {data}")
-    if output is not None:
-        if output.startswith("http"):
-            send_batch_to_API(schema_model, output, request_entries)
-        else:
-            flush_out = "".join(flush)
-            with open(f"{output}.json", "a") as f:
-                f.write(flush_out)
-    else:
-        flush_out = "".join(flush)
-    if cout:
-        print(flush_out)
-    flush.clear()
-    if output.startswith("http"):
-        request_entries.clear()
-    if output is not None and cout:
-        print(f"To file_path -> {output}")
+import pathlib
+test_dir = pathlib.Path(__file__).resolve().parent.parent.parent
+output = "outputs\\test_synth_out"
+
+field_tests = [
+    {"name":"default"},
+    {"age":"default"},
+    {"email":"default"},
+    {"name":"mask"},
+    {"name":"perturb"},
+    {"name":"synth"},
+]
+
+test_list = []
+for amount in amounts:
+    for method in methods:
+        test_list.append((schema_model, seed, method, amount, output, start_index, cout))
+@pytest.mark.parametrize("schema_model, seed, method, amount, output, start_index, cout", test_list)
+def test_synth_func(schema_model, seed, method, amount, output, start_index, cout):
+    print("test_dir",test_dir)
+    os.chdir(test_dir) #pytest alters cwd during runtime based on relative imports for some reason
+    print("CWD:", os.getcwd())
+    print("Looking for:", os.path.abspath(f"{output}.json"))
+    with open(f"{output}.json", "w") as f: #clear output
+        f.write("")
+    synth_func(
+        schema_model,
+        seed,
+        method,
+        amount,
+        output,
+        start_index,
+        cout)
+    with open(f"{output}.json", "r") as f:
+        assert len(f.readlines()) != 0

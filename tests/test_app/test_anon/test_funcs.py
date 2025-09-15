@@ -1,10 +1,44 @@
-import json
-from ..test_helper_funcs import load_ingest_data
-
-from src.sm.anonymiser.anonymiser import Anonymiser
+import pytest
 
 
-def anon_func(
+import os
+
+from tests.schema import test_user as schema_model
+from src.sm.app.anon.funcs import anon_func
+
+seed = "random"
+methods = ["mixed","mimesis","faker"]
+amounts = [1,2]
+start_index = 0
+ingest = "data.json"
+cout = False
+manuals = [True,False]
+defaults = ["mask","perturb","synth"]
+field_defaults = ["default","mask","perturb","synth"]
+fields_list = ["name","age","email"]
+
+import pathlib
+test_dir = pathlib.Path(__file__).resolve().parent.parent.parent
+output = "outputs\\test_anon_out"
+
+field_tests = [
+    {"name":"default"},
+    {"age":"default"},
+    {"email":"default"},
+    {"name":"mask"},
+    {"name":"perturb"},
+    {"name":"synth"},
+]
+
+test_list = []
+for fields in field_tests:
+    for default in defaults:
+        for manual in manuals:
+            for amount in amounts:
+                for method in methods:
+                    test_list.append((schema_model,seed,method,amount,start_index,ingest,cout,manual,default,fields,output))
+@pytest.mark.parametrize("schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output", test_list)
+def test_anon_func(
     schema_model,
     seed,
     method,
@@ -17,45 +51,24 @@ def anon_func(
     fields,
     output,
 ):
-    """
-    Inputs:
-        a pydantic schema model
-        a generation seed as an int
-        a generation method of the methods "mixed","mimesis","faker"
-        an amount as an int, to generate per data index
-        a starting index (to optionally skip data indexes in the ingest)
-        a string path to the ingest file
-        a cout boolean toggle for verbose printing
-        a manual boolean toggle for automatic/manual processing modes
-        a default anonymisation method of the methods "mask","perturb","synth"
-        a dict of fields = {field_name:method} of the methods "default","mask","perturb","synth"
-        a filename as str for the output file (.json added by default)
-    Loads data from ingest file
-    Runs the anonymiser tool
-    Outputs data to the output file and optionally prints output to the screen
-    """
-    data = load_ingest_data(ingest, start_index=start_index)
-    # data comes in as a dict of dicts
-    anon = Anonymiser()
-    anonymised_data = anon.anonymise(
-        schema_model, data, method, manual, seed, default, fields, amount
+    print("test_dir",test_dir)
+    os.chdir(test_dir) #pytest alters cwd during runtime based on relative imports for some reason
+    print("CWD:", os.getcwd())
+    print("Looking for:", os.path.abspath(f"{output}.json"))
+    with open(f"{output}.json", "w") as f: #clear output
+        f.write("")
+    anon_func(
+        schema_model,
+        seed,
+        method,
+        amount,
+        start_index,
+        ingest,
+        cout,
+        manual,
+        default,
+        fields,
+        output
     )
-    # data returns as a dict of lists of dicts
-    # { index: [model, * amount] }
-
-    flush_output = {}
-    with open(f"{output}.json", "a") as f:
-        for index, content in anonymised_data.items():
-            if cout:
-                print("-" * 60)
-                print(f"Input data:\n\t{data[index]}")
-                print("Output data:")
-            flush_list = []
-            for idx, x in enumerate(content):
-                if cout:
-                    print(
-                        f"output {str(idx)}{' ' * (10 - len(str(idx)))}{x.model_dump()}"
-                    )
-                flush_list.append(x.model_dump())
-            flush_output[index] = flush_list
-        f.write(json.dumps(flush_output, indent=8))
+    with open(f"{output}.json", "r") as f:
+        assert len(f.readlines()) != 0
