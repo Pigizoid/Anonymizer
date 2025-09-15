@@ -379,7 +379,12 @@ class synth_based_generator_class:
         if matched_field[field_name] != "":
             func = self.resolved_methods[matched_field[field_name]]
             value = func()
-            #this needs to set the vaue to the field_type
+            try:
+                value = field_type(value)
+            except:
+                applied_constraints = default_constr_dict.copy()
+                applied_constraints["annotation"] = field_type
+                value = self.apply_constraints(value, applied_constraints, matched_field[field_name], "self()[1].generate", 1, 1)
         else:
             applied_constraints = default_constr_dict.copy()
             applied_constraints["annotation"] = field_type

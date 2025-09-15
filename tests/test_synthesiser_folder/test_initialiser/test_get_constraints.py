@@ -26,9 +26,9 @@ class ConstraintsNested(BaseModel):
     test_list_length: Set[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(min_length=20)
 
 class Constraints(BaseModel):
-    constr_strip_whitespace: str = Field(strip_whitespace=True)
-    constr_to_upper: str = Field(to_upper=True)
-    constr_to_lower: str = Field(to_lower=True)
+    constr_strip_whitespace: str = constr(strip_whitespace=True)
+    constr_to_upper: str = constr(to_upper=True)
+    constr_to_lower: str = constr(to_lower=True)
     constr_strict: str = Field(strict=True)
     constr_default: str = Field(default="AAA")
     constr_annotation: str

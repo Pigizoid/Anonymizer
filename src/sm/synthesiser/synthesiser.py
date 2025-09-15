@@ -74,7 +74,7 @@ class Synthesiser(
         """
         if amount == 0:
             return []
-
+        """
         if seed == "random":
             self.input_seed = "random"
             self.seed = random.randint(0, 1_000_000_000_000)
@@ -84,14 +84,18 @@ class Synthesiser(
             self.seed = random.randint(0, 1_000_000_000_000)
             random.seed(seed)
         else:
+            print(seed)
             try:
+                print("seeded")
                 seed = int(seed)
                 self.input_seed = seed
                 random.seed(seed)
             except:
+                print("seed error")
                 self.input_seed = seed
                 self.seed = random.randint(0, 1_000_000_000_000)
                 random.seed(seed)
+        """
 
         self.method = method
 

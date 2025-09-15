@@ -1,7 +1,7 @@
 import pytest
 import re
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
 from typing import List, Dict
 from src.sm.synthesiser.synthesiser import Synthesiser
 from src.sm.pre_made_data import default_constr_dict
@@ -71,9 +71,9 @@ def test_check_generation_constraints_expect_pass(schema_model):
         )
 
 class Constraints6(BaseModel):
-    constr_strip_whitespace: str = Field(strip_whitespace=True)
-    constr_to_upper: str = Field(to_upper=True)
-    constr_to_lower: str = Field(to_lower=True)
+    constr_strip_whitespace: str = constr(strip_whitespace=True)
+    constr_to_upper: str = constr(to_upper=True)
+    constr_to_lower: str = constr(to_lower=True)
     constr_strict: str = Field(strict=True)
     constr_default: str = Field(default="AAA")
     constr_annotation: str
