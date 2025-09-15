@@ -792,3 +792,5 @@ if __name__ == "__main__":
             if not re.fullmatch(pat, s):
                 raise AssertionError("Generated string does not match pattern", pat, s)
         print()
+
+
