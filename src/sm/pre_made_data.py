@@ -2,6 +2,12 @@ from typing import List, Dict, Tuple, Set, Union, Literal, Optional
 
 from decimal import Decimal
 
+from faker import Faker
+import mimesis
+from mimesis import Generic
+import inspect
+from enum import Enum
+
 
 def generate_provider_return_types(provider_names, provider_instances):
     return_types = {}
@@ -49,7 +55,6 @@ def generate_provider_return_types(provider_names, provider_instances):
 
     return dict(sorted(return_types.items()))
 
-from enum import Enum
 
 class provider_return_types(Enum):
     Meta = str
@@ -401,6 +406,7 @@ class provider_return_types(Enum):
     zipcode_in_state = str
     zipcode_plus4 = str
 
+
 python_builtin_types = {
     str,
     int,
@@ -473,12 +479,6 @@ default_constr_dict = {
     "args": None,
 }
 
-
-from faker import Faker
-import mimesis
-from mimesis import Generic
-import inspect
-
 fake = Faker()
 generic = Generic(mimesis.locales.Locale.EN)
 
@@ -495,6 +495,7 @@ def list_faker_methods() -> Tuple[list, dict]:
         except:
             pass
     return (methods, methods_map)
+
 
 def list_mimesis_methods() -> Tuple[list, dict]:
     methods = []
@@ -519,6 +520,7 @@ def list_mimesis_methods() -> Tuple[list, dict]:
                     methods.append(attr)
                     methods_map[attr] = instance
     return (methods, methods_map)
+
 
 def list_match_methods(method) -> Tuple[list, dict]:
     methods = []
@@ -548,7 +550,7 @@ def list_match_methods(method) -> Tuple[list, dict]:
 def setup_func():
     names, instances = list_match_methods("mixed")
     print("class provider_return_types(Enum):")
-    for x,v in generate_provider_return_types(names, instances).items():
+    for x, v in generate_provider_return_types(names, instances).items():
         print(f"    {x} = {v.__name__}")
 
 

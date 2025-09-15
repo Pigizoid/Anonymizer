@@ -14,12 +14,9 @@
     output: data_out
     cout: true
     manual: false
-    
-    
-    
-    #split these, user defines per schema
+    default: "mask"
     fields:
-      street: default
-      zip_code: default
-      continent: default
+      name: default
+      email: default
+      age: default
   

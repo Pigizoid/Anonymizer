@@ -17,8 +17,6 @@ CATEGORY_TO_EXPR = {
     regex_sre_constants.CATEGORY_WORD: "string.ascii_letters + string.digits + '_'",
 }
 
-# ---------- Helper static utilities (kept at top for clarity) ----------
-
 def _expand_in_child_static(arg, flags, alphabet):
     """
     Static version used at compile-time to compute the concrete choices set for an IN token.
@@ -708,6 +706,8 @@ def compile_regex_to_function_source(
 
 if __name__ == "__main__":
     patterns = [
+        r"([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?",
+        r"(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?))",
         r"^(0?[1-9]|1[0-2])[\/](0?[1-9]|[12]\d|3[01])[\/](19|20)\d{2}$",
         r"^\s*(?:\+?(\d{1,3}))?([-. (]*(\d{3})[-. )]*)?((\d{3})[-. ]*(\d{2,4})(?:[-.x ]*(\d+))?)\s*$",
         r"\b(?:A[cglmr-u]|B[aehikr]?|C[adefl-orsu]?|D[bsy]|E[rsu]|F[elmr]?|G[ade]|H[efgos]?|I[nr]?|Kr?|L[airuv]|M[dgont]|N[abdeiop]?|Os?|P[abdmortu]?|R[abe-hnu]|S[bcegimnr]?|T[abcehilm]|U(?:u[opst])?|V|W|Xe|Yb?|Z[nr])\b",
@@ -792,4 +792,3 @@ if __name__ == "__main__":
             if not re.fullmatch(pat, s):
                 raise AssertionError("Generated string does not match pattern", pat, s)
         print()
-

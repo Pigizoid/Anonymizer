@@ -3,12 +3,19 @@ from pydantic import BaseModel
 import inspect
 from .calc_difference import calc_difference, levenshtein_distance
 
-from sm.tools.model_funcs import get_model_data
+from ...tools.model_funcs import get_model_data
 
 
-
-class match_class():
+class match_class:
     def match_fields(self, field_names) -> Dict[str, str]:
+        """
+        inputs a list of field_names
+
+        1. calculates the distance of each field_name in the list
+            to the closest matching generation provider
+            e.g. street -> street_name
+        2. if none is found, retry with modified values [-0.5, 0.5, -0.5]
+        """
         field_matches = []
         for t_word in field_names:
             closest_matches = []
@@ -69,8 +76,14 @@ class match_class():
     def recursive_match_fields(
         self, schema_model, field_match_pairs=None
     ) -> Dict[str, Dict[str, str]]:  # needs test
+        """
+        Goes through an input schema model and matches all fields to a generation provider
+        recurses through nested schemas, adding to list of providers for each field
+        uses optional field_match_pairs input during recursion and remove duplicate nested schemas
+        """
         if field_match_pairs is None:
-            field_match_pairs = {}  # because default dicts are stored in memory not by instance
+            field_match_pairs = {}
+        # in body not in function, because default collections are stored in memory not by instance
         model_data = get_model_data(schema_model)
         field_names = [x[0] for x in model_data]
 

@@ -1,17 +1,68 @@
 from pydantic import BaseModel
-from typing import List, Dict, Tuple, Set, Union, Optional, Literal, Any, Annotated, get_args, get_origin
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Set,
+    Union,
+    Optional,
+    Literal,
+    Any,
+    Annotated,
+    get_args,
+    get_origin,
+)
 import random
 import re
 import time
 import inspect
 from ..misc import print_path
 
-from sm.pre_made_data import all_constr_attribs, default_constr_dict, recursive_types, python_builtin_types
+from ...pre_made_data import (
+    all_constr_attribs,
+    default_constr_dict,
+    recursive_types,
+    python_builtin_types,
+)
 
 
+"""
+Generation path:
+    format of  'Schema_name(field_name)[amount/length]'
+    format of  'n(f)[a].Type(index)[amount/length]'
+    e.g.
+    1.
+        class User():
+            address: (_,_,_)
+        User(address)[1].Tuple(0)[1]
+        -> would be generating a data pool for
+        class User():
+            address: (X,_,_)
+    2.
+        class Address():
+            street : str
+        class User():
+            nested : Address
+        User(nested)[100].Address(street)[1]
+    3.
+        class User():
+            address: List[str,int]
+        User(address)[1].List(0)[10]
+        -> means
+            [str]*10
+        
+        User(address)[1].List(1)[20]
+        -> means
+            [int]*20
+"""
 
-class synth_based_generator_class():
-    def make_new_contraints(self,applied_constraints):
+
+class synth_based_generator_class:
+    def make_new_contraints(self, applied_constraints):
+        """
+        Inputs a set of applied constraints and updates with defaults
+        fast method for code reusage
+        """
         new_applied_constraints = default_constr_dict.copy()
         new_applied_constraints.update(applied_constraints)
         return new_applied_constraints
@@ -19,6 +70,17 @@ class synth_based_generator_class():
     def generate_synth_data(
         self, field_name, match_name, applied_constraints, generate_path
     ) -> Any:  # value or collection
+        """
+        Inputs:
+            field name
+            match name
+            constraints
+            generate path
+
+        Recursive function that crawls through the constraints structure
+        Handles collection types and model recursion
+        Returns a python structure of the constraints format with fully generated data
+        """
         # print("__")
         # print(f"	Generating for: {field_name}")
         # print(applied_constraints)
@@ -51,7 +113,6 @@ class synth_based_generator_class():
                 field_name, match_name, new_constraints, generate_path
             )
             # print("returned:",output_data)
-            # input("wait...")
 
         else:
             if not data_type:  # if data_type is None:
@@ -70,7 +131,7 @@ class synth_based_generator_class():
                     max_amount = applied_constraints["max_length"]
                 else:
                     max_amount = min_amount + 4
-                
+
                 new_applied_constraints = self.make_new_contraints(applied_constraints)
 
                 if data_type in [List, list]:
@@ -271,7 +332,7 @@ class synth_based_generator_class():
 
                         start_time = time.time()
                         data_temp_pool = [func() for _ in range(pooling_count)]
-                        
+
                         data_pool = [
                             self.apply_constraints(
                                 func_val,
@@ -292,12 +353,8 @@ class synth_based_generator_class():
                     output_data = self.outputpooling[generate_path].pop()
 
             else:
-                if (
-                    data_type.__class__.__module__
-                    == "pydantic._internal._model_construction"  # checking if its a model
-                    and inspect.isclass(data_type)
-                    and issubclass(data_type, BaseModel)
-                    # extra checks to make sure its a BaseModel
+                if inspect.isclass(data_type) and (
+                    issubclass(data_type, BaseModel) or isinstance(data_type, BaseModel)
                 ):
                     output_data = self.synthesise_recursive(
                         data_type, self.method, amount=1, path=generate_path + "."
@@ -313,13 +370,32 @@ class synth_based_generator_class():
         # apply constraints of output after data is provided
         return output_data
 
-    def generate_single_value(self,field_name,field_type):
+    def generate_single_value(self, field_name, field_type):
+        """
+        Inputs field_name and field_type and outputs a single generated value
+        by calling internal functions
+        """
         matched_field = self.match_fields([field_name])
         if matched_field[field_name] != "":
             func = self.resolved_methods[matched_field[field_name]]
             value = func()
+            try:
+                value = field_type(value)
+            except:
+                applied_constraints = default_constr_dict.copy()
+                applied_constraints["annotation"] = field_type
+                value = self.apply_constraints(
+                    value,
+                    applied_constraints,
+                    matched_field[field_name],
+                    "self()[1].generate",
+                    1,
+                    1,
+                )
         else:
             applied_constraints = default_constr_dict.copy()
             applied_constraints["annotation"] = field_type
-            value = self.generate_from_constraints(field_name, applied_constraints, "self()[1].generate")
+            value = self.generate_from_constraints(
+                field_name, applied_constraints, "self()[1].generate"
+            )
         return value

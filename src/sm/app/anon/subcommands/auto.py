@@ -6,7 +6,8 @@ from ...models import AnonymiserConfig
 
 anon_auto_subcommand = typer.Typer()
 
-@anon_auto_subcommand.command(name="auto")  # call with "auto" sub command
+
+@anon_auto_subcommand.command(name="auto")
 def anon_auto_command(
     ctx: typer.Context,  # contains ctx.config
     ingest: str = None,
@@ -14,8 +15,21 @@ def anon_auto_command(
     output: str = None,
     amount: int = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
-    default: str = "mask"
+    default: str = "mask",
 ):
+    """
+    A subcommand for the anon command
+    Inputs:
+        a path as str to an ingest file
+        a method of the methods "mixed","mimesis","faker"
+        a filename as str for the output file (.json added by default)
+        an amount to generate per data index as an int
+        cout boolean to toggle verbose printing
+        a default anonymisation method of the methods "mask","synth","perturb"
+    Runs the anonymisation tool in auto mode
+    """
+    if default not in ["mask", "synth", "perturb"]:
+        raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     ctx.params["start"] = 0
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
