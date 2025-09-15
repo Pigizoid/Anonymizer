@@ -5,8 +5,11 @@ from decimal import Decimal
 
 import typer
 
-from sm.functions.synthesiser import Synthesiser
-from sm.functions.anonymiser import Anonymiser
+
+import json_schema_to_pydantic
+
+from .functions.synthesiser import Synthesiser
+from .functions.anonymiser import Anonymiser
 
 
 import yaml  # uv add pyyaml
@@ -22,6 +25,26 @@ import time
 
 
 app = typer.Typer()
+
+
+def convert_schema_to_JSON(schema_model):
+    if issubclass(schema_model, BaseModel):
+        JSON_schema = schema_model.model_json_schema()
+
+    elif isinstance(schema_model, dict) or isinstance(schema_model, list):
+        JSON_schema = schema_model
+    else:
+        raise Exception("Unhandled schema type")
+    return JSON_schema
+
+
+def normalise_JSON_schema_to_pydantic(JSON_schema):
+    pydantic_model = json_schema_to_pydantic.create_model(JSON_schema)
+    return pydantic_model
+
+
+def normalise_schema_to_pydantic(schema_model):
+    return normalise_JSON_schema_to_pydantic(convert_schema_to_JSON(schema_model))
 
 
 def make_json_safe(obj):
@@ -45,12 +68,14 @@ def synth_func(
     """
     from line_profiler import LineProfiler
     lp = LineProfiler()
-    lp_wrapper = lp(Synthesiser.synthesise)
+    synth = Synthesiser()
+    lp_wrapper = lp(synth.synthesise)
     lp_wrapper(schema_model,method,amount)
     lp.print_stats()
-    """
+    #"""
     start_time = time.time()
-    dataset = Synthesiser.synthesise(
+    synth = Synthesiser(method=method)
+    dataset = synth.synthesise(
         schema_model, method, amount
     )  # returns as [ data, data, ... ]
     elapsed_time = time.time() - start_time  # end timer
@@ -76,13 +101,9 @@ def synth_func(
             else:
                 front_string = ""
             json_str = json.dumps(
-                data.model_dump(), 
-                indent=8, 
-                default=lambda v: repr(v)
+                data.model_dump(), indent=8, default=lambda v: repr(v)
             )
-            flush.append(
-                f'{front_string}"{index + start_index}": {json_str}'
-            )
+            flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if output.startswith("http"):
                 request_entries.append(data)
         else:
@@ -277,13 +298,6 @@ def send_batch_to_API(schema_model, output, data):
     return response
 
 
-"""
-class configSettings(...):
-    synth: Optional[SynthesiserConfig]
-    anon: Optional[AnonymiserConfig]
-"""
-
-
 class SynthesiserConfig(BaseModel):
     method: str = Field(default="mixed")
     amount: int = Field(default=1)
@@ -301,6 +315,11 @@ class AnonymiserConfig(BaseModel):
     cout: bool = Field(default=False)
     manual: bool = Field(default=False)
     fields: typing.Dict[str, str] = Field(default={})
+
+
+class ConfigSettings(BaseModel):
+    synth: typing.Optional[SynthesiserConfig]
+    anon: typing.Optional[AnonymiserConfig]
 
 
 def load_flags(func_type, flags):
@@ -328,12 +347,14 @@ def load_flags(func_type, flags):
                 raise Exception("Config 'anonymiser' not defined")
     else:
         print("Schema auto loader")
-        spec = importlib.util.spec_from_file_location(
-            "imported_schema_model", "schema.py"
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "imported_schema_model", "schema.py"
+            )
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        except:
+            raise Exception("No schema found, maybe youre in the wrong directory")
         classes = inspect.getmembers(module, inspect.isclass)
         # print(classes)
         filtered = [

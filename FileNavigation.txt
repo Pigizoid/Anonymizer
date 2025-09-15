@@ -1,9 +1,130 @@
 Anonymizer
+|api_app
+|  \
+|  |apiroutes.py
+|  |database.csv
+|
+|
 |img
-|\images used for README
+|  \
+|  |test.png
 |
-|FileNavigation.txt
+|src
+|  \
+|  |sm
+|  |  \
+|  |  |anonymiser
+|  |  |  \
+|  |  |  |anon_methods
+|  |  |  |  \
+|  |  |  |  |methods.py
+|  |  |  |
+|  |  |  |handling
+|  |  |  |  \
+|  |  |  |  |data_handling.py
+|  |  |  |  |model_handling.py
+|  |  |  |
+|  |  |  |anonymiser.py
+|  |  |
+|  |  |synthesiser
+|  |  |  \
+|  |  |  |field_match
+|  |  |  |  \
+|  |  |  |  |calc_difference.py
+|  |  |  |  |match.py
+|  |  |  |
+|  |  |  |generator
+|  |  |  |  \
+|  |  |  |  |constraint_based_generator.py
+|  |  |  |  |synth_based_generator.py
+|  |  |  |
+|  |  |  |initialiser
+|  |  |  |  \
+|  |  |  |  |class_init.py
+|  |  |  |  |get_constraints.py
+|  |  |  |  |match_methods.py
+|  |  |  |
+|  |  |  |misc.py
+|  |  |  |synthesiser.py
+|  |  |
+|  |  |app
+|  |  |  \
+|  |  |  |anon
+|  |  |  |  \
+|  |  |  |  |subcommands
+|  |  |  |  |  \
+|  |  |  |  |  |auto.py
+|  |  |  |  |  |manual.py
+|  |  |  |  |
+|  |  |  |  |funcs.py
+|  |  |  |  |main.py
+|  |  |  |
+|  |  |  |synth
+|  |  |  |  \
+|  |  |  |  |subcommands
+|  |  |  |  |  \
+|  |  |  |  |  |batch.py
+|  |  |  |  |  |single.py
+|  |  |  |  |
+|  |  |  |  |funcs.py
+|  |  |  |  |main.py
+|  |  |  |
+|  |  |  |helper_funcs.py
+|  |  |  |main.py
+|  |  |  |models.py
+|  |  |
+|  |  |tools
+|  |  |  \
+|  |  |  |regex_generator
+|  |  |  |  \
+|  |  |  |  |regex_builder.py
+|  |  |  |  |regex_sre_constants.py
+|  |  |  |  |regex_sre_parse.py
+|  |  |  |
+|  |  |  |model_funcs.py
+|  |  |
+|  |  |pre_made_data.py
+|  |  |main(old).py
 |
+|tests
+|  \
+|  |schema.py
+|  |test_anonymiser_folder
+|  |  \
+|  |  |test_anon_methods
+|  |  |  \
+|  |  |  |test_methods.py
+|  |  |
+|  |  |test_handling
+|  |  |  \
+|  |  |  |test_data_handling.py
+|  |  |  |test_model_handling.py
+|  |  |
+|  |  |test_anonymiser.py
+|  |
+|  |test_synthesiser_folder
+|  |  \
+|  |  |test_field_match
+|  |  |  \
+|  |  |  |test_calc_difference.py
+|  |  |  |test_match.py
+|  |  |
+|  |  |test_generator
+|  |  |  \
+|  |  |  |test_constraint_based_generator.py
+|  |  |  |test_synth_based_generator.py
+|  |  |
+|  |  |test_initialiser
+|  |  |  \
+|  |  |  |test_class_init.py
+|  |  |  |test_get_constraints.py
+|  |  |  |test_match_methods.py
+|  |  |
+|  |  |test_misc.py
+|  |  |test_synthesiser.py
+|
+|.gitignore
+|.python-version
+|FileNavigation
 |pyproject.toml
-|
 |README.md
