@@ -2,6 +2,7 @@ from typing import Dict, Any, get_origin, get_args
 from decimal import Decimal, ROUND_HALF_UP
 from multiprocessing import Pool
 from functools import partial
+from collections import deque
 import exrex
 import string
 import re
@@ -157,15 +158,9 @@ class constraint_based_generator_class:
                     if max(1, pooling_count) > 10000 and PERFORMANCE:
                         src = regex_builder.compile_regex_to_function_source(pattern)
                         safe_builtins = {
-                            "len": len,
-                            "range": range,
-                            "min": min,
-                            "max": max,
-                            "list": list,
-                            "chr": chr,
-                            "ord": ord,
-                            "set": set,
-                            "map": map,
+                            "len": len, "range": range, "min": min, "max": max,
+                            "list": list, "tuple": tuple, "deque": deque, "chr": chr, "ord": ord, "set": set, "map": map,
+                            "int": int, "AssertionError": AssertionError
                         }
                         env = {
                             "__builtins__": safe_builtins,  # dissallow anything except random and string
