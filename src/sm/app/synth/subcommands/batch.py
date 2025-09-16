@@ -1,8 +1,8 @@
 import typer
 from typing import Annotated, Optional
-from ..funcs import synth_func
-from ...helper_funcs import return_flags, load_schema, load_file_path, close_folder
-from ...models import SynthesiserConfig
+from sm.app.synth.funcs import synth_func
+from sm.app.helper_funcs import return_flags, load_schema, load_file_path, close_folder
+from sm.app.models import SynthesiserConfig
 
 
 synth_batch_subcommand = typer.Typer()

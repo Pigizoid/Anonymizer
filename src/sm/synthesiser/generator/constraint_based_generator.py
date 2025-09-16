@@ -9,10 +9,9 @@ import re
 import time
 import random
 import rstr
-from ..misc import print_path
-
-from ...pre_made_data import all_constr_attribs
-from ...tools.regex_generator import regex_builder
+from sm.synthesiser.misc import print_path
+from sm.pre_made_data import all_constr_attribs
+from sm.tools.regex_generator import regex_builder
 
 
 def make_one_string(pattern):

@@ -1,7 +1,6 @@
 import json
-from ..helper_funcs import load_ingest_data
-
-from ...anonymiser.anonymiser import Anonymiser
+from sm.app.helper_funcs import load_ingest_data
+from sm.anonymiser.anonymiser import anonymise
 
 
 def anon_func(
@@ -36,8 +35,7 @@ def anon_func(
     """
     data = load_ingest_data(ingest, start_index=start_index)
     # data comes in as a dict of dicts
-    anon = Anonymiser()
-    anonymised_data = anon.anonymise(
+    anonymised_data = anonymise(
         schema_model, data, method, manual, seed, default, fields, amount
     )
     # data returns as a dict of lists of dicts

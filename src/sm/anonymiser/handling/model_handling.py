@@ -1,6 +1,5 @@
 from pydantic import BaseModel, create_model
-
-from ...tools.model_funcs import get_model_fields
+from sm.tools.model_funcs import get_model_fields
 
 import ast
 

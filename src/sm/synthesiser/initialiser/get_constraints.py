@@ -1,8 +1,7 @@
 from pydantic import BaseModel
 from typing import Dict, Any
 import inspect
-
-from ...tools.model_funcs import get_model_fields, get_model_data
+from sm.tools.model_funcs import get_model_data, get_model_fields
 
 
 class get_constraints_class:

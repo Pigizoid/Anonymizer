@@ -16,9 +16,8 @@ import random
 import re
 import time
 import inspect
-from ..misc import print_path
-
-from ...pre_made_data import (
+from sm.synthesiser.misc import print_path
+from sm.pre_made_data import (
     all_constr_attribs,
     default_constr_dict,
     recursive_types,

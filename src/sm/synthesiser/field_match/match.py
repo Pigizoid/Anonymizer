@@ -1,9 +1,8 @@
 from typing import Dict
 from pydantic import BaseModel
 import inspect
-from .calc_difference import calc_difference, levenshtein_distance
-
-from ...tools.model_funcs import get_model_data
+from sm.synthesiser.field_match.calc_difference import calc_difference,levenshtein_distance
+from sm.tools.model_funcs import get_model_data
 
 
 class match_class:

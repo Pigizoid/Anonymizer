@@ -23,7 +23,13 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ruff>=0.12.9",
+    "pytest"
 ]
+
+[tool.uv]
+package = true
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [project.scripts]
 sm = "sm.app.main:app"

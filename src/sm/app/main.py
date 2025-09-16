@@ -1,9 +1,9 @@
 from pydantic_settings import BaseSettings
 from typing import Optional, Dict, Any
 from pathlib import Path
-from .synth.main import synth_app
-from .anon.main import anon_app
-from .models import SynthesiserConfig, AnonymiserConfig, Settings
+from sm.app.synth.main import synth_app
+from sm.app.anon.main import anon_app
+from sm.app.models import SynthesiserConfig, AnonymiserConfig, Settings
 import typer
 import yaml
 

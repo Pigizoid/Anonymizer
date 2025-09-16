@@ -2,6 +2,40 @@ import pytest
 
 from src.sm.synthesiser.synthesiser import Synthesiser
 from src.sm.anonymiser.handling.data_handling import anonymise_value, anonymise_data
+from src.sm.anonymiser.handling.data_handling import (
+    mask_value,
+    perturb_value
+)
+
+
+@pytest.mark.parametrize(
+    "field_value,field_type,expected",
+    [
+        (True, bool, False),
+        (1.5, float, 0.0),
+        (15, int, 0),
+        (b"hello", bytes, b"0"),
+        ("hello", str, "****"),
+        ([], list, []),
+    ],
+)
+def test_mask_value(field_value, field_type, expected):
+    assert mask_value(field_value, field_type) == expected
+
+
+@pytest.mark.parametrize(
+    "field_value,field_type",
+    [
+        (True, bool),
+        (1.5, float),
+        (15, int),
+        (b"hello", bytes),
+        ("hello", str),
+        ([], list),
+    ],
+)
+def test_perturb_value(field_value, field_type):
+    assert isinstance(perturb_value(field_value, field_type), field_type)
 
 
 vals = [True, 1.5, 15, b"hello", "hello", []]

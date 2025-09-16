@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from decimal import Decimal
-from .models import SynthesiserConfig, AnonymiserConfig
+from sm.app.models import SynthesiserConfig, AnonymiserConfig
 import importlib.util
 import inspect
 import requests

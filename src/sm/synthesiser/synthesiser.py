@@ -1,14 +1,13 @@
 from pydantic import BaseModel
 from typing import Dict, Any, List
 import random
-from .initialiser.class_init import init_class
-from .initialiser.get_constraints import get_constraints_class
-from .initialiser.match_methods import match_methods_class
-from .field_match.match import match_class
-from .generator.constraint_based_generator import constraint_based_generator_class
-from .generator.synth_based_generator import synth_based_generator_class
-
-from ..tools.model_funcs import get_model_fields
+from sm.synthesiser.initialiser.get_constraints import get_constraints_class
+from sm.synthesiser.initialiser.match_methods import match_methods_class
+from sm.synthesiser.field_match.match import match_class
+from sm.synthesiser.generator.constraint_based_generator import constraint_based_generator_class
+from sm.synthesiser.generator.synth_based_generator import synth_based_generator_class
+from sm.tools.model_funcs import get_model_fields
+from sm.pre_made_data import provider_methods
 
 """
 The main synthesiser class
@@ -17,13 +16,20 @@ pulls from sub classes to build full functionality
 
 
 class Synthesiser(
-    init_class,
     get_constraints_class,
     match_methods_class,
     match_class,
     constraint_based_generator_class,
     synth_based_generator_class,
 ):
+    def __init__(self, method="faker"):
+        self.outputpooling = {}
+        data_set = provider_methods[method]
+        self.word_list, methods_map = self.list_match_methods(method)
+        self.word_tokens = data_set['word_tokens'] # {word: word.split("_") for word in word_list}
+        self.word_tokens_set = data_set['word_tokens_set'] # {word: set(word.split("_")) for word in word_list}
+        self.resolved_methods = self.make_resolved_methods(self.word_list, methods_map)
+    
     def synthesise_recursive(
         self, schema_model, method="faker", amount=1, path=""
     ) -> Dict[str, Any]:
