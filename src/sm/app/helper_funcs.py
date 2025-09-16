@@ -133,8 +133,6 @@ def load_schema(schema_path):
     Orders schemas in schema file alphabetically during import (only importing one schema)
     returns a pydantic schema BaseModel
     """
-    schema_path
-
     if not (schema_path.endswith(".py")):
         schema_path += ".py"
 

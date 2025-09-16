@@ -11,6 +11,6 @@ def test_anon_auto_command():
     print(os.getcwd())
     result = runner.invoke(
         app,
-        ["--config", "config.yaml", "anon", "manual"],
+        ["--config", "tests\\config.yaml", "anon", "manual"],
     )
     assert result.exit_code == 0

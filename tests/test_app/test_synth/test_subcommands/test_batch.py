@@ -11,7 +11,7 @@ def test_anon_auto_command():
         app,
         [
             "--config",
-            "config.yaml",
+            "tests\\config.yaml",
             "synth",
             "batch",
             "--amount",

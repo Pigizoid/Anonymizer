@@ -1,5 +1,5 @@
 ---
-  schema: schema.py
+  schema: tests\\schema.py
   synthesiser:
     method: faker
     amount: 8
@@ -7,7 +7,7 @@
     output: test_output
     cout: false
   anonymiser:
-    ingest: data.json
+    ingest: tests\\data.json
     method: mixed
     amount: 1
     start: 8
