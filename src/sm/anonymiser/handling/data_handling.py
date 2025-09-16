@@ -1,12 +1,12 @@
 from typing import Dict, List, Tuple, Set
-from sm.anonymiser.handling.model_handling import guess_type
 from sm.pre_made_data import recursive_types
 import random
 import string
 
 
-def mask_value(field_value, field_type):
+def mask_value(field_value):
     """Creates a default masked value based on the given input type, if no type matches, return original value"""
+    field_type = type(field_value)
     if field_type is bool:
         return False
     elif field_type is float:
@@ -21,8 +21,9 @@ def mask_value(field_value, field_type):
         return field_value
 
 
-def perturb_value(field_value, field_type):
+def perturb_value(field_value):
     """Takes a value and value type and adds random noise to the value, if no type matches, returns original value"""
+    field_type = type(field_value)
     if field_type is bool:
         return bool(random.randint(0, 1))
     elif field_type is float:
@@ -64,15 +65,12 @@ def anonymise_value(seed, field_value, anon_methods, synth=None):
     anon_method = [field_name,method] of the methods "mask","synth","perturb"'''
     field_name = anon_methods[0]
     anon_method = anon_methods[1]
-    field_type = guess_type(field_value)
-    print(field_type)
-    field_value = field_type(field_value)
     if anon_method == "mask":
-        return mask_value(field_value, field_type)
+        return mask_value(field_value)
     elif anon_method == "synth":
-        return synth.generate_single_value(field_name, field_type)
+        return synth.generate_single_value(field_name, type(field_value))
     elif anon_method == "perturb":
-        return perturb_value(field_value, field_type)
+        return perturb_value(field_value)
     else:
         raise ValueError(
             f"Invalid anonymisation method '{anon_method}' for field '{field_name}'"

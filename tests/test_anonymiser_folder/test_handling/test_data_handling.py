@@ -9,33 +9,33 @@ from src.sm.anonymiser.handling.data_handling import (
 
 
 @pytest.mark.parametrize(
-    "field_value,field_type,expected",
+    "field_value,expected",
     [
-        (True, bool, False),
-        (1.5, float, 0.0),
-        (15, int, 0),
-        (b"hello", bytes, b"0"),
-        ("hello", str, "****"),
-        ([], list, []),
+        (True, False),
+        (1.5, 0.0),
+        (15, 0),
+        (b"hello", b"0"),
+        ("hello", "****"),
+        ([], []),
     ],
 )
-def test_mask_value(field_value, field_type, expected):
-    assert mask_value(field_value, field_type) == expected
+def test_mask_value(field_value, expected):
+    assert mask_value(field_value) == expected
 
 
 @pytest.mark.parametrize(
-    "field_value,field_type",
+    "field_value",
     [
-        (True, bool),
-        (1.5, float),
-        (15, int),
-        (b"hello", bytes),
-        ("hello", str),
-        ([], list),
+        (True),
+        (1.5),
+        (15),
+        (b"hello"),
+        ("hello"),
+        ([]),
     ],
 )
-def test_perturb_value(field_value, field_type):
-    assert isinstance(perturb_value(field_value, field_type), field_type)
+def test_perturb_value(field_value):
+    assert isinstance(perturb_value(field_value), type(field_value))
 
 
 vals = [True, 1.5, 15, b"hello", "hello", []]
