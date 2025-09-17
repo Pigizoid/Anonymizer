@@ -68,6 +68,10 @@ Anonymizer
 |  |  |  |main.py
 |  |  |  |models.py
 |  |  |
+|  |  |library
+|  |  |  \
+|  |  |  |dataclass.py
+|  |  |
 |  |  |tools
 |  |  |  \
 |  |  |  |regex_generator
