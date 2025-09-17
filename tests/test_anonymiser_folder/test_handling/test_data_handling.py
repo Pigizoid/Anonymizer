@@ -47,12 +47,12 @@ for method in methods:
 
 
 @pytest.mark.parametrize(
-    "seed, field_value, anon_methods, synth",
-    [(0, val, anon_methods, synth) for val, anon_methods in anonymise_value_test_data],
+    "field_value, anon_methods, seed, synth",
+    [(val, anon_methods, 0, synth) for val, anon_methods in anonymise_value_test_data],
 )
-def test_anonymise_value(seed, field_value, anon_methods, synth):
+def test_anonymise_value(field_value, anon_methods, seed, synth):
     assert isinstance(
-        anonymise_value(seed, field_value, anon_methods, synth), type(field_value)
+        anonymise_value(field_value, anon_methods, seed, synth), type(field_value)
     )
 
 
@@ -68,7 +68,7 @@ anon_methods = ["mask" for _ in range(len(input_data))]
 
 
 def test_anonymise_data_mask():
-    return_data = anonymise_data(0, input_data, anon_methods)
+    return_data = anonymise_data(input_data, anon_methods, 0)
     assert return_data != input_data
 
 
@@ -76,7 +76,7 @@ anon_methods = ["synth" for _ in range(len(input_data))]
 
 
 def test_anonymise_data_synth():
-    return_data = anonymise_data(0, input_data, anon_methods, synth)
+    return_data = anonymise_data(input_data, anon_methods, 0, synth)
     assert return_data != input_data
 
 
@@ -84,7 +84,7 @@ anon_methods = ["perturb" for _ in range(len(input_data))]
 
 
 def test_anonymise_data_perturb():
-    return_data = anonymise_data(0, input_data, anon_methods)
+    return_data = anonymise_data(input_data, anon_methods, 0)
     assert type(return_data["field_0"]) is type(input_data["field_0"])
     assert type(return_data["field_1"]) is type(input_data["field_1"])
     assert type(return_data["field_2"]) is type(input_data["field_2"])

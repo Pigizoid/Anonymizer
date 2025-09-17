@@ -119,7 +119,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
         if input_data_type in [List, list, Tuple, tuple, Set, set]:
             patch_data = []
             for value in input_data:
-                patch_data.append(anonymise_data(seed, value, anon_methods, synth))
+                patch_data.append(anonymise_data(value, anon_methods, seed, synth))
             if input_data_type in [Tuple, tuple]:
                 patch_data = tuple(patch_data)
             elif input_data_type in [Set, set]:
@@ -132,17 +132,17 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
                     if key in anon_methods:  # only filter the specified fields
                         anon_method = (key, anon_methods[key])
                         patch_data[key] = anonymise_data(
-                            seed, value, anon_method, synth
+                            value, anon_method, seed, synth
                         )
                     else:
                         patch_data[key] = input_data[key]
             else:
                 anon_method = anon_methods
                 for key, value in input_data.items():
-                    patch_data[key] = anonymise_data(seed, value, anon_method, synth)
+                    patch_data[key] = anonymise_data(value, anon_method, seed, synth)
             return_data = patch_data
         else:
             raise Exception(f"Recersive data type| {input_data_type} |not handled")
     else:
-        return_data = anonymise_value(seed, input_data, anon_methods, synth)
+        return_data = anonymise_value(input_data, anon_methods, seed, synth)
     return return_data

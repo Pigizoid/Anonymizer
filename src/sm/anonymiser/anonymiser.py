@@ -67,9 +67,9 @@ def anonymise(
         if manual or default != "synth":
             return_data = [
                 anonymise_data(
-                    seed=seed,
                     input_data=data_entry,
                     anon_methods=anon_methods,
+                    seed=seed,
                     synth=synth,
                 )
                 for _ in range(amount)
