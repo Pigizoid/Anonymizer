@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Any, Union
 from sm.anonymiser.handling.model_handling import new_model, subset_model
 from sm.anonymiser.handling.data_handling import anonymise_data
 from sm.tools.model_funcs import get_model_data
@@ -7,23 +7,23 @@ from sm.synthesiser.synthesiser import Synthesiser
 
 
 def anonymise(
-    schema_model, data, method, manual, seed, default, fields, amount
+    schema_model:BaseModel, data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random"
 ) -> Dict[str, List[BaseModel]]:
     """
-    Inputs:
-        a schema model
+    Inputs:\n
+        schema model
         data as a dict of dicts
             {index:  #index as integer
                 {json data}
             }
-        a method of the methods"mixed","mimesis","faker"
-        a "manual" boolean, to flag automatic or manual anonymisation
-        an anonymisation seed
-        the default anonymisation method of the methods "mask","synth","perturb"
-        a dict of fields = [field_name,method] of the methods "default","mask","synth","perturb"
-        an amount as an int
-    Outputs:
-        a dict of lists of schema BaseModel
+        method of the methods"mixed","mimesis","faker"
+        "manual" boolean, to flag automatic or manual anonymisation
+        default anonymisation method of the methods "mask","synth","perturb"
+        dict of fields = [field_name,method] of the methods "default","mask","synth","perturb"
+        amount as an int
+        optional anonymisation seed
+    Outputs:\n
+        dict of lists of schema BaseModel
             {index:  #index as integer
                 [{BaseModel}] * amount
             }

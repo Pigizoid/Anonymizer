@@ -14,16 +14,15 @@ app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
 
-def make_settings_class(config_path: Optional[Path]) -> type[BaseSettings]:
+def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
     """
-    Inputs:
+    Inputs:\n
         an optional config path string to the config.yaml file
-    Ouputs:
+    Ouputs:\n
         a BaseSettings class type, unprocessed with source functionality modified
     """
 
     def yaml_settings_source() -> Dict[str, Any]:
-        """loads a config.yaml file and gets the data and outputs it as a dict"""
         if not config_path.exists():
             return {}  # returning {} as empty to allow defaults to parse
 
@@ -54,7 +53,6 @@ def make_settings_class(config_path: Optional[Path]) -> type[BaseSettings]:
         return mapping
 
     def schema_defaults_source() -> Dict[str, Any]:
-        """outputs the defaults for the anon and synth schemas"""
         synth_defaults = {
             name: field.default
             for name, field in SynthesiserConfig.model_fields.items()
@@ -142,9 +140,8 @@ def make_settings_class(config_path: Optional[Path]) -> type[BaseSettings]:
 def main(
     ctx: typer.Context,
     config: Optional[Path] = typer.Option(
-        None,  # default
-        exists=True,  # dont check if path exists before allowing it as option
-        help="Path to YAML config file (must be called at top level)",
+        None, #default
+        exists=True
     ),
     schema_path: Optional[Path] = typer.Option(
         None,

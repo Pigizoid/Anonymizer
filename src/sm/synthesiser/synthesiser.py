@@ -31,16 +31,19 @@ class Synthesiser(
         self.resolved_methods = self.make_resolved_methods(self.word_list, methods_map)
     
     def synthesise_recursive(
-        self, schema_model, method="faker", amount=1, path=""
+        self, schema_model:BaseModel, method="faker", amount:int=1, path:str=""
     ) -> Dict[str, Any]:
         """
-        The main recursive call of the synthesiser class
-        Used internally by generate_synth_data for nested schema models
-        Inputs:
+        The main recursive call of the synthesiser class\n
+        Used internally by generate_synth_data for nested schema models\n
+        Inputs:\n
             schema model
-            method
+            method of the methods "faker","mimesis","mixed"
             amount
             generation path
+        Outputs:\n
+            synthesised data = 
+            {field name: content}
         """
         schema_name = schema_model.__name__
         synthesised_data = {}
@@ -64,20 +67,21 @@ class Synthesiser(
         return synthesised_data
 
     def synthesise(
-        self, schema_model, method="faker", amount=1, seed="random"
+        self, schema_model:BaseModel, method="faker", amount=1, seed="random"
     ) -> List[BaseModel]:
         """
         The main call function of the synthesiser class
-        Inputs:
+        Inputs:\n
             schema model
             method of methods "faker","mimesis","mixed"
             amount of returned data to generate as int
             data seed as either int or as "random","relational"
-        calls recursive synthesis on schema model after initial setup
-        Ouputs:
+        calls recursive synthesis on schema model after initial setup\n
+        Ouputs:\n
             list of pydantic BaseModel with synthesised data
             [BaseModel]*amount
         """
+        
         if amount == 0:
             return []
         """

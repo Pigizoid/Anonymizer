@@ -3,17 +3,20 @@ from pydantic import BaseModel
 import inspect
 from sm.synthesiser.field_match.calc_difference import calc_difference,levenshtein_distance
 from sm.tools.model_funcs import get_model_data
+from typing import List
 
 
 class match_class:
-    def match_fields(self, field_names) -> Dict[str, str]:
+    def match_fields(self, field_names: List[str]) -> Dict[str, str]:
         """
-        inputs a list of field_names
-
-        1. calculates the distance of each field_name in the list
+        1. calculates the distance of each field_name in the list:\n
             to the closest matching generation provider
             e.g. street -> street_name
-        2. if none is found, retry with modified values [-0.5, 0.5, -0.5]
+        2. if none is found, retry with modified values [-0.5, 0.5, -0.5]\n
+        Inputs:\n
+            list of field_names
+        Outputs:\n
+            matched fields = {field_name, match name}
         """
         field_matches = []
         for t_word in field_names:
@@ -73,12 +76,17 @@ class match_class:
         return field_match_pairs
 
     def recursive_match_fields(
-        self, schema_model, field_match_pairs=None
-    ) -> Dict[str, Dict[str, str]]:  # needs test
+        self, schema_model:BaseModel, field_match_pairs:Dict[str,Dict[str,str]]=None
+    ) -> Dict[str, Dict[str, str]]:
         """
-        Goes through an input schema model and matches all fields to a generation provider
-        recurses through nested schemas, adding to list of providers for each field
-        uses optional field_match_pairs input during recursion and remove duplicate nested schemas
+        Goes through an input schema model and matches all fields to a generation provider\n
+        recurses through nested schemas, adding to list of providers for each field\n
+        uses optional field_match_pairs input during recursion and remove duplicate nested schemas\n
+        Inputs:\n
+            schema model
+            optional field match pairs (generated during output from recursion)
+        Outputs:\n
+            field match pairs = {schema name: {field name: match name}}
         """
         if field_match_pairs is None:
             field_match_pairs = {}

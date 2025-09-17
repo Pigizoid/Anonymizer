@@ -32,10 +32,10 @@ for method in methods:
         for default in defaults:
             for fields in field_sets:
                 for amount in amounts:
-                    input_sets.append((schema_model,input_data,method,manual,0,default,fields,amount))
-@pytest.mark.parametrize("schema_model, data, method, manual, seed, default, fields, amount",input_sets)
-def test_anonymise(schema_model, data, method, manual, seed, default, fields, amount):
+                    input_sets.append((schema_model,input_data,method,manual,default,fields,amount,0))
+@pytest.mark.parametrize("schema_model, data, method, manual, default, fields, amount, seed",input_sets)
+def test_anonymise(schema_model, data, method, manual, default, fields, amount, seed):
     print(fields)
-    return_data = anonymise(schema_model, data, method, manual, seed, default, fields, amount)
+    return_data = anonymise(schema_model, data, method, manual, default, fields, amount, seed=seed)
     assert isinstance(return_data,dict)
     

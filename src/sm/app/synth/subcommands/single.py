@@ -15,12 +15,12 @@ def synth_single_command(
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
     """
-    A subcommand for the synth command
-    Inputs:
+    A subcommand for the synth command\n
+    Inputs:\n
         a method of the methods "mixed","mimesis","faker"
         a filename as str for the output file (.json added by default)
         cout boolean to toggle verbose printing
-    Runs the synthesiser tool in single mode, amount=1 batch=1
+    Runs the synthesiser tool in single mode, amount=1 batch=1\n
     """
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
@@ -33,11 +33,11 @@ def synth_single_command(
 
     synth_func(
         schema_model,
-        seed,
         synth_flags.method,
         synth_flags.amount,
         output_file_path,
         cout=synth_flags.cout,
+        seed=seed,
     )
 
     close_folder(output_file_path)

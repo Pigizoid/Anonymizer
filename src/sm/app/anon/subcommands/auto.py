@@ -18,15 +18,15 @@ def anon_auto_command(
     default: str = "mask",
 ):
     """
-    A subcommand for the anon command
-    Inputs:
+    A subcommand for the anon command\n
+    Inputs:\n
         a path as str to an ingest file
         a method of the methods "mixed","mimesis","faker"
         a filename as str for the output file (.json added by default)
         an amount to generate per data index as an int
         cout boolean to toggle verbose printing
         a default anonymisation method of the methods "mask","synth","perturb"
-    Runs the anonymisation tool in auto mode
+    Runs the anonymisation tool in auto mode\n
     """
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
