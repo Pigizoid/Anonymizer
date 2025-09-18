@@ -1,8 +1,8 @@
 
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Type, Annotated, Union
-import os,sys,pathlib
 if __name__ == "__main__":
+    import os,sys,pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 from sm.anonymiser.handling.data_handling import anonymise_data
 from sm.synthesiser.synthesiser import Synthesiser
