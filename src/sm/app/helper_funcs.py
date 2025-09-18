@@ -111,6 +111,7 @@ def load_schema(schema_path:Path):
         if filtered == []:
             raise Exception(f"No pydantic schema in schema file {schema_path}")
         schema_model = filtered[0][1]  # automatically ordered alphabetically
+
     except:
         return None
     return schema_model
@@ -135,27 +136,58 @@ def load_schema_flag(schema_path:Path):
     {
         'schema.py': <class 'imported_schema_model.Address'>
     }
-
-    {
+    all data: {
         'models': [
-            <class 'imported_schema_model.Address'>,
-            <class 'imported_schema_model.Address'>,
             {
-                'submodels': [
-                    <class 'imported_schema_model.Address'>,
-                    <class 'imported_schema_model.Address'>
+                'schema1': <class 'imported_schema_model.Address'>
+            },
+            {
+                'schema2': <class 'imported_schema_model.Address'>
+            },
+            {
+                'submodels1': [
+                    {
+                        'schema1': <class 'imported_schema_model.Address'>
+                    },
+                    {  
+                        'schema2': <class 'imported_schema_model.Address'>
+                    }
+                ]
+            }, 
+            {
+                'submodels2': [
+                    {
+                        'schema1': <class 'imported_schema_model.Address'>
+                    }, 
+                    {
+                        'schema2': <class 'imported_schema_model.Address'>
+                    }
                 ]
             }
         ]
     }
     '''
 
+def get_unique_folder_name(base_path: Path) -> Path:
+    if not base_path.exists():
+        return base_path
+    parent = base_path.parent
+    stem = base_path.name
+    counter = 1
+    new_path = parent / f"{stem} (copy)"
+    while new_path.exists():
+        counter += 1
+        new_path = parent / f"{stem} (copy {counter})"
+    return new_path
 
 
 def recursive_folder_command_handler(schema_models,command,flags,output_path_name:Path,depth=0):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
+        os.makedirs(output_path_name)
+    elif depth == 0:
+        output_path_name = get_unique_folder_name(output_path_name)
         os.makedirs(output_path_name)
     for file_path,contents in schema_models.items():
         new_path = os.path.join(output_path_name, file_path)
@@ -164,9 +196,9 @@ def recursive_folder_command_handler(schema_models,command,flags,output_path_nam
             for inner_path in contents:
                 recursive_folder_command_handler(inner_path,command,flags,new_path,depth=depth+1)
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents.__name__}| {new_path}")
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             schema_model = contents
-            command(flags,schema_model,new_path)
+            #command(flags,schema_model,new_path)
     return None
     
 
