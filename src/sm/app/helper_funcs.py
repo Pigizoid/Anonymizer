@@ -8,6 +8,8 @@ import time
 import json
 import json_schema_to_pydantic
 from typing import Dict, Any
+from pathlib import Path
+import os
 
 
 def convert_schema_to_JSON(schema_model):
@@ -46,24 +48,8 @@ def make_json_safe(obj):
 
 
 def load_folder(output):
-    import os
-
-    dir_name = "outputs"
-    file_path = f"{dir_name}\\{output}"
-    if not os.path.isdir(dir_name):
-        try:
-            os.mkdir(dir_name)
-            print(f"Directory '{dir_name}' created successfully")
-            with open(f"{file_path}.json", "w") as f:
-                f.write("{")
-        except PermissionError:
-            print(f"Permission denied: Unable to create '{dir_name}'")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-    else:
-        with open(f"{file_path}.json", "w") as f:
-            f.write("{")
-    return file_path
+    with open(f"{output}.json", "w") as f:
+        f.write("{")
 
 
 def close_folder(file_path):
@@ -100,7 +86,7 @@ def send_batch_to_API(schema_model, output, data):
     return response
 
 
-def load_schema(schema_path):
+def load_schema(schema_path:Path):
     """
     Inputs:\n
         string to the schema path\n
@@ -109,36 +95,87 @@ def load_schema(schema_path):
     Outputs:\n
         pydantic schema BaseModel\n
     """
-    if not (schema_path.endswith(".py")):
-        schema_path += ".py"
+    if not (str(schema_path).endswith(".py")):
+        schema_path = Path(str(schema_path)+".py")
+    try:
+        spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
 
-    spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    classes = inspect.getmembers(module, inspect.isclass)
-    filtered = [
-        (name, cls)
-        for name, cls in classes
-        if cls.__module__ == "imported_schema_model"
-    ]
-    if filtered == []:
-        raise Exception(f"No pydantic schema in schema file {schema_path}")
-    schema_model = filtered[0][1]  # automatically ordered alphabetically
-
+        classes = inspect.getmembers(module, inspect.isclass)
+        filtered = [
+            (name, cls)
+            for name, cls in classes
+            if cls.__module__ == "imported_schema_model"
+        ]
+        if filtered == []:
+            raise Exception(f"No pydantic schema in schema file {schema_path}")
+        schema_model = filtered[0][1]  # automatically ordered alphabetically
+    except:
+        return None
     return schema_model
 
 
+def load_schema_flag(schema_path:Path):
+    if schema_path.is_dir():
+        # folder case
+        result = []
+        for item in schema_path.iterdir():
+            return_val = load_schema_flag(item)
+            if not return_val:
+                continue
+            result.append(return_val)
+        return {schema_path.stem: result} if result else None
+    elif schema_path.suffix == ".py":
+        # file case
+        return {schema_path.stem: load_schema(schema_path)}
+    else:
+        return None
+    '''
+    {
+        'schema.py': <class 'imported_schema_model.Address'>
+    }
+
+    {
+        'models': [
+            <class 'imported_schema_model.Address'>,
+            <class 'imported_schema_model.Address'>,
+            {
+                'submodels': [
+                    <class 'imported_schema_model.Address'>,
+                    <class 'imported_schema_model.Address'>
+                ]
+            }
+        ]
+    }
+    '''
+
+
+
+def recursive_folder_command_handler(schema_models,command,flags,output_path_name:Path,depth=0):
+    #1. check if output_path_name directory exists (could be nested)
+    #2. if it doesnt exist, create it (may have to be created within a sub folder)
+    if not os.path.exists(output_path_name):
+        os.makedirs(output_path_name)
+    for file_path,contents in schema_models.items():
+        new_path = os.path.join(output_path_name, file_path)
+        if type(contents) is list:
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            for inner_path in contents:
+                recursive_folder_command_handler(inner_path,command,flags,new_path,depth=depth+1)
+        else:
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents.__name__}| {new_path}")
+            schema_model = contents
+            command(flags,schema_model,new_path)
+    return None
+    
+
 def load_file_path(output):
     if output.startswith("http"):
-        file_path = load_folder("_temp_db_output")
+        load_folder("_temp_db_output")
     else:
         if output is not None:
-            file_path = load_folder(output)
-        else:
-            file_path = None
-
-    return file_path
+            load_folder(output)
 
 
 def return_flags(ctx, config_schema:BaseModel)->Dict[str,Any]:

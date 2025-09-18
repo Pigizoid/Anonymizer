@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 import typing
+from pathlib import Path
 
 
 class SynthesiserConfig(BaseModel):
@@ -25,7 +26,7 @@ class AnonymiserConfig(BaseModel):
 
 
 class Settings(BaseSettings):
-    schema_path: typing.Optional[str]
+    schema_path: typing.Optional[Path]
     seed: typing.Union[int, str, bool, None] = False
     synth: typing.Optional[SynthesiserConfig]
     anon: typing.Optional[AnonymiserConfig]

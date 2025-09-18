@@ -1,8 +1,9 @@
 import typer
 from typing import Annotated, Optional
 from sm.app.synth.funcs import synth_func
-from sm.app.helper_funcs import return_flags, load_schema, load_file_path, close_folder
+from sm.app.helper_funcs import return_flags, load_schema_flag, load_file_path, close_folder
 from sm.app.models import SynthesiserConfig
+from pathlib import Path
 
 synth_single_subcommand = typer.Typer()
 
@@ -26,7 +27,7 @@ def synth_single_command(
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
-    schema_model = load_schema(flags.schema_path)
+    schema_model = load_schema_flag(Path(flags.schema_path))[0]
     seed = flags.seed
     synth_flags = flags.synth
     output_file_path = load_file_path(synth_flags.output)
