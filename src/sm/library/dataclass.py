@@ -8,25 +8,27 @@ from sm.anonymiser.handling.data_handling import anonymise_data
 from sm.synthesiser.synthesiser import Synthesiser
 from sm.tools.model_funcs import get_model_fields
 from pydantic import BaseModel, Field
+from pydantic.fields import FieldInfo
+
 
 '''
 functionality:
     amount = 10
     data = dict(
-        foo=AnonField("hello",amount,"masked"),
-        bar=AnonField(10,amount,"perturb"),
-        zar=AnonField(True,amount,"mask"),
-        lar=SynthField("name",amount,"faker",Field(pattern=r'[a-z]*')),
-        nest=AnonField({"field1":"bob",...},amount,"masked")
+        foo=AnonField("foo",amount,"mask","hello"),
+        bar=AnonField("bar",amount,"perturb",10),
+        zar=AnonField("zar",amount,"mask",True),
+        lar=SynthField("name",amount,"faker",fields["name"]),
+        nest=AnonField("nest",amount,"mask",{"field1":"bob"})
     )
 
-    data.foo.type -> str
-    data.foo.vals -> ["hrllo","ello","ghidi","*****",...]
-    data.foo.method -> "anon \\ masked"
+    data['foo'].type -> str
+    data['foo'].vals -> ["hrllo","ello","ghidi","*****",...]
+    data['foo'].method -> "mask"
 
-    data.lar.type -> str
-    data.lar.vals -> ["john","larry","penny",...]
-    data.foo.method -> "synth \\ faker"
+    data['lar'].type -> str
+    data['lar'].vals -> ["john","larry","penny",...]
+    data['lar'].method -> "faker"
 '''
 
 
@@ -50,13 +52,14 @@ class AnonField(SMField):
 
     def __post_init__(self):
         self.type = type(self.value)
-
+        if self.method == "synth":
+            raise ValueError("Method 'synth' is not available for AnonField, use SynthField instead")
         self.vals = [anonymise_data(self.value,(self.field_name,self.method)) for _ in range(self.amount)]
         
 
 @dataclass
 class SynthField(SMField):
-    field_info : Field
+    field_info : FieldInfo
 
     def __post_init__(self):
         self.synth = Synthesiser(method=self.method)
@@ -65,7 +68,7 @@ class SynthField(SMField):
         self.type = self.applied_constraints["annotation"]
 
         self.vals = [self.synth.generate_synth_data(self.field_name, self.match_name, self.applied_constraints, f"{self.field_name}(?)[{self.amount}]") for _ in range(self.amount)]
-        #self.vals = [self.synth.generate_single_value(self.field_name,self.value) for _ in range(self.amount)]
+        #self.vals = [self.synth.generate_single_value(self.field_name,self.type) for _ in range(self.amount)]
 
 
 class User(BaseModel):
@@ -74,33 +77,28 @@ class User(BaseModel):
     age: int = Field(ge=10,le=100)
 
 
+if __name__ == "__main__":
+    fields = get_model_fields(User)
+    amount = 10
+    #usage 1
+    data = dict(
+        foo=AnonField("foo",amount,"mask","hello"),
+        bar=AnonField("bar",amount,"perturb",10),
+        zar=AnonField("zar",amount,"mask",True),
+        lar=SynthField("name",amount,"faker",fields["name"]),
+        nest=AnonField("nest",amount,"mask",{"field1":"bob"})
+    )
+    for z in range(amount):
+        print(dict({x:data[x].vals[z] for x in data.keys()}))
 
-fields = get_model_fields(User)
-amount = 10
-#usage 1
-data = dict(
-    foo=AnonField("foo",amount,"mask","hello"),
-    bar=AnonField("bar",amount,"perturb",10),
-    zar=AnonField("zar",amount,"mask",True),
-    lar=SynthField("name",amount,"faker",fields["name"]),
-    nest=AnonField("nest",amount,"mask",{"field1":"bob"})
-)
-print(data.items())
-for z in range(amount):
-    print(dict({x:data[x].vals[z] for x in data.keys()}))
+    #usage 2
+    data = {
+        field_name : SynthField(field_name,amount,"faker",field_data) 
+        for field_name,field_data in fields.items()
+        }
 
-#usage 2
-data = {
-    field_name : SynthField(field_name,amount,"faker",field_data) 
-    for field_name,field_data in fields.items()
-    }
-
-print(data.items())
-for z in range(amount):
-    print(dict({x:data[x].vals[z] for x in data.keys()}))
-
-
-
+    for z in range(amount):
+        print(dict({x:data[x].vals[z] for x in data.keys()}))
 
 
 
