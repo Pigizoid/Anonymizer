@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass, field
-from typing import Any, List, Dict, Type, Annotated
+from typing import Any, List, Dict, Type, Annotated, Union
 import os,sys,pathlib
 if __name__ == "__main__":
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
@@ -34,7 +34,6 @@ functionality:
 @dataclass
 class SMField:
     field_name: str
-    value: Any
     amount: int
     method: str
     type: Type = field(init=False)
@@ -43,53 +42,59 @@ class SMField:
     def __post_init__(self):
         self.type = type(self.value)
 
-    def generate(self):
-        raise Exception("SMField generation not to be called directly, use AnonField or SynthField")
-
 
 
 @dataclass
 class AnonField(SMField):
+    value: Any
+
     def __post_init__(self):
         self.type = type(self.value)
-        self.generate()
-    
-    def generate(self):
+
         self.vals = [anonymise_data(self.value,(self.field_name,self.method)) for _ in range(self.amount)]
         
 
 @dataclass
 class SynthField(SMField):
-    field_info: Field
+    field_info : Field
 
     def __post_init__(self):
         self.synth = Synthesiser(method=self.method)
-        self.type = self.value
-        self.generate()
-
-    def generate(self):
         self.match_name = self.synth.match_fields([self.field_name])[self.field_name]
         self.applied_constraints = self.synth.check_generation_constraints(self.field_name,self.field_info)
+        self.type = self.applied_constraints["annotation"]
+
         self.vals = [self.synth.generate_synth_data(self.field_name, self.match_name, self.applied_constraints, f"{self.field_name}(?)[{self.amount}]") for _ in range(self.amount)]
         #self.vals = [self.synth.generate_single_value(self.field_name,self.value) for _ in range(self.amount)]
 
 
 class User(BaseModel):
-    name: str = Field(pattern=r'[a-z]{1,1}')
+    name: str = Field(pattern=r'[A-Z]{1,1}[a-z]{1,10}')
     email: str
-    age: int
+    age: int = Field(ge=10,le=100)
 
 
 
 fields = get_model_fields(User)
 amount = 10
+#usage 1
 data = dict(
-    foo=AnonField("foo","hello",amount,"mask"),
-    bar=AnonField("bar",10,amount,"perturb"),
-    zar=AnonField("zar",True,amount,"mask"),
-    lar=SynthField("name",str,amount,"faker",fields["name"]),
-    nest=AnonField("nest",{"field1":"bob"},amount,"mask")
+    foo=AnonField("foo",amount,"mask","hello"),
+    bar=AnonField("bar",amount,"perturb",10),
+    zar=AnonField("zar",amount,"mask",True),
+    lar=SynthField("name",amount,"faker",fields["name"]),
+    nest=AnonField("nest",amount,"mask",{"field1":"bob"})
 )
+print(data.items())
+for z in range(amount):
+    print(dict({x:data[x].vals[z] for x in data.keys()}))
+
+#usage 2
+data = {
+    field_name : SynthField(field_name,amount,"faker",field_data) 
+    for field_name,field_data in fields.items()
+    }
+
 print(data.items())
 for z in range(amount):
     print(dict({x:data[x].vals[z] for x in data.keys()}))
