@@ -160,7 +160,7 @@ class constraint_based_generator_class:
                 # print(self.make_one_string(pattern))
                 PERFORMANCE = True  # risky but faster
                 try:
-                    if max(1, pooling_count) > 10000 and PERFORMANCE:
+                    if (max(1, pooling_count) > 10000 and PERFORMANCE) or ('(?' in pattern):
                         src = regex_builder.compile_regex_to_function_source(pattern)
                         safe_builtins = {
                             "len": len, "range": range, "min": min, "max": max,
