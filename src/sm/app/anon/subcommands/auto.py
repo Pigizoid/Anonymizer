@@ -1,11 +1,35 @@
 import typer
 from typing import Annotated, Optional
 from sm.app.anon.funcs import anon_func
-from sm.app.helper_funcs import  return_flags, load_schema_flag, load_file_path, close_folder
+from sm.app.helper_funcs import  return_flags, load_schema_flag, load_file_path, close_folder, recursive_folder_command_handler
 from sm.app.models import AnonymiserConfig
 from pathlib import Path
 
 anon_auto_subcommand = typer.Typer()
+
+def anon_auto_func(flags,schema_model,output_file_path):
+    seed = flags.seed
+    anon_flags = flags.anon
+    load_file_path(anon_flags.output)
+
+    if anon_flags.ingest is None:
+        raise Exception("Config 'ingest' required")
+
+    anon_func(
+        schema_model,
+        seed,
+        anon_flags.method,
+        anon_flags.amount,
+        anon_flags.start,
+        anon_flags.ingest,
+        anon_flags.cout,
+        anon_flags.manual,
+        anon_flags.default,
+        anon_flags.fields,
+        output_file_path,
+    )
+
+    close_folder(output_file_path)
 
 
 @anon_auto_subcommand.command(name="auto")
@@ -35,26 +59,6 @@ def anon_auto_command(
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
-    schema_model = load_schema_flag(Path(flags.schema_path))[0]
-    seed = flags.seed
-    anon_flags = flags.anon
-    output_file_path = load_file_path(anon_flags.output)
-
-    if anon_flags.ingest is None:
-        raise Exception("Config 'ingest' required")
-
-    anon_func(
-        schema_model,
-        seed,
-        anon_flags.method,
-        anon_flags.amount,
-        anon_flags.start,
-        anon_flags.ingest,
-        anon_flags.cout,
-        anon_flags.manual,
-        anon_flags.default,
-        anon_flags.fields,
-        output_file_path,
-    )
-
-    close_folder(output_file_path)
+    schema_models = load_schema_flag(Path(flags.schema_path))
+    output_path_name = Path("outputs\\"+flags.anon.output)
+    recursive_folder_command_handler(schema_models,anon_auto_func,flags,output_path_name)

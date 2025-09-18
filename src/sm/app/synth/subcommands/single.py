@@ -1,12 +1,28 @@
 import typer
 from typing import Annotated, Optional
 from sm.app.synth.funcs import synth_func
-from sm.app.helper_funcs import return_flags, load_schema_flag, load_file_path, close_folder
+from sm.app.helper_funcs import return_flags, load_schema_flag, load_file_path, close_folder, recursive_folder_command_handler
 from sm.app.models import SynthesiserConfig
 from pathlib import Path
 
 synth_single_subcommand = typer.Typer()
 
+
+def synth_single_func(flags,schema_model,output_file_path):
+    seed = flags.seed
+    synth_flags = flags.synth
+    load_file_path(output_file_path)
+
+    synth_func(
+        schema_model,
+        synth_flags.method,
+        synth_flags.amount,
+        output_file_path,
+        cout=synth_flags.cout,
+        seed=seed,
+    )
+
+    close_folder(output_file_path)
 
 @synth_single_subcommand.command(name="single")
 def synth_single_command(
@@ -27,18 +43,6 @@ def synth_single_command(
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
-    schema_model = load_schema_flag(Path(flags.schema_path))[0]
-    seed = flags.seed
-    synth_flags = flags.synth
-    output_file_path = load_file_path(synth_flags.output)
-
-    synth_func(
-        schema_model,
-        synth_flags.method,
-        synth_flags.amount,
-        output_file_path,
-        cout=synth_flags.cout,
-        seed=seed,
-    )
-
-    close_folder(output_file_path)
+    schema_models = load_schema_flag(Path(flags.schema_path))
+    output_path_name = Path("outputs\\"+flags.synth.output)
+    recursive_folder_command_handler(schema_models,synth_single_func,flags,output_path_name)
