@@ -6,9 +6,8 @@ if __name__ == "__main__":
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 from sm.anonymiser.handling.data_handling import anonymise_data
 from sm.synthesiser.synthesiser import Synthesiser
-    
-
-from pydantic import Field
+from sm.tools.model_funcs import get_model_fields
+from pydantic import BaseModel, Field
 
 '''
 functionality:
@@ -61,23 +60,34 @@ class AnonField(SMField):
 
 @dataclass
 class SynthField(SMField):
+    field_info: Field
+
     def __post_init__(self):
         self.synth = Synthesiser(method=self.method)
         self.type = self.value
         self.generate()
 
     def generate(self):
-        self.vals = [self.synth.generate_single_value(self.field_name,self.value) for _ in range(self.amount)]
-        
+        self.match_name = self.synth.match_fields([self.field_name])[self.field_name]
+        self.applied_constraints = self.synth.check_generation_constraints(self.field_name,self.field_info)
+        self.vals = [self.synth.generate_synth_data(self.field_name, self.match_name, self.applied_constraints, f"{self.field_name}(?)[{self.amount}]") for _ in range(self.amount)]
+        #self.vals = [self.synth.generate_single_value(self.field_name,self.value) for _ in range(self.amount)]
+
+
+class User(BaseModel):
+    name: str = Field(pattern=r'[a-z]{1,1}')
+    email: str
+    age: int
 
 
 
+fields = get_model_fields(User)
 amount = 10
 data = dict(
     foo=AnonField("foo","hello",amount,"mask"),
     bar=AnonField("bar",10,amount,"perturb"),
     zar=AnonField("zar",True,amount,"mask"),
-    lar=SynthField("name",str,amount,"faker"),
+    lar=SynthField("name",str,amount,"faker",fields["name"]),
     nest=AnonField("nest",{"field1":"bob"},amount,"mask")
 )
 print(data.items())
