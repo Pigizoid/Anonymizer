@@ -198,7 +198,7 @@ def recursive_folder_command_handler(schema_models,command,flags,output_path_nam
         else:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             schema_model = contents
-            #command(flags,schema_model,new_path)
+            command(flags,schema_model,new_path)
     return None
     
 
