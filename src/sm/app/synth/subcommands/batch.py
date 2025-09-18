@@ -74,10 +74,5 @@ def synth_batch_command(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_models = load_schema_flag(Path(flags.schema_path))
-    #print(schema_models)
-    input("paused ...")
     output_path_name = Path("outputs\\"+flags.synth.output)
-
-    print(output_path_name)
     recursive_folder_command_handler(schema_models,synth_batch_func,flags,output_path_name)
-    #synth_batch_func(flags,schema_model)
