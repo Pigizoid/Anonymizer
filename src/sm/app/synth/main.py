@@ -1,7 +1,6 @@
 import typer
-
-from .subcommands.batch import synth_batch_subcommand
-from .subcommands.single import synth_single_subcommand
+from sm.app.synth.subcommands.batch import synth_batch_subcommand
+from sm.app.synth.subcommands.single import synth_single_subcommand
 
 synth_app = typer.Typer()
 

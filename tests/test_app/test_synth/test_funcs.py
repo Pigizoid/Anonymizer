@@ -9,11 +9,11 @@ seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest = "data.json"
+ingest = "tests\\data.json"
 cout = False
 
-test_dir = pathlib.Path(__file__).resolve().parent.parent.parent
-output = "outputs\\test_synth_out"
+#CWD is Smoke-and-Mirrors
+output = "tests\\outputs\\test_synth_out"
 
 field_tests = [
     {"name": "default"},
@@ -28,22 +28,18 @@ test_list = []
 for amount in amounts:
     for method in methods:
         test_list.append(
-            (schema_model, seed, method, amount, output, start_index, cout)
+            (schema_model, method, amount, output, cout, start_index, seed)
         )
 
 
 @pytest.mark.parametrize(
-    "schema_model, seed, method, amount, output, start_index, cout", test_list
+    "schema_model, method, amount, output, cout, start_index, seed", test_list
 )
-def test_synth_func(schema_model, seed, method, amount, output, start_index, cout):
-    print("test_dir", test_dir)
-    os.chdir(
-        test_dir
-    )  # pytest alters cwd during runtime based on relative imports for some reason
+def test_synth_func(schema_model, method, amount, output, cout, start_index, seed):
     print("CWD:", os.getcwd())
     print("Looking for:", os.path.abspath(f"{output}.json"))
     with open(f"{output}.json", "w") as f:  # clear output
         f.write("")
-    synth_func(schema_model, seed, method, amount, output, start_index, cout)
+    synth_func(schema_model, method, amount, output, cout=cout, start_index=start_index, seed=seed)
     with open(f"{output}.json", "r") as f:
         assert len(f.readlines()) != 0

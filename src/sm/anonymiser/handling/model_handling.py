@@ -1,14 +1,17 @@
 from pydantic import BaseModel, create_model
-
-from ...tools.model_funcs import get_model_fields
-
-import ast
+from sm.tools.model_funcs import get_model_fields
+from typing import List, Any, Dict
 
 
-def subset_model(schema_model, field_names) -> BaseModel:
-    """Inputs a pydantic schema model and a list of field names
-    Ouputs a newly created model with the name "new_schema_model"
-    containing only the fields in the list of field names"""
+def subset_model(schema_model:BaseModel, field_names:List[str]) -> BaseModel:
+    """
+    Inputs:\n
+        schema model
+        list of field names
+    Outputs:\n
+        schema model with name "new_schema_model" that contanins only field names in the list of field names
+        inferences output data types from the input schema
+    """
     fields = {
         name: (field.annotation, field.default)
         for name, field in get_model_fields(schema_model).items()
@@ -17,30 +20,17 @@ def subset_model(schema_model, field_names) -> BaseModel:
     return create_model("new_schema_model", **fields)
 
 
-def guess_type(value) -> type:
-    """Inputs a value and determines its type and outputs the type"""
-    for caster in (bool, int, float, complex, bytes, tuple, list, set, dict):
-        if isinstance(value, caster):
-            return caster
-    if value == "true":
-        return True
-    elif value == "false":
-        return False
-    elif value == "null" or value is None:
-        return None
-    try:
-        return type(ast.literal_eval(value))
-    except:
-        return str
-
-
-def new_model(data, field_names) -> BaseModel:
-    """Inputs a dict of data and a list of field_names
-    Ouputs a newly created schema with the name "new_schema_model"
-    containing the fields in the data that match the field names
-    and each field has its data type automatically added"""
+def new_model(data:Dict[str,Any], field_names:List[str]) -> BaseModel:
+    """
+    Inputs:\n
+        dict of data = {field_name:content}
+        list of field names
+    Outputs:\n
+        schema model with name "new_schema_model" that contanins only field names in the list of field names
+        inferences output data types from the input data
+    """
     fields = {
-        name: (guess_type(content))
+        name: (type(content))
         for name, content in data.items()
         if name in field_names
     }

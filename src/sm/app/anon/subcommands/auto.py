@@ -1,43 +1,16 @@
 import typer
 from typing import Annotated, Optional
-from ..funcs import anon_func
-from ...helper_funcs import return_flags, load_schema, load_file_path, close_folder
-from ...models import AnonymiserConfig
+from sm.app.anon.funcs import anon_func
+from sm.app.helper_funcs import  return_flags, load_schema_flag, load_file_path, close_folder, recursive_folder_command_handler
+from sm.app.models import AnonymiserConfig
+from pathlib import Path
 
 anon_auto_subcommand = typer.Typer()
 
-
-@anon_auto_subcommand.command(name="auto")
-def anon_auto_command(
-    ctx: typer.Context,  # contains ctx.config
-    ingest: str = None,
-    method: str = None,
-    output: str = None,
-    amount: int = None,
-    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
-    default: str = "mask",
-):
-    """
-    A subcommand for the anon command
-    Inputs:
-        a path as str to an ingest file
-        a method of the methods "mixed","mimesis","faker"
-        a filename as str for the output file (.json added by default)
-        an amount to generate per data index as an int
-        cout boolean to toggle verbose printing
-        a default anonymisation method of the methods "mask","synth","perturb"
-    Runs the anonymisation tool in auto mode
-    """
-    if default not in ["mask", "synth", "perturb"]:
-        raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
-    ctx.params["start"] = 0
-    ctx.params["fields"] = {}
-    flags = return_flags(ctx, AnonymiserConfig)
-    print(f"Args: {flags}")
-    schema_model = load_schema(flags.schema_path)
+def anon_auto_func(flags,schema_model,output_file_path):
     seed = flags.seed
     anon_flags = flags.anon
-    output_file_path = load_file_path(anon_flags.output)
+    load_file_path(anon_flags.output)
 
     if anon_flags.ingest is None:
         raise Exception("Config 'ingest' required")
@@ -57,3 +30,35 @@ def anon_auto_command(
     )
 
     close_folder(output_file_path)
+
+
+@anon_auto_subcommand.command(name="auto")
+def anon_auto_command(
+    ctx: typer.Context,  # contains ctx.config
+    ingest: str = None,
+    method: str = None,
+    output: str = None,
+    amount: int = None,
+    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    default: str = "mask",
+):
+    """
+    A subcommand for the anon command\n
+    Inputs:\n
+        a path as str to an ingest file
+        a method of the methods "mixed","mimesis","faker"
+        a filename as str for the output file (.json added by default)
+        an amount to generate per data index as an int
+        cout boolean to toggle verbose printing
+        a default anonymisation method of the methods "mask","synth","perturb"
+    Runs the anonymisation tool in auto mode\n
+    """
+    if default not in ["mask", "synth", "perturb"]:
+        raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
+    ctx.params["start"] = 0
+    ctx.params["fields"] = {}
+    flags = return_flags(ctx, AnonymiserConfig)
+    print(f"Args: {flags}")
+    schema_models = load_schema_flag(Path(flags.schema_path))
+    output_path_name = Path("outputs\\"+flags.anon.output)
+    recursive_folder_command_handler(schema_models,anon_auto_func,flags,output_path_name)

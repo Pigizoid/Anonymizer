@@ -9,6 +9,7 @@ from typing import (
     Literal,
     Any,
     Annotated,
+    Type,
     get_args,
     get_origin,
 )
@@ -16,9 +17,8 @@ import random
 import re
 import time
 import inspect
-from ..misc import print_path
-
-from ...pre_made_data import (
+from sm.synthesiser.misc import print_path
+from sm.pre_made_data import (
     all_constr_attribs,
     default_constr_dict,
     recursive_types,
@@ -27,24 +27,24 @@ from ...pre_made_data import (
 
 
 """
-Generation path:
+Generation path:\n
     format of  'Schema_name(field_name)[amount/length]'
     format of  'n(f)[a].Type(index)[amount/length]'
     e.g.
-    1.
+    1:\n
         class User():
             address: (_,_,_)
         User(address)[1].Tuple(0)[1]
         -> would be generating a data pool for
         class User():
             address: (X,_,_)
-    2.
+    2:\n
         class Address():
             street : str
         class User():
             nested : Address
         User(nested)[100].Address(street)[1]
-    3.
+    3:\n
         class User():
             address: List[str,int]
         User(address)[1].List(0)[10]
@@ -58,28 +58,31 @@ Generation path:
 
 
 class synth_based_generator_class:
-    def make_new_contraints(self, applied_constraints):
+    def make_new_contraints(self, applied_constraints:Dict[str,Any]) -> Dict[str,Any]:
         """
-        Inputs a set of applied constraints and updates with defaults
-        fast method for code reusage
+        Inputs:\n
+            applied constraints
+        Outputs:\n
+            copy of defaults, updated with input constraints
+        fast method for code reusage\n
         """
         new_applied_constraints = default_constr_dict.copy()
         new_applied_constraints.update(applied_constraints)
         return new_applied_constraints
 
     def generate_synth_data(
-        self, field_name, match_name, applied_constraints, generate_path
-    ) -> Any:  # value or collection
+        self, field_name:str, match_name:str, applied_constraints:Dict[str,Any], generate_path:str
+    ) -> Any:
         """
-        Inputs:
+        Inputs:\n
             field name
             match name
             constraints
             generate path
-
-        Recursive function that crawls through the constraints structure
-        Handles collection types and model recursion
-        Returns a python structure of the constraints format with fully generated data
+        Recursive function that crawls through the constraints structure\n
+        Handles collection types and model recursion\n
+        Outputs:\n
+            python structure of the constraints format with fully generated data
         """
         # print("__")
         # print(f"	Generating for: {field_name}")
@@ -370,10 +373,13 @@ class synth_based_generator_class:
         # apply constraints of output after data is provided
         return output_data
 
-    def generate_single_value(self, field_name, field_type):
+    def generate_single_value(self, field_name:str, field_type:Type) -> Any:
         """
-        Inputs field_name and field_type and outputs a single generated value
-        by calling internal functions
+        Inputs:\n
+            field_name
+            field_type
+        Outputs:\n
+            single generated value
         """
         matched_field = self.match_fields([field_name])
         if matched_field[field_name] != "":
