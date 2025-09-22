@@ -189,7 +189,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:BaseModel, data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random"
+    schema_model:Union[BaseModel,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random"
 ) -> Dict[str, List[BaseModel]]:
     """
     Inputs:\n
@@ -211,16 +211,17 @@ def anonymise(
             }
     """
     anonymised_data = {}
-
-    print(fields.values())
-    print(f"Seed: {seed}")
-    print(default)
+    
+    print(f"fields: {fields.values()} |Seed: {seed} |Default: {default}")
 
     for index, data_entry in data.items():
         schema_match = True
-        try:
-            schema_model(**data_entry)
-        except:
+        if schema_model is not None:
+            try:
+                schema_model(**data_entry)
+            except:
+                schema_match = False
+        else:
             schema_match = False
         if manual:
             field_names = fields.keys()

@@ -1,7 +1,16 @@
 import typer
 from typing import Annotated, Optional
 from sm.app.anon.funcs import anon_func
-from sm.app.helper_funcs import  return_flags, load_schema_flag, load_file_path, close_folder,recursive_folder_command_handler
+from sm.app.helper_funcs import  (
+    return_flags, 
+    load_recursed_flag, 
+    load_schema, 
+    load_ingest, 
+    load_file_path, 
+    close_folder, 
+    recursive_ingest_json_handler, 
+    flatten_loaded_schemas
+)
 from sm.app.models import AnonymiserConfig
 from pathlib import Path
 
@@ -9,7 +18,7 @@ import json
 
 anon_manual_subcommand = typer.Typer()
 
-def anon_manual_func(flags,schema_model,output_file_path):
+def anon_manual_func(flags,schema_model,output_file_path,ingest):
     seed = flags.seed
     anon_flags = flags.anon
     load_file_path(anon_flags.output)
@@ -23,7 +32,7 @@ def anon_manual_func(flags,schema_model,output_file_path):
         anon_flags.method,
         anon_flags.amount,
         anon_flags.start,
-        anon_flags.ingest,
+        ingest,
         anon_flags.cout,
         True,  # manual
         anon_flags.default,
@@ -72,6 +81,8 @@ def anon_manual_command(
 
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
-    schema_models = load_schema_flag(Path(flags.schema_path))
+    schema_models = load_recursed_flag(Path(flags.schema_path),".py",load_schema)
+    schema_models = flatten_loaded_schemas(schema_models)
+    ingests = load_recursed_flag(Path(ingest),".json",load_ingest)
     output_path_name = Path("outputs\\"+flags.anon.output)
-    recursive_folder_command_handler(schema_models,anon_manual_func,flags,output_path_name)
+    recursive_ingest_json_handler(ingests,anon_manual_func,flags,output_path_name,schema_models)

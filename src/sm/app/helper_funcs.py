@@ -7,7 +7,7 @@ import requests
 import time
 import json
 import json_schema_to_pydantic
-from typing import Dict, Any
+from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
 
@@ -85,7 +85,7 @@ def send_batch_to_API(schema_model, output, data):
     print(f"Response: {response} | Time taken: {elapsed_time:.2f} seconds")
     return response
 
-
+# ----- recursive file loading -----
 def load_schema(schema_path:Path):
     """
     Inputs:\n
@@ -115,20 +115,22 @@ def load_schema(schema_path:Path):
         return None
     return schema_models
 
+def load_ingest(ingest_path:Path):
+    return ingest_path
 
-def load_schema_flag(schema_path:Path):
-    if schema_path.is_dir():
+def load_recursed_flag(recursed_path:Path, file_type:str, loading_func):
+    if recursed_path.is_dir():
         # folder case
         result = []
-        for item in schema_path.iterdir():
-            return_val = load_schema_flag(item)
+        for item in recursed_path.iterdir():
+            return_val = load_recursed_flag(item,file_type,loading_func)
             if not return_val:
                 continue
             result.append(return_val)
-        return {schema_path.stem: result} if result else None
-    elif schema_path.suffix == ".py":
+        return {recursed_path.stem: result} if result else None
+    elif recursed_path.suffix == file_type:
         # file case
-        return {schema_path.stem: load_schema(schema_path)}
+        return {recursed_path.stem: loading_func(recursed_path)}
     else:
         return None
     '''
@@ -167,6 +169,94 @@ def load_schema_flag(schema_path:Path):
     }
     '''
 
+def flatten_loaded_helper(returned_values:Union[list,None],result:list):
+    if returned_values is not None:
+        result_names = [r.__name__ for r in result]
+        for returned_value in returned_values:
+            if returned_value.__name__ not in result_names:
+                result.append(returned_value)
+    return result
+
+def flatten_loaded_schemas(schema_models: Union[Dict,List,BaseModel]) -> List[BaseModel]:
+    result = []
+    if isinstance(schema_models, dict):
+        for value in schema_models.values():
+            returned_values = flatten_loaded_schemas(value)
+            result = flatten_loaded_helper(returned_values,result)
+    elif isinstance(schema_models, list):
+        for item in schema_models:
+            returned_values = flatten_loaded_schemas(item)
+            result = flatten_loaded_helper(returned_values,result)
+    else:
+        result_names = [r.__name__ for r in result]
+        if schema_models.__name__ not in result_names:
+            result.append(schema_models)
+
+    return result
+# ----- recursive file loading -----
+
+
+# ----- ingest handling -----
+def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
+    """
+    Inputs:\n
+        ingest string and loads the data from file or http
+    Uses start_index to offset where to begin loading data (json file start index unimplemented)\n
+    Outputs:\n
+        file data Dict[str,Any]
+    """
+    if str(ingest).startswith("http"):
+        data = {start_index, requests.get(ingest, params={"id_num": start_index})}
+    elif str(ingest).endswith(".json"):
+        with open(ingest) as dt_file:
+            try:
+                data = json.load(dt_file)
+
+                if isinstance(data, list):
+                    if not all([isinstance(content, dict) for content in data]):
+                        raise Exception(
+                            "Data is type of list, expected list entries as type dict"
+                        )
+                    data = {x: content for x, content in enumerate(data)}
+                elif isinstance(data, dict):
+                    try:
+                        data = {int(key): content for key, content in data.items()}
+                    except:
+                        raise Exception(
+                            "Data is type of dict, expected data to be indexed by int"
+                        )
+
+            except Exception as e:
+                data = {}
+                raise Exception(f"Error loading ingest data: {e}")
+
+    else:
+        raise Exception("Unsupported ingest type")
+    return data
+
+def find_matching_schema(schema_models,ingest,ingest_path):
+    matched_schemas = []
+    first_entry = True
+    for key,data_entry in ingest.items():
+        for schema_model in schema_models:
+            try:
+                schema_model(**data_entry)
+                if first_entry == True:
+                    matched_schemas.append(schema_model)
+                elif schema_model not in matched_schemas:
+                    raise Exception(f"Data entry '{key}' in path '{ingest_path}' has mismatched schema validation")
+            except:
+                continue
+        if first_entry == True:
+            first_entry = False
+    if len(matched_schemas) == 0:
+        print(f"Data entry '{key}' in path '{ingest_path}' has no matched schema")
+        return schema_models[0]
+    return matched_schemas[0] #(return first matched schema)
+# ----- ingest handling -----
+
+
+# ----- recursive handling -----
 def get_unique_folder_name(base_path: Path) -> Path:
     if not base_path.exists():
         return base_path
@@ -179,8 +269,7 @@ def get_unique_folder_name(base_path: Path) -> Path:
         new_path = parent / f"{stem} (copy {counter})"
     return new_path
 
-
-def recursive_folder_command_handler(schema_models,command,flags,output_path_name:Path,depth=0):
+def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
@@ -193,13 +282,34 @@ def recursive_folder_command_handler(schema_models,command,flags,output_path_nam
         if type(contents) is list:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
             for inner_path in contents:
-                recursive_folder_command_handler(inner_path,command,flags,new_path,depth=depth+1)
+                recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1)
         else:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             schema_model = contents
             command(flags,schema_model,new_path)
     return None
 
+def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0):
+    #1. check if output_path_name directory exists (could be nested)
+    #2. if it doesnt exist, create it (may have to be created within a sub folder)
+    if not os.path.exists(output_path_name):
+        os.makedirs(output_path_name)
+    elif depth == 0:
+        output_path_name = get_unique_folder_name(output_path_name)
+        os.makedirs(output_path_name)
+    for file_path,contents in ingests.items():
+        new_path = os.path.join(output_path_name, file_path)
+        if type(contents) is list:
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            for inner_path in contents:
+                recursive_ingest_json_handler(inner_path,command,flags,new_path,schema_models,depth=depth+1)
+        else:
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
+            ingest = load_ingest_data(contents)
+            schema_model = find_matching_schema(schema_models,ingest,file_path)
+            command(flags,schema_model,new_path,ingest)
+    return None
+# ----- recursive handling -----
 
 def load_file_path(output):
     if output.startswith("http"):
@@ -231,41 +341,3 @@ def return_flags(ctx, config_schema:BaseModel)->Dict[str,Any]:
     else:
         raise Exception(f"Input config schema '{config_schema.__name__}', not in ['SynthesiserConfig','AnonymiserConfig']")
     return flags
-
-
-def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
-    """
-    Inputs:\n
-        ingest string and loads the data from file or http
-    Uses start_index to offset where to begin loading data (json file start index unimplemented)\n
-    Outputs:\n
-        file data Dict[str,Any]
-    """
-    if ingest.startswith("http"):
-        data = {start_index, requests.get(ingest, params={"id_num": start_index})}
-    elif ingest.endswith(".json"):
-        with open(ingest) as dt_file:
-            try:
-                data = json.load(dt_file)
-
-                if isinstance(data, list):
-                    if not all([isinstance(content, dict) for content in data]):
-                        raise Exception(
-                            "Data is type, list, expected list entries as type dict"
-                        )
-                    data = {x: content for x, content in enumerate(data)}
-                elif isinstance(data, dict):
-                    try:
-                        data = {int(key): content for key, content in data.items()}
-                    except:
-                        raise Exception(
-                            "Data is type, dict, expected data to be indexed by int"
-                        )
-
-            except Exception as e:
-                data = {}
-                raise Exception(f"Error loading ingest data: {e}")
-
-    else:
-        raise Exception("Unsupported ingest type")
-    return data
