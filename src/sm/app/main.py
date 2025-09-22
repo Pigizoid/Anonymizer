@@ -151,7 +151,7 @@ def main(
         False
     ),
 ):
-    print("input value:",config)
+    print("config file:",config)
     """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
     examples:
