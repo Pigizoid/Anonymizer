@@ -9,15 +9,14 @@ seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest = "data.json"
+ingest = "tests\\data.json"
 cout = False
 manuals = [True, False]
 defaults = ["mask", "perturb", "synth"]
 field_defaults = ["default", "mask", "perturb", "synth"]
 fields_list = ["name", "age", "email"]
 
-test_dir = pathlib.Path(__file__).resolve().parent.parent.parent
-output = "outputs\\test_anon_out"
+output = "tests\\outputs\\test_synth_out"
 
 field_tests = [
     {"name": "default"},
@@ -68,10 +67,6 @@ def test_anon_func(
     fields,
     output,
 ):
-    print("test_dir", test_dir)
-    os.chdir(
-        test_dir
-    )  # pytest alters cwd during runtime based on relative imports for some reason
     print("CWD:", os.getcwd())
     print("Looking for:", os.path.abspath(f"{output}.json"))
     with open(f"{output}.json", "w") as f:  # clear output

@@ -15,10 +15,6 @@ Anonymizer
 |  |  \
 |  |  |anonymiser
 |  |  |  \
-|  |  |  |anon_methods
-|  |  |  |  \
-|  |  |  |  |methods.py
-|  |  |  |
 |  |  |  |handling
 |  |  |  |  \
 |  |  |  |  |data_handling.py
@@ -40,7 +36,6 @@ Anonymizer
 |  |  |  |
 |  |  |  |initialiser
 |  |  |  |  \
-|  |  |  |  |class_init.py
 |  |  |  |  |get_constraints.py
 |  |  |  |  |match_methods.py
 |  |  |  |
@@ -83,6 +78,7 @@ Anonymizer
 |  |  |  |
 |  |  |  |model_funcs.py
 |  |  |
+|  |  |pre_made_data_creator.py
 |  |  |pre_made_data.py
 |  |  |main(old).py
 |
@@ -91,10 +87,6 @@ Anonymizer
 |  |schema.py
 |  |test_anonymiser_folder
 |  |  \
-|  |  |test_anon_methods
-|  |  |  \
-|  |  |  |test_methods.py
-|  |  |
 |  |  |test_handling
 |  |  |  \
 |  |  |  |test_data_handling.py
@@ -116,7 +108,6 @@ Anonymizer
 |  |  |
 |  |  |test_initialiser
 |  |  |  \
-|  |  |  |test_class_init.py
 |  |  |  |test_get_constraints.py
 |  |  |  |test_match_methods.py
 |  |  |

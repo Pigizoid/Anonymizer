@@ -1,12 +1,11 @@
 from pydantic_settings import BaseSettings
 from typing import Optional, Dict, Any
 from pathlib import Path
-from .synth.main import synth_app
-from .anon.main import anon_app
-from .models import SynthesiserConfig, AnonymiserConfig, Settings
+from sm.app.synth.main import synth_app
+from sm.app.anon.main import anon_app
+from sm.app.models import SynthesiserConfig, AnonymiserConfig, Settings
 import typer
 import yaml
-
 
 app = typer.Typer()
 
@@ -15,21 +14,20 @@ app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
 
-def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
+def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
     """
-    Inputs:
+    Inputs:\n
         an optional config path string to the config.yaml file
-    Ouputs:
+    Ouputs:\n
         a BaseSettings class type, unprocessed with source functionality modified
     """
 
     def yaml_settings_source() -> Dict[str, Any]:
-        """loads a config.yaml file and gets the data and outputs it as a dict"""
-        if not Path(config_path).exists():
+        if not config_path.exists():
             return {}  # returning {} as empty to allow defaults to parse
 
         try:
-            raw = yaml.safe_load(Path(config_path).read_text()) or {}
+            raw = yaml.safe_load(config_path.read_text()) or {}
         except Exception as e:
             print(f"Yaml doesnt exist: {e}")
             return {}
@@ -55,7 +53,6 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         return mapping
 
     def schema_defaults_source() -> Dict[str, Any]:
-        """outputs the defaults for the anon and synth schemas"""
         synth_defaults = {
             name: field.default
             for name, field in SynthesiserConfig.model_fields.items()
@@ -76,7 +73,11 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
         """Standard deep dict merge: returns a new dict with b merged into a."""
         out = dict(a)
         for k, v in (b or {}).items():
-            if k in out and isinstance(out[k], Mapping) and isinstance(v, Mapping):
+            if v is None:
+                # Skip None in b, keep original value in a if it exists
+                if k not in out:
+                    out[k] = None
+            elif k in out and isinstance(out[k], Mapping) and isinstance(v, Mapping):
                 out[k] = deep_merge(out[k], v)
             else:
                 out[k] = v
@@ -93,9 +94,11 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
 
         for src in order_low_to_high:
             data = src() if callable(src) else (src or {})
+            if data == {}:
+                continue
             anon = data.get("anon")
             if isinstance(anon, Mapping) and "fields" in anon:
-                last_anon_fields = anon["fields"]
+                last_anon_fields = anon["fields"]  #keep track of latest field dict to prevent dict update extending
             result = deep_merge(result, data)
 
         if last_anon_fields is not None:
@@ -136,23 +139,19 @@ def make_settings_class(config_path: Optional[str]) -> type[BaseSettings]:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    config: Optional[str] = typer.Option(
-        "config.yaml",  # default
-        exists=False,  # dont check if path exists before allowing it as option
-        file_okay=True,
-        dir_okay=False,  # these 3 check its readable and a file
-        readable=True,
-        help="Path to YAML config file (must be called at top level)",
+    config: Optional[Path] = typer.Option(
+        None, #default
+        exists=True
     ),
-    schema_path: Optional[str] = typer.Option(
-        "schema.py",
-        exists=False,
+    schema_path: Optional[Path] = typer.Option(
+        None,
+        exists=True,
     ),
     seed: Optional[str] = typer.Option(
-        False,
-        exists=False,
+        False
     ),
 ):
+    print("input value:",config)
     """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
     examples:

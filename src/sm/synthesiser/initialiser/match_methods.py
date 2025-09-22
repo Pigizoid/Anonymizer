@@ -1,4 +1,4 @@
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, List
 from faker import Faker
 import mimesis
 import inspect
@@ -10,9 +10,10 @@ generic = mimesis.Generic(mimesis.locales.Locale.EN)
 class match_methods_class:
     def list_faker_methods(self) -> Tuple[list, dict]:
         """
-        method for listing all generation providers in Faker
-        returns tuple of (methods,methods_map)
-            methods_map = {provider_name, parent callable}
+        method for listing all generation providers in Faker\n
+        Outputs:\n
+            tuple of (methods,methods_map):
+                methods_map = {provider_name, parent callable}
         """
         methods = []
         methods_map = {}
@@ -28,10 +29,10 @@ class match_methods_class:
 
     def list_mimesis_methods(self) -> Tuple[list, dict]:
         """
-        method for listing all generation providers in Mimesis
-        returns tuple of (methods,methods_map)
-            methods_map = {provider_name, parent callable}
-        parent callable can be different across methods, as Mimesis uses sub providers
+        method for listing all generation providers in mimesis\n
+        Outputs:\n
+            tuple of (methods,methods_map):
+                methods_map = {provider_name, parent callable}
         """
         methods = []
         methods_map = {}
@@ -56,16 +57,14 @@ class match_methods_class:
                         methods_map[attr] = instance
         return (methods, methods_map)
 
-    def list_match_methods(self, method) -> Tuple[list, dict]:
+    def list_match_methods(self, method:str) -> Tuple[list, dict]:
         """
-        method for listing all generation providers based on input method
-        method in "faker","mimesis","mixed"
-            faker is slower but more robust
-            mimesis is faster but less robust
-            mixed merges providers with mimesis taking priority on overlap
-                very robust with varying performance
-        returns tuple of (methods,methods_map)
-            methods_map = {provider_name, parent callable}
+        Inputs:\n
+            method of methods "faker","mimesis","mixed"
+        method for listing all generation providers in method\n
+        Outputs:\n
+            tuple of (methods,methods_map):
+                methods_map = {provider_name, parent callable}
         """
         methods = []
         methods_map = {}
@@ -90,17 +89,17 @@ class match_methods_class:
         # print(f"Method: {method}, Map: {methods_map[method]}")
         return (methods, methods_map)
 
-    def make_resolved_methods(self, name_match_pairs, methods_map) -> Dict[str, Any]:
+    def make_resolved_methods(self, name_matches:List[str], methods_map:Dict[str,Any]) -> Dict[str, Any]:
         """
-        Inputs:
+        Inputs:\n
             list of provider names
             dict of {name:provider parent callables}
-        instanciates each parent callable
-        Outputs:
+        instanciates each parent callable\n
+        Outputs:\n
             dict of {name:instance}
         """
         resolved_methods = {}
-        for match_name in name_match_pairs:
+        for match_name in name_matches:
             if match_name != "":
                 provider_instance = methods_map[match_name]
                 resolved_methods[match_name] = getattr(provider_instance, match_name)

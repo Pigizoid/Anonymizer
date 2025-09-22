@@ -1,8 +1,8 @@
 import typer
 from typing import Annotated, Optional
-from ..funcs import synth_func
-from ...helper_funcs import return_flags, load_schema, load_file_path, close_folder
-from ...models import SynthesiserConfig
+from sm.app.synth.funcs import synth_func
+from sm.app.helper_funcs import return_flags, load_schema, load_file_path, close_folder
+from sm.app.models import SynthesiserConfig
 
 
 synth_batch_subcommand = typer.Typer()
@@ -18,8 +18,8 @@ def synth_batch_command(
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
     """
-    A subcommand for the synth command
-    Inputs:
+    A subcommand for the synth command\n
+    Inputs:\n
         a method of the methods "mixed","mimesis","faker"
         an amount to generate per schema as an int
         a batch amount as an int
@@ -27,7 +27,7 @@ def synth_batch_command(
             e.g. amount=100 batch=50 means 2 batches of 50
         a filename as str for the output file (.json added by default)
         cout boolean to toggle verbose printing
-    Runs the synthesiser tool in batch mode
+    Runs the synthesiser tool in batch mode\n
     """
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
@@ -50,23 +50,23 @@ def synth_batch_command(
         )
         synth_func(
             schema_model,
-            seed,
             method,
             batch,
             output_file_path,
-            start_index=batch_index,
             cout=cout,
+            start_index=batch_index,
+            seed=seed,
         )
         batch_index += batch
     if amount - batch_index != 0:
         synth_func(
             schema_model,
-            seed,
             method,
             amount - batch_index,
             output_file_path,
-            start_index=batch_index,
             cout=cout,
+            start_index=batch_index,
+            seed=seed,
         )
 
     close_folder(output_file_path)

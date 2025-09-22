@@ -1,26 +1,33 @@
 import json
 import time
-from ..helper_funcs import send_batch_to_API
-
-from ...synthesiser.synthesiser import Synthesiser
-
+from sm.app.helper_funcs import send_batch_to_API
+from sm.synthesiser.synthesiser import Synthesiser
+from pathlib import Path
+from typing import Any, Union
+from pydantic import BaseModel
 
 def synth_func(
-    schema_model, seed, method, amount, output, start_index=0, cout: bool = False
+    schema_model:BaseModel,
+    method:str,
+    amount:int,
+    output:Path,
+    cout:bool = False,
+    start_index:int = 0,
+    seed: Union[int,str,None]="random",
 ):
     """
-    Inputs:
-        a pydantic schema model
-        a generation seed as an int
-        a generation method of the methods "mixed","mimesis","faker"
-        an amount as an int, to generate per schema
-        a string path to the ingest file
-        a filename as str for the output file (.json added by default)
-        a starting index used in batching to specify what the output index should start at
-        a cout boolean toggle for verbose printing
-    Loads data from ingest file
-    Runs the anonymiser tool
-    Outputs data to the output file and optionally prints output to the screen
+    Inputs:\n
+        pydantic schema model
+        generation method of the methods "mixed","mimesis","faker"
+        amount as an int, to generate per schema
+        Path the output file (.json added by default)
+        cout boolean toggle for verbose printing
+        optional starting index used in batching to specify what the output index should start at
+        optional generation seed
+    Loads data from ingest file\n
+    Runs the anonymiser tool\n
+    Outputs:\n
+        data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
     synth = Synthesiser(method=method)

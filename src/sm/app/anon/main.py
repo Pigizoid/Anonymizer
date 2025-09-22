@@ -1,7 +1,6 @@
 import typer
-
-from .subcommands.auto import anon_auto_subcommand
-from .subcommands.manual import anon_manual_subcommand
+from sm.app.anon.subcommands.auto import anon_auto_subcommand
+from sm.app.anon.subcommands.manual import anon_manual_subcommand
 
 anon_app = typer.Typer()
 

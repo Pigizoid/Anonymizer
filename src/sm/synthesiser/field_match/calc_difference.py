@@ -1,11 +1,17 @@
-def levenshtein_distance(word1, word2, modifiers=None) -> float:
+from typing import Dict, List, Set
+def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
     """
-    algorithm for calculating difference of two strings
-    e.g.
+    algorithm for calculating difference of two strings\n
+    e.g:\n
         cat -> car = 1
         books -> bo = 3
         books -> cooks = 1
         cat -> cat = 0
+    Inputs:\n
+        word1 string
+        word2 string
+    Outputs:\n
+        float
     """
     if modifiers is None:
         modifiers = [0, 0, 0]
@@ -27,26 +33,30 @@ def levenshtein_distance(word1, word2, modifiers=None) -> float:
 
 
 def calc_difference(
-    target_word,
-    word,
-    word_tokens,
-    word_tokens_set,
-    target_tokens,
-    target_tokens_set,
+    target_word:str,
+    word:str,
+    word_tokens:Dict[str,List[str]],
+    word_tokens_set:Dict[str,Set[str]],
+    target_tokens:Dict[str,List[str]],
+    target_tokens_set:Dict[str,Set[str]],
 ) -> float:
     """
-    algorithm for calculating difference of two strings
-    while implementing robust fuzzy matching
-    e.g.
+    algorithm for calculating difference of two strings\n
+    while implementing robust fuzzy matching\n
+    e.g:\n
         books -> cooks = 1
         books -> bo = 3
         name_first -> first_name = 0
         social_security_number -> ssn = 0
         ssn -> social_security_number = 0
-
-    additionally matches by stripping underscores
-    and matching based on word positioning
-    with later positioned words adding a higher cost rating
+    additionally matches by stripping underscores\n
+    and matching based on word positioning\n
+    with later positioned words adding a higher cost rating\n
+    Inputs:\n
+        target word
+        input word
+    Outputs:\n
+        float
     """
     if target_tokens_set == word_tokens_set:  # name_first -> first_name
         return 0
