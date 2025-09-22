@@ -104,17 +104,16 @@ def load_schema(schema_path:Path):
 
         classes = inspect.getmembers(module, inspect.isclass)
         filtered = [
-            (name, cls)
+            {name: cls}
             for name, cls in classes
             if cls.__module__ == "imported_schema_model"
         ]
         if filtered == []:
             raise Exception(f"No pydantic schema in schema file {schema_path}")
-        schema_model = filtered[0][1]  # automatically ordered alphabetically
-
+        schema_models = filtered # automatically ordered alphabetically
     except:
         return None
-    return schema_model
+    return schema_models
 
 
 def load_schema_flag(schema_path:Path):
