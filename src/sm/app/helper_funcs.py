@@ -6,30 +6,9 @@ import inspect
 import requests
 import time
 import json
-import json_schema_to_pydantic
 from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
-
-
-def convert_schema_to_JSON(schema_model):
-    if isinstance(schema_model, type) and issubclass(schema_model, BaseModel):
-        JSON_schema = schema_model.model_json_schema()
-
-    elif isinstance(schema_model, dict) or isinstance(schema_model, list):
-        JSON_schema = schema_model
-    else:
-        raise Exception("Unhandled schema type")
-    return JSON_schema
-
-
-def normalise_JSON_schema_to_pydantic(JSON_schema):
-    pydantic_model = json_schema_to_pydantic.create_model(JSON_schema)
-    return pydantic_model
-
-
-def normalise_schema_to_pydantic(schema_model):
-    return normalise_JSON_schema_to_pydantic(convert_schema_to_JSON(schema_model))
 
 
 def make_json_safe(obj):
@@ -118,12 +97,12 @@ def load_schema(schema_path:Path):
 def load_ingest(ingest_path:Path):
     return ingest_path
 
-def load_recursed_flag(recursed_path:Path, file_type:str, loading_func):
+def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
     if recursed_path.is_dir():
         # folder case
         result = []
         for item in recursed_path.iterdir():
-            return_val = load_recursed_flag(item,file_type,loading_func)
+            return_val = load_recursed_path(item,file_type,loading_func)
             if not return_val:
                 continue
             result.append(return_val)
@@ -263,10 +242,10 @@ def get_unique_folder_name(base_path: Path) -> Path:
     parent = base_path.parent
     stem = base_path.name
     counter = 1
-    new_path = parent / f"{stem} (copy)"
+    new_path = parent / f"{stem}_(copy)"
     while new_path.exists():
         counter += 1
-        new_path = parent / f"{stem} (copy {counter})"
+        new_path = parent / f"{stem}_(copy {counter})"
     return new_path
 
 def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0):
@@ -275,10 +254,10 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
     elif depth == 0:
-        output_path_name = get_unique_folder_name(output_path_name)
+        output_path_name = get_unique_folder_name(Path(output_path_name))
         os.makedirs(output_path_name)
     for file_path,contents in schema_models.items():
-        new_path = os.path.join(output_path_name, file_path)
+        new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
             for inner_path in contents:
@@ -286,7 +265,7 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
         else:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             schema_model = contents
-            command(flags,schema_model,new_path)
+            command(schema_model,new_path,flags=flags)
     return None
 
 def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0):
@@ -307,7 +286,7 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             ingest = load_ingest_data(contents)
             schema_model = find_matching_schema(schema_models,ingest,file_path)
-            command(flags,schema_model,new_path,ingest)
+            command(schema_model,new_path,ingest,flags=flags)
     return None
 # ----- recursive handling -----
 

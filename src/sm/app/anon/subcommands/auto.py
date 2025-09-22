@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from sm.app.anon.funcs import anon_func
 from sm.app.helper_funcs import  (
     return_flags, 
-    load_recursed_flag, 
+    load_recursed_path, 
     load_schema, 
     load_ingest, 
     load_file_path, 
@@ -16,7 +16,7 @@ from pathlib import Path
 
 anon_auto_subcommand = typer.Typer()
 
-def anon_auto_func(flags,schema_model,output_file_path,ingest):
+def anon_auto_func(schema_model,output_file_path,ingest,flags):
     seed = flags.seed
     anon_flags = flags.anon
     load_file_path(anon_flags.output)
@@ -68,8 +68,8 @@ def anon_auto_command(
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
-    schema_models = load_recursed_flag(Path(flags.schema_path),".py",load_schema)
+    schema_models = load_recursed_path(Path(flags.schema_path),".py",load_schema)
     schema_models = flatten_loaded_schemas(schema_models)
-    ingests = load_recursed_flag(Path(ingest),".json",load_ingest)
+    ingests = load_recursed_path(Path(ingest),".json",load_ingest)
     output_path_name = Path("outputs\\"+flags.anon.output)
     recursive_ingest_json_handler(ingests,anon_auto_func,flags,output_path_name,schema_models)
