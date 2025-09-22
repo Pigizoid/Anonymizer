@@ -199,7 +199,7 @@ def recursive_folder_command_handler(schema_models,command,flags,output_path_nam
             schema_model = contents
             command(flags,schema_model,new_path)
     return None
-    
+
 
 def load_file_path(output):
     if output.startswith("http"):
