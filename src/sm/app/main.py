@@ -9,7 +9,6 @@ import yaml
 
 app = typer.Typer()
 
-
 app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
 
