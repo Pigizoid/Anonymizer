@@ -248,12 +248,12 @@ def get_unique_folder_name(base_path: Path) -> Path:
         new_path = parent / f"{stem}_(copy {counter})"
     return new_path
 
-def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0):
+def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0,use_parent=False):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
-    elif depth == 0:
+    elif depth == 0 and use_parent==False:
         output_path_name = get_unique_folder_name(Path(output_path_name))
         os.makedirs(output_path_name)
     for file_path,contents in schema_models.items():

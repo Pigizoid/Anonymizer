@@ -24,5 +24,9 @@ def write_JSON_schema(schema_model:BaseModel,write_path:Path,flags=None):
 
 def convert_folder_to_JSON(folder_path:Path):
     schema_models = load_recursed_path(folder_path,".py",load_schema)
-    recursive_folder_schema_handler(schema_models,write_JSON_schema,[],folder_path)
+    print(schema_models)
+    schema_models = {f"{folder_path.stem}_(json)":schema_models[folder_path.stem]}
+    print(schema_models)
+    new_path = folder_path.resolve().parent
+    recursive_folder_schema_handler(schema_models,write_JSON_schema,[],new_path,use_parent=True)
 
