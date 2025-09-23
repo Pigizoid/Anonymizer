@@ -37,7 +37,7 @@ def synth_func(
     elapsed_time = time.time() - start_time  # end timer
     print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
     flush = []
-    if output.startswith("http"):
+    if str(output).startswith("http"):
         request_entries = []
 
     for index, data in enumerate(dataset):
@@ -50,12 +50,12 @@ def synth_func(
                 data.model_dump(), indent=8, default=lambda v: str(v)
             )
             flush.append(f'{front_string}"{index + start_index}": {json_str}')
-            if output.startswith("http"):
+            if str(output).startswith("http"):
                 request_entries.append(data)
         else:
             flush.append(f"{index + 1 + start_index}: {data}")
     if output is not None:
-        if output.startswith("http"):
+        if str(output).startswith("http"):
             send_batch_to_API(schema_model, output, request_entries)
         else:
             flush_out = "".join(flush)
@@ -66,7 +66,7 @@ def synth_func(
     if cout:
         print(flush_out)
     flush.clear()
-    if output.startswith("http"):
+    if str(output).startswith("http"):
         request_entries.clear()
     if output is not None and cout:
         print(f"To file_path -> {output}")

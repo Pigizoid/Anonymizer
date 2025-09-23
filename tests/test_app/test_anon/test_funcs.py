@@ -1,6 +1,7 @@
 import pytest
 import pathlib
 import os
+import json
 
 from tests.schema import test_user as schema_model
 from src.sm.app.anon.funcs import anon_func
@@ -9,7 +10,9 @@ seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest = "tests\\data.json"
+ingest_file = "tests\\data.json"
+with open(ingest_file, 'r') as f:
+    ingest = json.load(f)
 cout = False
 manuals = [True, False]
 defaults = ["mask", "perturb", "synth"]

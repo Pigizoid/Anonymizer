@@ -213,7 +213,7 @@ def anonymise(
     anonymised_data = {}
     
     print(f"fields: {fields.values()} |Seed: {seed} |Default: {default}")
-
+    print(data)
     for index, data_entry in data.items():
         schema_match = True
         if schema_model is not None:

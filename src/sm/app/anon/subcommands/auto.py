@@ -9,7 +9,8 @@ from sm.app.helper_funcs import  (
     load_file_path, 
     close_folder, 
     recursive_ingest_json_handler, 
-    flatten_loaded_schemas
+    flatten_loaded_schemas,
+    load_output_path_flag
 )
 from sm.app.models import AnonymiserConfig
 from pathlib import Path
@@ -70,6 +71,6 @@ def anon_auto_command(
     print(f"Args: {flags}")
     schema_models = load_recursed_path(Path(flags.schema_path),".py",load_schema)
     schema_models = flatten_loaded_schemas(schema_models)
-    ingests = load_recursed_path(Path(ingest),".json",load_ingest)
-    output_path_name = Path("outputs\\"+flags.anon.output)
+    ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
+    output_path_name = load_output_path_flag(flags.synth.output)
     recursive_ingest_json_handler(ingests,anon_auto_func,flags,output_path_name,schema_models)

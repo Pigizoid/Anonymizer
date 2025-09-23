@@ -95,6 +95,7 @@ string_list = string.ascii_letters + string.digits
 class Synthesiser():
     def __init__(self, method="faker"):
         self.outputpooling = {}
+        self.method = method
         data_set = provider_methods[method]
         self.word_list, methods_map = list_match_methods(method)
         self.word_tokens = data_set['word_tokens'] # {word: word.split("_") for word in word_list}
@@ -914,7 +915,7 @@ class Synthesiser():
         Outputs:\n
             single generated value
         """
-        matched_field = match_fields([field_name])
+        matched_field = match_fields([field_name],self.method)
         if matched_field[field_name] != "":
             func = self.resolved_methods[matched_field[field_name]]
             value = func()

@@ -1,14 +1,13 @@
 import pytest
 
-from src.sm.synthesiser.field_match.calc_difference import (
-    levenshtein_distance,
-    calc_difference,
-)
-from src.sm.synthesiser.synthesiser import Synthesiser
 from faker import Faker
-
-synth = Synthesiser()
 fake = Faker()
+from src.sm.pre_made_data import provider_methods
+from src.sm.synthesiser.helper_funcs.matching_fields import levenshtein_distance, calc_difference, match_fields, recursive_match_fields
+from pydantic import BaseModel
+
+
+
 
 test_word_num = 10
 test_words = [fake.name() for x in range(test_word_num)]
@@ -50,9 +49,9 @@ def test_levenshtein_distance_alternate_value_check():
     assert value == 2
 
 
-word_list = synth.word_list
-word_tokens = synth.word_tokens
-word_tokens_set = synth.word_tokens_set
+word_list = provider_methods["faker"]["word_list"]
+word_tokens = provider_methods["faker"]["word_tokens"]
+word_tokens_set = provider_methods["faker"]["word_tokens_set"]
 
 
 @pytest.mark.parametrize(
@@ -93,3 +92,82 @@ def test_calc_difference_alternate_abbreviation():
         set("social_security_number".split("_")),
     )
     assert value == 0
+
+
+
+class test_Address(BaseModel):  # display example
+    street: str
+    city: str
+
+
+field_names_1 = ["street", "city"]
+
+
+class test_Address_2(BaseModel):  # display example
+    street: str
+    city: str
+    social_security_number: str
+    continent: str
+
+
+field_names_2 = ["street", "city", "social_security_number", "continent"]
+
+
+def test_match_fields():
+    return_value = match_fields(field_names_1,"mixed")
+    assert isinstance(return_value, dict)
+    assert all(
+        [isinstance(x, str) and isinstance(y, str) for x, y in return_value.items()]
+    )
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [
+        ("faker", [True, True, True, False]),
+        ("mimesis", [True, True, False, True]),
+        ("mixed", [True, True, True, True]),
+    ],
+)
+def test_match_fields_alternate_methods(method, expected):
+    return_value = match_fields(field_names_2, method)
+    assert all(
+        [
+            (return_value[field_names_2[x]] != "") == expected[x]
+            for x in range(len(field_names_2))
+        ]
+    )
+
+
+class test_Address_3(BaseModel):
+    street: str
+    city: str
+    social_security_number: str
+    continent: str
+
+
+class test_Address_4(BaseModel):
+    name: str
+    phone_number: str
+    social_security_number: str
+    extra: test_Address_3
+
+
+def test_recursive_match_fields():
+    return_data = recursive_match_fields(test_Address_4, "mixed")
+    assert isinstance(return_data, dict)
+    assert all([isinstance(x, dict) for x in return_data.values()])
+    assert "test_Address_4" in return_data
+    assert "test_Address_3" in return_data
+    assert list(return_data["test_Address_4"].keys()) == [
+        "name",
+        "phone_number",
+        "social_security_number",
+        "extra",
+    ]
+    assert list(return_data["test_Address_3"].keys()) == [
+        "street",
+        "city",
+        "social_security_number",
+        "continent",
+    ]

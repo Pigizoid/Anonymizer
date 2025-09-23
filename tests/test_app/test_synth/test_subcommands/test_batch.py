@@ -5,7 +5,7 @@ from typer.testing import CliRunner
 
 runner = CliRunner()
 
-def test_anon_auto_command():
+def test_synth_batch_command():
     print(os.getcwd())
     result = runner.invoke(
         app,

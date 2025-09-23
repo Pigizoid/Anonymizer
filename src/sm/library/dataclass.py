@@ -9,6 +9,8 @@ from sm.synthesiser.synthesiser import Synthesiser
 from sm.tools.model_funcs import get_model_fields
 from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
+from src.sm.synthesiser.helper_funcs.matching_fields import match_fields
+from src.sm.synthesiser.helper_funcs.constraints import check_generation_constraints
 
 
 '''
@@ -63,8 +65,8 @@ class SynthField(SMField):
 
     def __post_init__(self):
         self.synth = Synthesiser(method=self.method)
-        self.match_name = self.synth.match_fields([self.field_name])[self.field_name]
-        self.applied_constraints = self.synth.check_generation_constraints(self.field_name,self.field_info)
+        self.match_name = match_fields([self.field_name],method=self.method)[self.field_name]
+        self.applied_constraints = check_generation_constraints(self.field_name,self.field_info)
         self.type = self.applied_constraints["annotation"]
 
         self.vals = [self.synth.generate_synth_data(self.field_name, self.match_name, self.applied_constraints, f"{self.field_name}(?)[{self.amount}]") for _ in range(self.amount)]

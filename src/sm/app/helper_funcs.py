@@ -277,7 +277,7 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
         output_path_name = get_unique_folder_name(output_path_name)
         os.makedirs(output_path_name)
     for file_path,contents in ingests.items():
-        new_path = os.path.join(output_path_name, file_path)
+        new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
             for inner_path in contents:
@@ -291,11 +291,20 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
 # ----- recursive handling -----
 
 def load_file_path(output):
-    if output.startswith("http"):
+    if str(output).startswith("http"):
         load_folder("_temp_db_output")
     else:
         if output is not None:
             load_folder(output)
+
+def load_output_path_flag(file_path):
+    pathobj = Path(file_path)
+    print("p:",pathobj,"s:",file_path)
+    if len(pathobj.parts)>1:
+        return_file_path =  pathobj.parent / "outputs" / pathobj.name
+    else:
+        return_file_path = Path("outputs") / pathobj
+    return return_file_path
 
 
 def return_flags(ctx, config_schema:BaseModel)->Dict[str,Any]:

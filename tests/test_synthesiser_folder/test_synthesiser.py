@@ -1,12 +1,31 @@
 from pydantic import BaseModel
 from src.sm.synthesiser.synthesiser import Synthesiser
 
+import pytest
+import re
+from src.sm.pre_made_data import default_constr_dict
+from faker import Faker
+
+from pydantic import BaseModel, Field, constr
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Set,
+    Union,
+    Literal,
+    Annotated,
+)
+from src.sm.tools.model_funcs import get_model_fields
+from src.sm.synthesiser.helper_funcs.matching_fields import recursive_match_fields
+from src.sm.synthesiser.helper_funcs.constraints import recursive_get_applied_constraints
+from src.sm.synthesiser.synthesiser import print_path
 
 class User(BaseModel):
     id: int
     name: str
 
-
+fake = Faker()
 synth = Synthesiser()
 
 
@@ -40,3 +59,162 @@ def test_progress_prints(capsys):
     synth.synthesise(User, amount=5)
     captured = capsys.readouterr()
     assert "Completed:" in captured.out
+
+
+
+
+# ----- constraint generator tests
+
+
+
+def test_generate_from_constraints():
+    generate_path = "test[100].List(0)[10].Dict(Right)[10].Annotated"
+    constraints = default_constr_dict.copy()
+    constraints["annotation"] = str
+    constraints["pattern"] = r"^a$"
+    return_value = synth.generate_from_constraints("test", constraints, generate_path)
+    assert return_value == "a"
+    data_pool = synth.outputpooling
+    assert (
+        len(data_pool[generate_path]) == 10000 - 1
+    )  # -1 because the pop method was run
+    assert all(
+        [re.search(r"a", text).group() == text for text in data_pool[generate_path]]
+    )
+
+
+val_types = [bool, int, float, complex, bytes, str]
+
+
+@pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
+def test_generate_from_constraints_alternate(val_type):
+    generate_path = "test[100].List(0)[10].Dict(Right)[10]"
+    constraints = default_constr_dict.copy()
+    constraints["annotation"] = val_type
+    constraints["pattern"] = None
+    return_value = synth.generate_from_constraints("test", constraints, generate_path)
+    assert isinstance(return_value, val_type)
+
+
+val_types = [bool, int, float, complex, bytes, str]
+
+
+@pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
+def test_apply_constraints(val_type):
+    generate_path = "test(name)[100].List(0)[10].Dict(Right)[10]"
+    constraints = default_constr_dict.copy()
+    constraints["annotation"] = val_type
+    constraints["pattern"] = None
+    value = fake.name()
+    match_name = "name"
+    return_value = synth.apply_constraints(
+        value, constraints, match_name, generate_path, 10000, 100
+    )
+    assert isinstance(return_value, val_type)
+
+# ----- constraint generator tests
+
+
+
+# ----- synth generator tests
+
+class generate_test1(BaseModel):
+    test_none: None
+    test_basic: str
+    test_pattern: str = Field(pattern=r"^a$")
+    test_list: List[str]
+    test_dict: Dict[Annotated[str, constr(pattern=r"^\d{50}$")], str]
+    test_tuple: Tuple[str, str, str]
+    test_set: Set[str]
+    test_union: Union[str, None]
+    test_literal: Literal["1", "2", "3", "4"]
+    test_recursive: List[
+        Dict[Annotated[str, constr(pattern=r"^\d{50}$")], List[Tuple[str, str]]]
+    ]
+    test_list_length: List[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(
+        min_length=20
+    )
+    test_list_length: Dict[
+        Annotated[str, constr(pattern=r"^\d{50}$")],
+        Annotated[str, constr(pattern=r"^\d{50}$")],
+    ] = Field(min_length=20)
+    test_list_length: Set[Annotated[str, constr(pattern=r"^\d{50}$")]] = Field(
+        min_length=20
+    )
+
+
+class generate_test2(BaseModel):
+    test_dict_fail: Dict[
+        Annotated[str, constr(pattern=r"^a$")], Annotated[str, constr(pattern=r"^a$")]
+    ] = Field(min_length=20)
+    # pattern returns "a" which means there isnt enough keys for a dict of length 20
+
+
+def test_generate_synth_data():
+    method = "mixed"
+
+    schema_model = generate_test1
+    schema_name = schema_model.__name__
+    field_match_pairs = recursive_match_fields(schema_model,method)
+    applied_constraints = recursive_get_applied_constraints(
+        schema_model
+    )
+    synthesised_data = {}
+    for name in get_model_fields(schema_model).keys():
+        generate_path = "" + f"{schema_model.__name__}({name})[1]"
+
+        synthesised_data[name] = synth.generate_synth_data(
+            name,
+            field_match_pairs[schema_name][name],
+            applied_constraints[schema_name][name],
+            generate_path,
+        )
+    assert schema_model(**synthesised_data)
+
+
+# ----- synth generator tests
+
+
+# ----- print tests
+
+
+def test_print_path_simple(capsys):
+    path = "[0]"
+    elapsed_time = 1.2345
+    print_path(path, elapsed_time)
+
+    captured = capsys.readouterr()
+    output = captured.out.strip()
+
+    assert "Time taken: 1.23 seconds" in output
+    assert path in output
+
+
+def test_print_path_deeper_path(capsys):
+    path = "[0][1][2]"
+    elapsed_time = 12.5
+    print_path(path, elapsed_time)
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert "Time taken: 12.50 seconds" in output
+    assert path in output
+    assert "        " in output
+
+
+@pytest.mark.parametrize(
+    "path,elapsed,expected",
+    [
+        ("[3]", 0.0, "Time taken: 0.00 seconds"),
+        ("[1][2]", 2.718, "Time taken: 2.72 seconds"),
+        ("[9][9][9][9]", 100.1234, "Time taken: 100.12 seconds"),
+    ],
+)
+def test_print_path_parametrized(path, elapsed, expected, capsys):
+    print_path(path, elapsed)
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert expected in output
+    assert path in output
