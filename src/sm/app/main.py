@@ -3,15 +3,16 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 from sm.app.synth.main import synth_app
 from sm.app.anon.main import anon_app
+from sm.app.extras.main import json_app
 from sm.app.models import SynthesiserConfig, AnonymiserConfig, Settings
 import typer
 import yaml
 
 app = typer.Typer()
 
-
 app.add_typer(synth_app, name="synth")
 app.add_typer(anon_app, name="anon")
+app.add_typer(json_app, name="extras")
 
 
 def make_settings_class(config_path: Optional[Path]) -> BaseSettings:

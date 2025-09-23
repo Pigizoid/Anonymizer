@@ -47,7 +47,7 @@ def synth_func(
             else:
                 front_string = ""
             json_str = json.dumps(
-                data.model_dump(), indent=8, default=lambda v: repr(v)
+                data.model_dump(), indent=8, default=lambda v: str(v)
             )
             flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if output.startswith("http"):

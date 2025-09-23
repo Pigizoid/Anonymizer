@@ -4,7 +4,7 @@ from typing import Any, List, Dict, Type, Annotated, Union
 if __name__ == "__main__":
     import os,sys,pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
-from sm.anonymiser.handling.data_handling import anonymise_data
+from sm.anonymiser.anonymiser import anonymise_data
 from sm.synthesiser.synthesiser import Synthesiser
 from sm.tools.model_funcs import get_model_fields
 from pydantic import BaseModel, Field

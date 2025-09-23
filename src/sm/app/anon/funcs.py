@@ -11,7 +11,7 @@ def anon_func(
     method:str,
     amount:int,
     start_index:int,
-    ingest:str,
+    ingest:Dict[str,Any],
     cout:bool,
     manual:bool,
     default:str,
@@ -36,10 +36,9 @@ def anon_func(
     Outputs:\n
         data to the output file and optionally prints output to the screen
     """
-    data = load_ingest_data(ingest, start_index=start_index)
     # data comes in as a dict of dicts
     anonymised_data = anonymise(
-        schema_model, data, method, manual, default, fields, amount, seed=seed
+        schema_model, ingest, method, manual, default, fields, amount, seed=seed
     )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
@@ -49,7 +48,7 @@ def anon_func(
         for index, content in anonymised_data.items():
             if cout:
                 print("-" * 60)
-                print(f"Input data:\n\t{data[index]}")
+                print(f"Input data:\n\t{ingest[index]}")
                 print("Output data:")
             flush_list = []
             for idx, x in enumerate(content):

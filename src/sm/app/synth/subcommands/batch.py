@@ -1,7 +1,7 @@
 import typer
 from typing import Annotated, Optional
 from sm.app.synth.funcs import synth_func
-from sm.app.helper_funcs import return_flags, load_schema_flag, load_file_path, close_folder, recursive_folder_command_handler
+from sm.app.helper_funcs import return_flags, load_recursed_path, load_schema, load_file_path, close_folder, recursive_folder_schema_handler
 from sm.app.models import SynthesiserConfig
 from pathlib import Path
 
@@ -9,7 +9,7 @@ from pathlib import Path
 synth_batch_subcommand = typer.Typer()
 
 
-def synth_batch_func(flags,schema_model,output_file_path):
+def synth_batch_func(schema_model,output_file_path,flags):
     seed = flags.seed
     synth_flags = flags.synth
     load_file_path(output_file_path)
@@ -73,6 +73,6 @@ def synth_batch_command(
     """
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
-    schema_models = load_schema_flag(Path(flags.schema_path))
+    schema_models = load_recursed_path(Path(flags.schema_path),".py",load_schema)
     output_path_name = Path("outputs\\"+flags.synth.output)
-    recursive_folder_command_handler(schema_models,synth_batch_func,flags,output_path_name)
+    recursive_folder_schema_handler(schema_models,synth_batch_func,flags,output_path_name)
