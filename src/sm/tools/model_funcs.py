@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from sm.library.jsonschema import JsonSchemaClass
 from pydantic.fields import FieldInfo
-from typing import Union, Type, Dict, Any, List
+from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal
 
 ModelLike = Union[Type[BaseModel], BaseModel]
 
@@ -36,7 +36,13 @@ def get_json_model_data(json_model):
     return model_data
 
 def infer_json_type(property:Dict[str,Any]):
-    if "type" in property:
+    if not(isinstance(property,dict)):
+        return property
+    if "enum" in property:
+        return Literal
+    elif "const" in property:
+        return Literal
+    elif "type" in property:
         data_type = property["type"]
         if data_type == "null":
             return None
@@ -45,29 +51,78 @@ def infer_json_type(property:Dict[str,Any]):
         elif data_type == "object":
             return dict
         elif data_type == "array":
-            if isinstance(property["items"],list):
-                return tuple
+            if "uniqueItems" in property and property["uniqueItems"] == True:
+                return set
             else:
-                return list
+                if isinstance(property["items"],list):
+                    return tuple
+                else:
+                    return list
         elif data_type == "number":
             return float
         elif data_type == "integer":
             return int
         elif data_type == "string":
             return str
+        elif isinstance(data_type,list):
+            return [infer_json_type(t) for t in data_type]
         else:
             raise Exception(f"Unhandled json type '{data_type}'")
     elif "$ref" in property:
         return JsonSchemaClass
     elif "anyOf" in property:
-        types_list = [infer_json_type(p) for p in property["anyOf"]]
-        return Union[*types_list]
+        return Union
     elif "oneOf" in property:
-        types_list = [infer_json_type(p) for p in property["oneOf"]]
-        return Union[*types_list]
+        return Union
     elif "allOf" in property:
         return property["allOf"]
+    else: # direct value e.g. "hello" or 100
+        return type(property)
 
+def infer_json_args(property:Dict[str,Any]):
+    if not(isinstance(property,dict)):
+        return property
+    if "enum" in property:
+        data_args = [p for p in property["enum"]]
+    elif "items" in property:
+        data_args = [property["items"]]
+    elif "anyOf" in property:
+        data_args = [p for p in property["anyOf"]]
+    elif "oneOf" in property:
+        data_args = [p for p in property["oneOf"]]
+    elif "allOf" in property:
+        data_args = [p for p in property["allOf"]]
+    elif infer_json_type(property) == dict:
+        data_args = [{"type":"string"},{"type":"string"}]
+        if "additionalProperties" in property:
+            if isinstance(property["additionalProperties"],dict):
+                data_args[1] = property["additionalProperties"]
+        elif "patternProperties" in property:
+            pattern_properties = property["patternProperties"]
+            data_args[0] = {"pattern":list(pattern_properties.keys())[0],"type":"string"}
+            data_args[1] = list(pattern_properties.values())[0]
 
+    else:
+        data_args = []
+    return data_args
 
+'''
+{
+    'items': {
+        'patternProperties': {
+            '^\\d{3}(-\\d{6})?$': {
+                'items': {
+                    'pattern': '^\\d{5}(-\\d{4})?$', 
+                    'type': 'string'
+                    }, 
+                'type': 'array'
+            }
+        }, 
+        'type': 'object'
+    }, 
+    'title': 'Zip Code', 
+    'type': 'array', 
+    'required': True
+}
+'''
 

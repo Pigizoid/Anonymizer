@@ -12,7 +12,7 @@ class JsonSchemaClass:
         self.__name__ = self.name
         self.required = self.contents["required"]
         self.properties = self.contents["properties"]
-        self.fields = self.contents["properties"]
+        self.fields = self.properties
         for name,field in self.fields.items():
             if name in self.required:
                 self.fields[name]["required"] = True
