@@ -12,16 +12,17 @@ from typing import (
     get_args,
     get_origin,
 )
-from sm.synthesiser.helper_funcs.constraints import make_one_string, make_one_decimal, make_new_contraints, recursive_get_applied_constraints
-from sm.synthesiser.helper_funcs.matching_fields import match_fields, recursive_match_fields
-from sm.synthesiser.helper_funcs.provider_methods import list_match_methods, make_resolved_methods
-from sm.tools.model_funcs import get_model_fields
+from sm.synthesiser_json.helper_funcs.constraints import make_one_string, make_one_decimal, make_new_contraints, get_applied_constraints
+from sm.synthesiser_json.helper_funcs.matching_fields import match_fields
+from sm.synthesiser_json.helper_funcs.provider_methods import list_match_methods, make_resolved_methods
+from sm.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data
 from sm.pre_made_data import provider_methods
 from sm.tools.regex_generator import regex_builder
 from collections import deque
 from multiprocessing import Pool
 from functools import partial
 from pydantic import BaseModel
+from sm.library.jsonschema import JsonSchemaClass
 from decimal import Decimal, ROUND_HALF_UP
 from sm.pre_made_data import (
     all_constr_attribs,
@@ -92,7 +93,7 @@ string_list = string.ascii_letters + string.digits
 
 
 
-class Synthesiser():
+class JsonSynthesiser():
     def __init__(self, method="faker"):
         self.outputpooling = {}
         self.method = method
@@ -941,6 +942,74 @@ class Synthesiser():
         return value
     # ----- Constraint based generation -----
 
+    # ----- recursive functions -----
+    def recursive_match_fields(self,schema_model:JsonSchemaClass, method, field_match_pairs:Dict[str,Dict[str,str]]=None) -> Dict[str, Dict[str, str]]:
+        """
+        Goes through an input schema model and matches all fields to a generation provider\n
+        recurses through nested schemas, adding to list of providers for each field\n
+        uses optional field_match_pairs input during recursion and remove duplicate nested schemas\n
+        Inputs:\n
+            schema model
+            optional field match pairs (generated during output from recursion)
+        Outputs:\n
+            field match pairs = {schema name: {field name: match name}}
+        """
+        if field_match_pairs is None:
+            field_match_pairs = {}
+        # in body not in function, because default collections are stored in memory not by instance
+        model_data = get_json_model_data(schema_model)
+        field_names = [x[0] for x in model_data]
+
+        if schema_model.__name__ not in field_match_pairs.keys():
+            field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
+        for x in model_data:
+            data_type = infer_json_type(x[1])
+            if (
+                data_type is JsonSchemaClass
+                and data_type.__name__ not in field_match_pairs.keys()
+            ):
+                # print(data_type.__name__, field_match_pairs.keys())
+                ref_name = x[1]["$ref"].split("/")[-1]
+                field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
+        return field_match_pairs
+
+    def recursive_get_applied_constraints(
+        self, schema_model:JsonSchemaClass
+    ) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        """
+        Inputs:\n
+            schema model
+        Outputs:\n
+            nested constraints for all recursed schemas = 
+            { 
+                schema name: {
+                    field name: constraints
+                }
+            }
+        Recursive function to get applied constraint of input schema and all nested schemas\n
+        """
+        applied_constraints = {}
+        model_data = get_json_model_data(schema_model)
+
+        applied_constraints[schema_model.__name__] = get_applied_constraints(
+            schema_model
+        )
+
+        for x in model_data:
+            data_type = infer_json_type(x[1])
+            if (
+                data_type is JsonSchemaClass
+                and data_type.__name__ not in applied_constraints.keys()
+            ):
+                ref_name = x[1]["$ref"].split("/")[-1]
+                applied_constraints.update(
+                    self.recursive_get_applied_constraints(self.defs[ref_name])
+                )
+
+        return applied_constraints
+    # ----- recursive functions -----
+
+
     # ----- Central called functions -----
     def synthesise_recursive(
         self, schema_model:BaseModel, method="faker", amount:int=1, path:str=""
@@ -960,7 +1029,7 @@ class Synthesiser():
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
-        for name in get_model_fields(schema_model).keys():
+        for name in get_json_model_fields(schema_model).keys():
             # print(f"Field:{name}")
             if not self.applied_constraints[schema_name][name]["required"]:
                 if random.randint(1, 2) == 1:
@@ -979,8 +1048,8 @@ class Synthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:BaseModel, method="faker", amount=1, seed="random"
-    ) -> List[BaseModel]:
+        self, schema_model:JsonSchemaClass, method="faker", amount=1, seed="random"
+    ) -> List[JsonSchemaClass]:
         """
         The main call function of the synthesiser class
         Inputs:\n
@@ -1018,11 +1087,11 @@ class Synthesiser():
                 self.seed = random.randint(0, 1_000_000_000_000)
                 random.seed(seed)
         """
-
+        self.defs = schema_model.defs
         self.method = method
 
-        self.field_match_pairs = recursive_match_fields(schema_model,method)
-        self.applied_constraints = recursive_get_applied_constraints(schema_model)
+        self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+        self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
         # print(self.applied_constraints)
         dataset = []
         for x in range(amount):

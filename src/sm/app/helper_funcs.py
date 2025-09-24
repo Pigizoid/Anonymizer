@@ -9,7 +9,7 @@ import json
 from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
-from dataclasses import dataclass
+from sm.library.jsonschema import JsonSchemaClass
 
 
 def make_json_safe(obj):
@@ -69,11 +69,11 @@ def send_batch_to_API(schema_model, output, data):
 def load_schema_pydantic(schema_path:Path):
     """
     Inputs:\n
-        string to the schema path\n
-    Uses importlib to dynamically load and import schema model as "imported_schema_model"\n
-    Orders schemas in schema file alphabetically during import (only importing one schema)\n
+        string to the schema path
+    Uses importlib to dynamically load and import schema model as "imported_schema_model"
+    Orders schemas in schema file alphabetically during import
     Outputs:\n
-        pydantic schema BaseModel\n
+        pydantic schema BaseModel
     """
     if not (str(schema_path).endswith(".py")):
         schema_path = Path(str(schema_path)+".py")
@@ -95,29 +95,19 @@ def load_schema_pydantic(schema_path:Path):
         return None
     return schema_models
 
-@dataclass
-class JsonSchemaClass:
-    name: str
-    contents: Any
-
-    def __post_init__(self):
-        self.__name__ = self.name
-
 def load_schema_json(schema_path:Path):
     """
     Inputs:\n
-        string to the schema path\n
-    Uses importlib to dynamically load and import schema model as "imported_schema_model"\n
-    Orders schemas in schema file alphabetically during import (only importing one schema)\n
+        string to the schema path
     Outputs:\n
-        pydantic schema BaseModel\n
+        JsonSchemaClass (json schema stored in a class with __name__)
     """
     if not (str(schema_path).endswith(".json")):
         schema_path = Path(str(schema_path)+".json")
     try:
         with open(schema_path,"r") as f:
             file_data = json.load(f)
-            schema_models = [JsonSchemaClass(schema_path.stem,file_data)]
+            schema_models = JsonSchemaClass(schema_path.stem,file_data)
     except Exception as e:
         print(f"Exception: {e}")
         return None
@@ -304,7 +294,7 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
             for inner_path in contents:
                 recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1)
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents),contents}| {new_path}")
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents),contents.__name__}| {new_path}")
             if contents == None:
                 raise Exception(f"Error in file {file_path}")
             schema_model = contents

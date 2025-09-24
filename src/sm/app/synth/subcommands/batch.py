@@ -12,6 +12,7 @@ from sm.app.helper_funcs import (
 )
 from sm.app.models import SynthesiserConfig
 from pathlib import Path
+import json
 
 
 synth_batch_subcommand = typer.Typer()
@@ -82,499 +83,301 @@ def synth_batch_command(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+    # print(json.dumps(schema_models,indent=4,default = lambda v: str(type(v))))
+    # input()
     output_path_name = load_output_path_flag(flags.synth.output)
     recursive_folder_schema_handler(schema_models,synth_batch_func,flags,output_path_name)
 
 
 '''
 {
-    "$defs": {
-        "New_Address1": {
-            "properties": {
-                "street": {
-                    "title": "Street",
-                    "type": "string"
+    "models": [
+        {
+            "schema1": [
+                {
+                    "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 },
-                "city": {
-                    "title": "City",
-                    "type": "string"
+                {
+                    "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 },
-                "zip_code": {
-                    "items": {
-                        "patternProperties": {
-                            "^\\d{3}(-\\d{6})?$": {
-                                "items": {
-                                    "pattern": "^\\d{5}(-\\d{4})?$",
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            }
-                        },
-                        "type": "object"
-                    },
-                    "title": "Zip Code",
-                    "type": "array"
+                {
+                    "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 },
-                "country": {
-                    "default": "USA",
-                    "title": "Country",
-                    "type": "string"
+                {
+                    "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 },
-                "social_security_number": {
-                    "title": "Social Security Number",
-                    "type": "string"
+                {
+                    "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 },
-                "continent": {
-                    "anyOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "type": "null"
-                        }
-                    ],
-                    "title": "Continent"
-                },
-                "phone_number": {
-                    "items": {
-                        "additionalProperties": {
-                            "items": {
-                                "type": "string"
-                            },
-                            "type": "array"
-                        },
-                        "type": "object"
-                    },
-                    "title": "Phone Number",
-                    "type": "array"
-                },
-                "title": {
-                    "items": {
-                        "type": "string"
-                    },
-                    "title": "Title",
-                    "type": "array",
-                    "uniqueItems": true
-                },
-                "direction": {
-                    "enum": [
-                        "north",
-                        "south",
-                        "east",
-                        "west"
-                    ],
-                    "title": "Direction",
-                    "type": "string"
-                },
-                "bananas": {
-                    "title": "Bananas",
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/$defs/USER"
-                },
-                "name": {
-                    "additionalProperties": {
-                        "maxLength": 2000,
-                        "type": "string"
-                    },
-                    "minProperties": 30,
-                    "propertyNames": {
-                        "maxLength": 1000
-                    },
-                    "title": "Name",
-                    "type": "object"
+                {
+                    "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                 }
-            },
-            "required": [
-                "street",
-                "city",
-                "zip_code",
-                "social_security_number",
-                "continent",
-                "phone_number",
-                "title",
-                "direction",
-                "bananas",
-                "user",
-                "name"
-            ],
-            "title": "New_Address1",
-            "type": "object"
+            ]
         },
-        "New_Address2": {
-            "properties": {
-                "field_decimal": {
-                    "anyOf": [
+        {
+            "schema2": [
+                {
+                    "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                },
+                {
+                    "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                },
+                {
+                    "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                },
+                {
+                    "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                },
+                {
+                    "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                },
+                {
+                    "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                }
+            ]
+        },
+        {
+            "submodels1": [
+                {
+                    "schema1": [
                         {
-                            "exclusiveMaximum": 15.0,
-                            "exclusiveMinimum": 3.0,
-                            "multipleOf": 5e-06,
-                            "type": "number"
+                            "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                         },
                         {
-                            "type": "string"
-                        }
-                    ],
-                    "title": "Field Decimal"
-                },
-                "field_float": {
-                    "exclusiveMinimum": 15,
-                    "title": "Field Float",
-                    "type": "number"
-                }
-            },
-            "required": [
-                "field_decimal",
-                "field_float"
-            ],
-            "title": "New_Address2",
-            "type": "object"
-        },
-        "New_Address3": {
-            "properties": {
-                "username": {
-                    "maxLength": 20,
-                    "minLength": 3,
-                    "pattern": "^[a-zA-Z0-9_]+$",
-                    "title": "Username",
-                    "type": "string"
-                },
-                "email": {
-                    "anyOf": [
-                        {
-                            "type": "string"
+                            "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                         },
                         {
-                            "type": "null"
-                        }
-                    ],
-                    "title": "Email"
-                },
-                "age": {
-                    "exclusiveMaximum": 100,
-                    "exclusiveMinimum": 12,
-                    "title": "Age",
-                    "type": "integer"
-                },
-                "bio": {
-                    "anyOf": [
-                        {
-                            "maxLength": 250,
-                            "type": "string"
+                            "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                         },
                         {
-                            "type": "null"
+                            "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
                         }
-                    ],
-                    "default": null,
-                    "title": "Bio"
+                    ]
                 },
-                "interests": {
-                    "items": {
-                        "type": "string"
-                    },
-                    "title": "Interests",
-                    "type": "array"
+                {
+                    "schema2": [
+                        {
+                            "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        }
+                    ]
                 }
-            },
-            "required": [
-                "username",
-                "email",
-                "age"
-            ],
-            "title": "New_Address3",
-            "type": "object"
+            ]
         },
-        "New_Address4": {
-            "properties": {
-                "user": {
-                    "$ref": "#/$defs/USER"
+        {
+            "submodels2": [
+                {
+                    "schema1": [
+                        {
+                            "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        }
+                    ]
                 },
-                "street": {
-                    "title": "Street",
-                    "type": "string"
+                {
+                    "schema2": [
+                        {
+                            "Address": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        },
+                        {
+                            "USER": "<class 'pydantic._internal._model_construction.ModelMetaclass'>"
+                        }
+                    ]
                 }
-            },
-            "required": [
-                "user",
-                "street"
-            ],
-            "title": "New_Address4",
-            "type": "object"
-        },
-        "USER": {
-            "properties": {
-                "name": {
-                    "title": "Name",
-                    "type": "string"
-                }
-            },
-            "required": [
-                "name"
-            ],
-            "title": "USER",
-            "type": "object"
+            ]
         }
-    },
-    "properties": {
-        "street": {
-            "title": "Street",
-            "type": "string"
+    ]
+}
+-------------------------------------------------------------------------------
+{
+    "models_(json)": [
+        {
+            "schema1": [
+                {
+                    "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                }
+            ]
         },
-        "city": {
-            "title": "City",
-            "type": "string"
+        {
+            "schema2": [
+                {
+                    "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                },
+                {
+                    "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                }
+            ]
         },
-        "zip_code": {
-            "items": {
-                "patternProperties": {
-                    "^\\d{3}(-\\d{6})?$": {
-                        "items": {
-                            "pattern": "^\\d{5}(-\\d{4})?$",
-                            "type": "string"
+        {
+            "submodels1": [
+                {
+                    "schema1": [
+                        {
+                            "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
                         },
-                        "type": "array"
-                    }
-                },
-                "type": "object"
-            },
-            "title": "Zip Code",
-            "type": "array"
-        },
-        "country": {
-            "default": "USA",
-            "title": "Country",
-            "type": "string"
-        },
-        "social_security_number": {
-            "title": "Social Security Number",
-            "type": "string"
-        },
-        "continent": {
-            "anyOf": [
-                {
-                    "type": "string"
+                        {
+                            "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        }
+                    ]
                 },
                 {
-                    "type": "null"
+                    "schema2": [
+                        {
+                            "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        }
+                    ]
                 }
-            ],
-            "title": "Continent"
+            ]
         },
-        "phone_number": {
-            "items": {
-                "additionalProperties": {
-                    "items": {
-                        "type": "string"
-                    },
-                    "type": "array"
-                },
-                "type": "object"
-            },
-            "title": "Phone Number",
-            "type": "array"
-        },
-        "title": {
-            "items": {
-                "type": "string"
-            },
-            "title": "Title",
-            "type": "array",
-            "uniqueItems": true
-        },
-        "direction": {
-            "enum": [
-                "north",
-                "south",
-                "east",
-                "west"
-            ],
-            "title": "Direction",
-            "type": "string"
-        },
-        "bananas": {
-            "title": "Bananas",
-            "type": "string"
-        },
-        "user": {
-            "$ref": "#/$defs/USER"
-        },
-        "name": {
-            "additionalProperties": {
-                "maxLength": 2000,
-                "type": "string"
-            },
-            "minProperties": 30,
-            "propertyNames": {
-                "maxLength": 1000
-            },
-            "title": "Name",
-            "type": "object"
-        },
-        "field_decimal_constr": {
-            "anyOf": [
+        {
+            "submodels2": [
                 {
-                    "exclusiveMaximum": 15.0,
-                    "exclusiveMinimum": 3.0,
-                    "multipleOf": 5e-06,
-                    "type": "number"
+                    "schema1": [
+                        {
+                            "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        }
+                    ]
                 },
                 {
-                    "type": "string"
+                    "schema2": [
+                        {
+                            "Address": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address1": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address2": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address3": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "New_Address4": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        },
+                        {
+                            "USER": "<class 'sm.app.helper_funcs.JsonSchemaClass'>"
+                        }
+                    ]
                 }
-            ],
-            "title": "Field Decimal Constr"
-        },
-        "field_float_constr": {
-            "exclusiveMinimum": 15,
-            "title": "Field Float Constr",
-            "type": "number"
-        },
-        "field_str": {
-            "title": "Field Str",
-            "type": "string"
-        },
-        "field_int": {
-            "title": "Field Int",
-            "type": "integer"
-        },
-        "field_float": {
-            "title": "Field Float",
-            "type": "number"
-        },
-        "field_bool": {
-            "title": "Field Bool",
-            "type": "boolean"
-        },
-        "field_complex": {
-            "title": "Field Complex",
-            "type": "string"
-        },
-        "field_bytes": {
-            "format": "binary",
-            "title": "Field Bytes",
-            "type": "string"
-        },
-        "field_tuple": {
-            "items": {},
-            "title": "Field Tuple",
-            "type": "array"
-        },
-        "field_list": {
-            "items": {},
-            "title": "Field List",
-            "type": "array"
-        },
-        "field_set": {
-            "items": {},
-            "title": "Field Set",
-            "type": "array",
-            "uniqueItems": true
-        },
-        "field_frozenset": {
-            "items": {},
-            "title": "Field Frozenset",
-            "type": "array",
-            "uniqueItems": true
-        },
-        "field_dict": {
-            "additionalProperties": true,
-            "title": "Field Dict",
-            "type": "object"
-        },
-        "username": {
-            "maxLength": 20,
-            "minLength": 3,
-            "pattern": "^[a-zA-Z0-9_]+$",
-            "title": "Username",
-            "type": "string"
-        },
-        "email": {
-            "anyOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "null"
-                }
-            ],
-            "title": "Email"
-        },
-        "age": {
-            "exclusiveMaximum": 100,
-            "exclusiveMinimum": 12,
-            "title": "Age",
-            "type": "integer"
-        },
-        "bio": {
-            "anyOf": [
-                {
-                    "maxLength": 250,
-                    "type": "string"
-                },
-                {
-                    "type": "null"
-                }
-            ],
-            "default": null,
-            "title": "Bio"
-        },
-        "interests": {
-            "items": {
-                "type": "string"
-            },
-            "title": "Interests",
-            "type": "array"
-        },
-        "n1": {
-            "$ref": "#/$defs/New_Address1"
-        },
-        "n2": {
-            "$ref": "#/$defs/New_Address2"
-        },
-        "n3": {
-            "$ref": "#/$defs/New_Address3"
-        },
-        "n4": {
-            "$ref": "#/$defs/New_Address4"
+            ]
         }
-    },
-    "required": [
-        "street",
-        "city",
-        "zip_code",
-        "social_security_number",
-        "continent",
-        "phone_number",
-        "title",
-        "direction",
-        "bananas",
-        "user",
-        "name",
-        "field_decimal_constr",
-        "field_float_constr",
-        "field_str",
-        "field_int",
-        "field_float",
-        "field_bool",
-        "field_complex",
-        "field_bytes",
-        "field_tuple",
-        "field_list",
-        "field_set",
-        "field_frozenset",
-        "field_dict",
-        "username",
-        "email",
-        "age",
-        "n1",
-        "n2",
-        "n3",
-        "n4"
-    ],
-    "title": "Address",
-    "type": "object"
+    ]
 }
 '''
 

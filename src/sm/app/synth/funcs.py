@@ -2,12 +2,14 @@ import json
 import time
 from sm.app.helper_funcs import send_batch_to_API
 from sm.synthesiser.synthesiser import Synthesiser
+from sm.synthesiser_json.synthesiser import JsonSynthesiser
 from pathlib import Path
 from typing import Any, Union
 from pydantic import BaseModel
+from sm.library.jsonschema import JsonSchemaClass
 
 def synth_func(
-    schema_model:BaseModel,
+    schema_model:Union[BaseModel,JsonSchemaClass],
     method:str,
     amount:int,
     output:Path,
@@ -17,7 +19,7 @@ def synth_func(
 ):
     """
     Inputs:\n
-        pydantic schema model
+        schema_model: pydantic schema model or JSON_schema as JsonSchemaClass
         generation method of the methods "mixed","mimesis","faker"
         amount as an int, to generate per schema
         Path the output file (.json added by default)
@@ -30,7 +32,10 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
-    synth = Synthesiser(method=method)
+    if type(schema_model) == JsonSchemaClass:
+        synth = JsonSynthesiser(method=method)
+    else:
+        synth = Synthesiser(method=method)
     dataset = synth.synthesise(
         schema_model, method, amount, seed
     )  # returns as [ data, data, ... ]
