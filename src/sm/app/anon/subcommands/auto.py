@@ -69,7 +69,7 @@ def anon_auto_command(
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
-    schema_models = load_recursed_path(Path(flags.schema_path),".py",load_schema)
+    schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
     schema_models = flatten_loaded_schemas(schema_models)
     ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
     output_path_name = load_output_path_flag(flags.synth.output)

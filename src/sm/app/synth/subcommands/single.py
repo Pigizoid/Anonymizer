@@ -51,6 +51,6 @@ def synth_single_command(
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
-    schema_models = load_recursed_path(Path(flags.schema_path),".py",load_schema)
+    schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
     output_path_name = load_output_path_flag(flags.synth.output)
     recursive_folder_schema_handler(schema_models,synth_single_func,flags,output_path_name)

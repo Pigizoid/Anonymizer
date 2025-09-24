@@ -9,6 +9,7 @@ import json
 from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
+from dataclasses import dataclass
 
 
 def make_json_safe(obj):
@@ -65,7 +66,7 @@ def send_batch_to_API(schema_model, output, data):
     return response
 
 # ----- recursive file loading -----
-def load_schema(schema_path:Path):
+def load_schema_pydantic(schema_path:Path):
     """
     Inputs:\n
         string to the schema path\n
@@ -94,10 +95,49 @@ def load_schema(schema_path:Path):
         return None
     return schema_models
 
+@dataclass
+class JsonSchemaClass:
+    name: str
+    contents: Any
+
+    def __post_init__(self):
+        self.__name__ = self.name
+
+def load_schema_json(schema_path:Path):
+    """
+    Inputs:\n
+        string to the schema path\n
+    Uses importlib to dynamically load and import schema model as "imported_schema_model"\n
+    Orders schemas in schema file alphabetically during import (only importing one schema)\n
+    Outputs:\n
+        pydantic schema BaseModel\n
+    """
+    if not (str(schema_path).endswith(".json")):
+        schema_path = Path(str(schema_path)+".json")
+    try:
+        with open(schema_path,"r") as f:
+            file_data = json.load(f)
+            schema_models = [JsonSchemaClass(schema_path.stem,file_data)]
+    except Exception as e:
+        print(f"Exception: {e}")
+        return None
+    return schema_models
+
+def load_schema(schema_path:Path):
+    if str(schema_path).endswith(".py"):
+        schema_models = load_schema_pydantic(schema_path)
+    elif str(schema_path).endswith(".json"):
+        schema_models = load_schema_json(schema_path)
+    else:
+        return None
+    return schema_models
+
 def load_ingest(ingest_path:Path):
     return ingest_path
 
 def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
+    if file_type[0] != ".":
+        file_type = "."+file_type
     if recursed_path.is_dir():
         # folder case
         result = []
@@ -152,7 +192,8 @@ def flatten_loaded_helper(returned_values:Union[list,None],result:list):
     if returned_values is not None:
         result_names = [r.__name__ for r in result]
         for returned_value in returned_values:
-            if returned_value.__name__ not in result_names:
+            r_name = returned_value.__name__
+            if r_name not in result_names:
                 result.append(returned_value)
     return result
 
@@ -263,7 +304,9 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
             for inner_path in contents:
                 recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1)
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents),contents}| {new_path}")
+            if contents == None:
+                raise Exception(f"Error in file {file_path}")
             schema_model = contents
             command(schema_model,new_path,flags=flags)
     return None
@@ -321,11 +364,12 @@ def return_flags(ctx, config_schema:BaseModel)->Dict[str,Any]:
     """
     settings = ctx.obj["settings"]
     schema_path = ctx.obj["schema_path"]
+    schema_type = ctx.obj["schema_type"]
     params = {key: param for key, param in ctx.params.items() if param is not None}
     if config_schema == SynthesiserConfig:
-        flags = settings(schema_path=schema_path, synth=params)
+        flags = settings(schema_path=schema_path, schema_type=schema_type, synth=params)
     elif config_schema == AnonymiserConfig:
-        flags = settings(schema_path=schema_path, anon=params)
+        flags = settings(schema_path=schema_path, schema_type=schema_type, anon=params)
     else:
         raise Exception(f"Input config schema '{config_schema.__name__}', not in ['SynthesiserConfig','AnonymiserConfig']")
     return flags

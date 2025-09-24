@@ -1,5 +1,6 @@
 ---
   schema: tests\\schema.py
+  schema_type: py
   synthesiser:
     method: faker
     amount: 8

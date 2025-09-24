@@ -27,6 +27,7 @@ class AnonymiserConfig(BaseModel):
 
 class Settings(BaseSettings):
     schema_path: typing.Optional[Path]
+    schema_type: str
     seed: typing.Union[int, str, bool, None] = False
     synth: typing.Optional[SynthesiserConfig]
     anon: typing.Optional[AnonymiserConfig]

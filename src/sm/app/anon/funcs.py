@@ -58,4 +58,4 @@ def anon_func(
                     )
                 flush_list.append(x.model_dump())
             flush_output[index] = flush_list
-        f.write(json.dumps(flush_output, indent=8))
+        f.write(json.dumps(flush_output, indent=4))

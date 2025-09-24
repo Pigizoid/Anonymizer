@@ -38,6 +38,9 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["schema_path"] = raw["schema"]
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
+        
+        if "schema_type" in raw:
+            mapping["schema_type"] = raw["schema_type"]
 
         if "synthesiser" in raw:
             mapping["synth"] = raw["synthesiser"]
@@ -63,6 +66,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         }
         defaults = {
             "schema_path": "schema.py",
+            "schema_type": "py",
             "synth": synth_defaults,
             "anon": anon_defaults,
         }
@@ -148,6 +152,9 @@ def main(
         None,
         exists=True,
     ),
+    schema_type: Optional[str] = typer.Option(
+        "py"
+    ),
     seed: Optional[str] = typer.Option(
         False
     ),
@@ -162,4 +169,6 @@ def main(
         sm --config config.yaml synth batch
     """
     Settings = make_settings_class(config)
-    ctx.obj = {"settings": Settings, "schema_path": schema_path, "seed": seed}
+    ctx.obj = {"settings": Settings, "schema_path": schema_path, "schema_type": schema_type, "seed": seed}
+    #fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
+    #additionally check if loading json breaks anything before passing to the synth_func
