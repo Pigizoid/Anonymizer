@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from sm.library.jsonschema import JsonSchemaClass
+from sm.library.jsonschemaclass import JsonSchemaClass
 from pydantic.fields import FieldInfo
 from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal
 
@@ -38,6 +38,8 @@ def get_json_model_data(json_model):
 def infer_json_type(property:Dict[str,Any]):
     if not(isinstance(property,dict)):
         return property
+    elif len(property) == 0:
+        return str
     if "enum" in property:
         return Literal
     elif "const" in property:
@@ -94,6 +96,10 @@ def infer_json_args(property:Dict[str,Any]):
         data_args = [p for p in property["allOf"]]
     elif infer_json_type(property) == dict:
         data_args = [{"type":"string"},{"type":"string"}]
+        if "propertyNames" in property:
+            property_names = {k:v for k,v in property["propertyNames"].items()}
+            property_names.update({"type":"string"})
+            data_args[0] = property_names
         if "additionalProperties" in property:
             if isinstance(property["additionalProperties"],dict):
                 data_args[1] = property["additionalProperties"]

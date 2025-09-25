@@ -2,7 +2,7 @@ from typing import Dict, Any, get_origin, get_args
 from decimal import Decimal, ROUND_HALF_UP
 import exrex
 from pydantic import BaseModel, Field
-from sm.library.jsonschema import JsonSchemaClass
+from sm.library.jsonschemaclass import JsonSchemaClass
 import inspect
 from sm.pre_made_data import all_constr_attribs, default_constr_dict
 from sm.tools.model_funcs import get_json_model_data, get_json_model_fields, infer_json_type, infer_json_args
@@ -103,9 +103,10 @@ def check_generation_constraints(name:str, field:dict) -> Dict[str, Any]:
             for m_attr in map_attr:
                 if m_attr in field:
                     return_val = field[m_attr]
+                    break
                 else:
                     return_val = None
-                constraints[attr] = return_val
+            constraints[attr] = return_val
         else:
             constraints[attr] = None
     data_type = infer_json_type(field)

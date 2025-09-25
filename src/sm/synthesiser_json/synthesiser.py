@@ -7,10 +7,7 @@ from typing import (
     Optional,
     Literal,
     Any,
-    Annotated,
     Type,
-    get_args,
-    get_origin,
 )
 from sm.synthesiser_json.helper_funcs.constraints import make_one_string, make_one_decimal, make_new_contraints, get_applied_constraints, check_generation_constraints
 from sm.synthesiser_json.helper_funcs.matching_fields import match_fields
@@ -21,22 +18,22 @@ from sm.tools.regex_generator import regex_builder
 from collections import deque
 from multiprocessing import Pool
 from functools import partial
-from pydantic import BaseModel
-from sm.library.jsonschema import JsonSchemaClass
+from sm.library.jsonschemaclass import JsonSchemaClass
 from decimal import Decimal, ROUND_HALF_UP
 from sm.pre_made_data import (
-    all_constr_attribs,
     default_constr_dict,
     recursive_types,
     python_builtin_types,
 )
+from jsonschema import validate
 import re
 import time
 import string
 import random
 import rstr
-import inspect
 import exrex
+import json
+
 
 
 
@@ -286,7 +283,7 @@ class JsonSynthesiser():
                                 )
                             try:
                                 data_pool = [
-                                    first + (idx + 1) * multiple_of
+                                    Decimal(first) + Decimal(idx+1) * Decimal(multiple_of)
                                     for idx in range(int(count) - 1)
                                 ]  # count is capped at poling_count
                             except:
@@ -342,19 +339,19 @@ class JsonSynthesiser():
                                                 - 1
                                             ),
                                         )
-                                    data_pool = [d for d in data_pool if d is not None]
+                                    data_pool = [Decimal(d) for d in data_pool if d is not None]
                                 else:
                                     for x in range(
                                         int((lt * scale - min_scaled) // scaled_mult)
                                         - 1
                                     ):
                                         potential_val = (
-                                            min_scaled + (x + 1) * scaled_mult
+                                            min_scaled + Decimal(x + 1) * scaled_mult
                                         ) / scale
                                         if potential_val == potential_val.quantize(
                                             decimal_precision, rounding=ROUND_HALF_UP
                                         ):
-                                            data_pool.append(potential_val)
+                                            data_pool.append(Decimal(potential_val))
                             except Exception:
                                 data_pool = []
                             if data_pool == []:
@@ -416,7 +413,6 @@ class JsonSynthesiser():
                                 data_pool.append(item)
                             else:
                                 break
-
                 elif data_type is bool:
                     data_pool = [
                         random.randint(1, 2) == 1 for x in range(max(1, pooling_count))
@@ -468,7 +464,7 @@ class JsonSynthesiser():
 
         if constraints["annotation"] is bytes:
             return_value = constraints["annotation"](str(return_value), "utf-8")
-        else:
+        elif constraints["multiple_of"] is None:
             return_value = constraints["annotation"](return_value)
         # input("wait...")
         # exit()
@@ -624,16 +620,32 @@ class JsonSynthesiser():
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
         applied_constraints = check_generation_constraints(field_name,applied_constraints["origin"])
-
+        '''
+        {
+            'additionalProperties': {
+                'maxLength': 2000, 
+                'type': 'string'
+            }, 
+            'minProperties': 30, 
+            'propertyNames': {
+                'maxLength': 1000
+            }, 
+            'title': 'Name', 
+            'type': 'object', 
+            'required': True
+        }
+        '''
         data_type = applied_constraints["annotation"]
         data_args = applied_constraints["args"]
         # data_args = get_args(applied_constraints["annotation"])
         '''
-        print(f"	{applied_constraints}")
-        print(f"	origin: {applied_constraints["origin"]}")
-        print(f"	args: {applied_constraints["args"]}")
-        input("...")
+        if True:
+            print(f"	{applied_constraints}")
+            print(f"	origin: {applied_constraints["origin"]}")
+            print(f"	args: {applied_constraints["args"]}")
+            input("...")
         '''
+            
         # all traversals can be considered "annotated"
         if data_type is type(None) or data_type is None:
             output_data = None
@@ -743,7 +755,7 @@ class JsonSynthesiser():
                     )
 
             elif data_type in [Set, set, frozenset]:
-                output_data = []
+                output_data = set()
                 current_amount = 0
                 target_amount = random.randint(min_amount, max_amount)
                 if len(data_args) == 0:
@@ -762,7 +774,7 @@ class JsonSynthesiser():
                     set_generate_path = (
                         generate_path + f".{pathstr}({0})[{max_amount}]"
                     )
-                    output_data.append(
+                    output_data.add(
                         self.generate_synth_data(
                             field_name,
                             match_name,
@@ -779,8 +791,7 @@ class JsonSynthesiser():
                             )
                         else:
                             break
-                if data_type is frozenset:
-                    output_data = frozenset(output_data)
+                output_data = list(output_data)
 
             elif data_type == Union:
                 chosen_index = random.randint(0, len(data_args) - 1)
@@ -824,7 +835,7 @@ class JsonSynthesiser():
                 func = None
             else:
                 func = self.resolved_methods[match_name]
-            if applied_constraints["pattern"] or not func or match_name == "":
+            if applied_constraints["pattern"] is not None or not func or match_name == "":
                 output_data = self.generate_from_constraints(
                     field_name, applied_constraints, generate_path
                 )
@@ -875,9 +886,10 @@ class JsonSynthesiser():
                 raise Exception(
                     f"Unkown data type ({data_type}) for field {field_name}"
                 )
-                
-        # print(f"Data: {output_data}")
-        # print("__")
+        '''if True:
+            print(f"Data: {output_data},{type(output_data)}")
+            print("__")
+        '''
         # apply constraints of output after data is provided
         return output_data
 
@@ -1070,8 +1082,8 @@ class JsonSynthesiser():
             synthesised_data = self.synthesise_recursive(
                 schema_model, method=method, amount=amount
             )
-
-            dataset.append(schema_model(**synthesised_data))
+            validate(instance=synthesised_data, schema=schema_model.contents)
+            dataset.append(synthesised_data)
             if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                 print(
                     f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",

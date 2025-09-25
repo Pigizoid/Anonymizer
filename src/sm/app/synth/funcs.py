@@ -6,7 +6,7 @@ from sm.synthesiser_json.synthesiser import JsonSynthesiser
 from pathlib import Path
 from typing import Any, Union
 from pydantic import BaseModel
-from sm.library.jsonschema import JsonSchemaClass
+from sm.library.jsonschemaclass import JsonSchemaClass
 
 def synth_func(
     schema_model:Union[BaseModel,JsonSchemaClass],
@@ -32,7 +32,9 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
+    json_schema_flag = False
     if type(schema_model) == JsonSchemaClass:
+        json_schema_flag = True
         synth = JsonSynthesiser(method=method)
     else:
         synth = Synthesiser(method=method)
@@ -51,9 +53,12 @@ def synth_func(
                 front_string = ",\n	"
             else:
                 front_string = ""
-            json_str = json.dumps(
-                data.model_dump(), indent=4, default=lambda v: str(v)
-            )
+            if json_schema_flag:
+                json_str = json.dumps(data, indent=4, default=lambda v: str(v))
+            else:
+                json_str = json.dumps(
+                    data.model_dump(), indent=4, default=lambda v: str(v)
+                )
             flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if str(output).startswith("http"):
                 request_entries.append(data)

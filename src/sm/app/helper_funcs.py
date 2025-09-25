@@ -9,7 +9,7 @@ import json
 from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
-from sm.library.jsonschema import JsonSchemaClass
+from sm.library.jsonschemaclass import JsonSchemaClass
 
 
 def make_json_safe(obj):

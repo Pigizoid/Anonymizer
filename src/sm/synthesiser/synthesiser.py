@@ -467,7 +467,7 @@ class Synthesiser():
 
         if constraints["annotation"] is bytes:
             return_value = constraints["annotation"](str(return_value), "utf-8")
-        else:
+        elif constraints["multiple_of"] is None:
             return_value = constraints["annotation"](return_value)
         # input("wait...")
         # exit()
@@ -770,7 +770,7 @@ class Synthesiser():
                         )
 
                 elif data_type in [Set, set, frozenset]:
-                    output_data = []
+                    output_data = set()
                     current_amount = 0
                     target_amount = random.randint(min_amount, max_amount)
                     if len(data_args) == 0:
@@ -789,7 +789,7 @@ class Synthesiser():
                         set_generate_path = (
                             generate_path + f".{pathstr}({0})[{max_amount}]"
                         )
-                        output_data.append(
+                        output_data.add(
                             self.generate_synth_data(
                                 field_name,
                                 match_name,
