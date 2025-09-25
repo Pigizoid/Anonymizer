@@ -631,11 +631,13 @@ class Synthesiser():
             new_data_type = new_info[0]  # [0] is the data type
             # print(new_data_type)
             constr_constraints = {}
-
             for attr in all_constr_attribs:
-                return_val = getattr(
-                    new_info[1], attr, None
-                )  # [1] is the data constraints
+                for new_inf in new_info[1:]:
+                    return_val = getattr(
+                        new_inf, attr, None
+                    )  # [1:] is the data constraints
+                    if return_val is not None:
+                        break
                 constr_constraints[attr] = return_val
             # print(constr_constraints)
             new_constraints = constr_constraints
