@@ -494,6 +494,10 @@ class Synthesiser():
             value with constraints applied to it
         """
         data_type = constraints["annotation"]
+        if constraints["annotation"] is bytes:
+            return_value = constraints["annotation"](str(return_value), "utf-8")
+        else:
+            return_value = constraints["annotation"](return_value)
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list

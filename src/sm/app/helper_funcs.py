@@ -10,6 +10,8 @@ from typing import Dict, Any, List, Union
 from pathlib import Path
 import os
 from sm.library.jsonschemaclass import JsonSchemaClass
+from jsonschema import validate
+from sm.tools.model_funcs import get_model_fields, get_json_model_fields
 
 
 def make_json_safe(obj):
@@ -178,30 +180,44 @@ def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
     }
     '''
 
-def flatten_loaded_helper(returned_values:Union[list,None],result:list):
-    if returned_values is not None:
-        result_names = [r.__name__ for r in result]
-        for returned_value in returned_values:
-            r_name = returned_value.__name__
-            if r_name not in result_names:
-                result.append(returned_value)
-    return result
 
-def flatten_loaded_schemas(schema_models: Union[Dict,List,BaseModel]) -> List[BaseModel]:
-    result = []
-    if isinstance(schema_models, dict):
-        for value in schema_models.values():
-            returned_values = flatten_loaded_schemas(value)
-            result = flatten_loaded_helper(returned_values,result)
-    elif isinstance(schema_models, list):
-        for item in schema_models:
-            returned_values = flatten_loaded_schemas(item)
-            result = flatten_loaded_helper(returned_values,result)
+def schemas_equal(a, b) -> bool:
+    """Check if two schemas are equivalent by comparing their fields."""
+    if isinstance(a, JsonSchemaClass):
+        fields_a = get_json_model_fields(a).items()
     else:
-        result_names = [r.__name__ for r in result]
-        if schema_models.__name__ not in result_names:
-            result.append(schema_models)
+        fields_a = get_model_fields(a).items()
 
+    if isinstance(b, JsonSchemaClass):
+        fields_b = get_json_model_fields(b).items()
+    else:
+        fields_b = get_model_fields(b).items()
+
+    return fields_a == fields_b
+
+
+def flatten_loaded_schemas(
+    schema_models: Union[Dict, List, BaseModel, JsonSchemaClass]
+) -> List[Any]:
+    result: List[Any] = []
+
+    def _flatten(schema) -> None:
+        if schema is None:
+            return
+        if isinstance(schema, dict):
+            for value in schema.values():
+                _flatten(value)
+        elif isinstance(schema, list):
+            for item in schema:
+                _flatten(item)
+        else:
+            if not any(
+                (r.__name__ == schema.__name__ and schemas_equal(r, schema))
+                for r in result
+            ):
+                result.append(schema)
+
+    _flatten(schema_models)
     return result
 # ----- recursive file loading -----
 
@@ -244,13 +260,25 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
         raise Exception("Unsupported ingest type")
     return data
 
-def find_matching_schema(schema_models,ingest,ingest_path):
+def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],ingest,ingest_path):
     matched_schemas = []
     first_entry = True
     for key,data_entry in ingest.items():
         for schema_model in schema_models:
             try:
-                schema_model(**data_entry)
+                if type(schema_model) == JsonSchemaClass:
+                    if schema_model.fields.keys() == data_entry.keys():
+                        try:
+                            validate(instance=data_entry, schema=schema_model.contents)
+                        except:
+                            validate(instance=data_entry, schema=schema_model.sanitised_contents)
+                    else:
+                        continue
+                else:
+                    if get_model_fields(schema_model).keys() == data_entry.keys():
+                        schema_model(**data_entry)
+                    else:
+                        continue
                 if first_entry == True:
                     matched_schemas.append(schema_model)
                 elif schema_model not in matched_schemas:

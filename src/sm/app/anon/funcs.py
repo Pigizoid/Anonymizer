@@ -1,12 +1,13 @@
 import json
-from sm.app.helper_funcs import load_ingest_data
-from sm.anonymiser.anonymiser import anonymise
+from sm.app.helper_funcs import load_ingest_data, make_json_safe
+from sm.anonymiser import anonymiser, anonymiser_json
 from pydantic import BaseModel
 from typing import Any, Dict, Union
 from pathlib import Path
+from sm.library.jsonschemaclass import JsonSchemaClass
 
 def anon_func(
-    schema_model:BaseModel,
+    schema_model:Union[BaseModel,JsonSchemaClass],
     seed: Union[int,str,None],
     method:str,
     amount:int,
@@ -37,9 +38,16 @@ def anon_func(
         data to the output file and optionally prints output to the screen
     """
     # data comes in as a dict of dicts
-    anonymised_data = anonymise(
-        schema_model, ingest, method, manual, default, fields, amount, seed=seed
-    )
+    json_schema_flag = False
+    if type(schema_model) == JsonSchemaClass:
+        anonymised_data = anonymiser_json.anonymise(
+            schema_model, ingest, method, manual, default, fields, amount, seed=seed
+        )
+        json_schema_flag = True
+    else:
+        anonymised_data = anonymiser.anonymise(
+            schema_model, ingest, method, manual, default, fields, amount, seed=seed
+        )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
 
@@ -52,10 +60,14 @@ def anon_func(
                 print("Output data:")
             flush_list = []
             for idx, x in enumerate(content):
+                if json_schema_flag == True:
+                    output_data = x
+                else:
+                    output_data = x.model_dump()
                 if cout:
                     print(
-                        f"output {str(idx)}{' ' * (10 - len(str(idx)))}{x.model_dump()}"
+                        f"output {str(idx)}{' ' * (10 - len(str(idx)))}{output_data}"
                     )
-                flush_list.append(x.model_dump())
+                flush_list.append(output_data)
             flush_output[index] = flush_list
-        f.write(json.dumps(flush_output, indent=4))
+        f.write(json.dumps(flush_output, indent=4, default= lambda v: make_json_safe(v)))

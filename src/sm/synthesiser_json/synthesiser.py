@@ -269,21 +269,21 @@ class JsonSynthesiser():
                         )
 
                     if constraints["multiple_of"]:
-                        multiple_of = constraints["multiple_of"]
-                        first = ((gt + multiple_of) // multiple_of) * multiple_of
+                        multiple_of = Decimal(str(constraints["multiple_of"]))
+                        first = (Decimal(Decimal(gt) + multiple_of) // multiple_of) * multiple_of
 
                         if data_type is int or (
                             (data_type is float)
                             and constraints["decimal_places"] is None
                         ):
-                            count = (lt - gt) // multiple_of
+                            count = Decimal(lt - gt) // multiple_of
                             if count <= 0:
                                 raise Exception(
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
                                 )
                             try:
                                 data_pool = [
-                                    Decimal(first) + Decimal(idx+1) * Decimal(multiple_of)
+                                    first + Decimal(idx+1) * multiple_of
                                     for idx in range(int(count) - 1)
                                 ]  # count is capped at poling_count
                             except:
@@ -346,8 +346,8 @@ class JsonSynthesiser():
                                         - 1
                                     ):
                                         potential_val = (
-                                            min_scaled + Decimal(x + 1) * scaled_mult
-                                        ) / scale
+                                            Decimal(min_scaled) + Decimal(x + 1) * Decimal(scaled_mult)
+                                        ) / Decimal(scale)
                                         if potential_val == potential_val.quantize(
                                             decimal_precision, rounding=ROUND_HALF_UP
                                         ):
@@ -358,6 +358,7 @@ class JsonSynthesiser():
                                 raise Exception(
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt}) with max decimal digits{decimal_places}."
                                 )
+                            data_pool = [ x.quantize(precision, rounding=ROUND_HALF_UP) for x in data_pool ]       
                     else:
                         if constraints["decimal_places"] is not None:
                             data_pool = [
@@ -491,6 +492,10 @@ class JsonSynthesiser():
             value with constraints applied to it
         """
         data_type = constraints["annotation"]
+        if constraints["annotation"] is bytes:
+            return_value = constraints["annotation"](str(return_value), "utf-8")
+        else:
+            return_value = constraints["annotation"](return_value)
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
@@ -1033,7 +1038,7 @@ class JsonSynthesiser():
 
     def synthesise(
         self, schema_model:JsonSchemaClass, method="faker", amount=1, seed="random"
-    ) -> List[JsonSchemaClass]:
+    ) -> List[Any]:
         """
         The main call function of the synthesiser class
         Inputs:\n
@@ -1082,7 +1087,10 @@ class JsonSynthesiser():
             synthesised_data = self.synthesise_recursive(
                 schema_model, method=method, amount=amount
             )
-            validate(instance=synthesised_data, schema=schema_model.contents)
+            try:
+                validate(instance=synthesised_data, schema=schema_model.contents)
+            except:
+                validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
             dataset.append(synthesised_data)
             if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                 print(

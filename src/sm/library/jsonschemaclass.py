@@ -25,7 +25,7 @@ class JsonSchemaClass:
 
     def __post_init__(self):
         self.__name__ = self.name
-        self.contents = floating_point_sanitize_schema(self.contents)
+        self.sanitised_contents = floating_point_sanitize_schema(self.contents)
         self.required = self.contents["required"]
         self.properties = self.contents["properties"]
         self.fields = copy.deepcopy(self.properties)

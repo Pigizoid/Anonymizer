@@ -1,6 +1,6 @@
 import json
 import time
-from sm.app.helper_funcs import send_batch_to_API
+from sm.app.helper_funcs import send_batch_to_API, make_json_safe
 from sm.synthesiser.synthesiser import Synthesiser
 from sm.synthesiser_json.synthesiser import JsonSynthesiser
 from pathlib import Path
@@ -54,10 +54,10 @@ def synth_func(
             else:
                 front_string = ""
             if json_schema_flag:
-                json_str = json.dumps(data, indent=4, default=lambda v: str(v))
+                json_str = json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
             else:
                 json_str = json.dumps(
-                    data.model_dump(), indent=4, default=lambda v: str(v)
+                    data.model_dump(), indent=4, default=lambda v: make_json_safe(v)
                 )
             flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if str(output).startswith("http"):
