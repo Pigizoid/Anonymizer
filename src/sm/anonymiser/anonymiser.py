@@ -141,7 +141,7 @@ def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[i
         )
 
 
-def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,str]], seed: Union[int,str,None]="random", synth:Synthesiser=None) -> Any:
+def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,str]], seed: Union[int,str,None]="random", synth:Synthesiser=None,key_anon=False) -> Any:
     """
     Recursive method\n
     Inputs:\n
@@ -159,7 +159,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
         if input_data_type in [List, list, Tuple, tuple, Set, set]:
             patch_data = []
             for value in input_data:
-                patch_data.append(anonymise_data(value, anon_methods, seed, synth))
+                patch_data.append(anonymise_data(value, anon_methods, seed, synth, key_anon))
             if input_data_type in [Tuple, tuple]:
                 patch_data = tuple(patch_data)
             elif input_data_type in [Set, set]:
@@ -172,15 +172,16 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
                     if key in anon_methods:  # only filter the specified fields
                         anon_method = (key, anon_methods[key])
                         patch_data[key] = anonymise_data(
-                            value, anon_method, seed, synth
+                            value, anon_method, seed, synth, key_anon
                         )
                     else:
                         patch_data[key] = input_data[key]
             else:
                 anon_method = anon_methods
                 for key, value in input_data.items():
-                    patch_data[key] = anonymise_data(value, anon_method, seed, synth)
-                patch_data = {f"key_{i}":value for i,value in enumerate(list(patch_data.values()))}
+                    patch_data[key] = anonymise_data(value, anon_method, seed, synth, key_anon)
+                if key_anon == True:
+                    patch_data = {f"key_{i}":value for i,value in enumerate(list(patch_data.values()))}
             return_data = patch_data
         else:
             raise Exception(f"Recersive data type| {input_data_type} |not handled")
@@ -191,7 +192,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[BaseModel,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random"
+    schema_model:Union[BaseModel,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False
 ) -> Dict[str, List[BaseModel]]:
     """
     Inputs:\n
@@ -256,6 +257,7 @@ def anonymise(
                     anon_methods=anon_methods,
                     seed=seed,
                     synth=synth,
+                    key_anon=key_anon
                 )
                 for _ in range(amount)
             ]

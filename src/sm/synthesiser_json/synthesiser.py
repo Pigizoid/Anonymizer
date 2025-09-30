@@ -99,6 +99,9 @@ class JsonSynthesiser():
         self.word_tokens = data_set['word_tokens'] # {word: word.split("_") for word in word_list}
         self.word_tokens_set = data_set['word_tokens_set'] # {word: set(word.split("_")) for word in word_list}
         self.resolved_methods = make_resolved_methods(self.word_list, methods_map)
+        self.defs = {}
+        self.applied_constraints = {}
+        self.field_match_pairs = {}
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
@@ -492,10 +495,6 @@ class JsonSynthesiser():
             value with constraints applied to it
         """
         data_type = constraints["annotation"]
-        if constraints["annotation"] is bytes:
-            return_value = constraints["annotation"](str(return_value), "utf-8")
-        else:
-            return_value = constraints["annotation"](return_value)
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
@@ -944,6 +943,8 @@ class JsonSynthesiser():
         Outputs:\n
             field match pairs = {schema name: {field name: match name}}
         """
+        if self.defs == {}:
+            self.defs = schema_model.defs
         if field_match_pairs is None:
             field_match_pairs = {}
         # in body not in function, because default collections are stored in memory not by instance
@@ -960,6 +961,10 @@ class JsonSynthesiser():
             ):
                 # print(data_type.__name__, field_match_pairs.keys())
                 ref_name = x[1]["$ref"].split("/")[-1]
+                if ref_name not in self.defs:
+                    raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                if self.defs == {}:
+                    raise Exception("Synthesiser .defs have not been defined")
                 field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
         return field_match_pairs
 
@@ -978,6 +983,8 @@ class JsonSynthesiser():
             }
         Recursive function to get applied constraint of input schema and all nested schemas\n
         """
+        if self.defs == {}:
+            self.defs = schema_model.defs
         applied_constraints = {}
         model_data = get_json_model_data(schema_model)
 
@@ -992,6 +999,10 @@ class JsonSynthesiser():
                 and data_type.__name__ not in applied_constraints.keys()
             ):
                 ref_name = x[1]["$ref"].split("/")[-1]
+                if ref_name not in self.defs:
+                    raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                if self.defs == {}:
+                    raise Exception("Synthesiser .defs have not been defined")
                 applied_constraints.update(
                     self.recursive_get_applied_constraints(self.defs[ref_name])
                 )
@@ -1015,6 +1026,10 @@ class JsonSynthesiser():
             synthesised data = 
             {field name: content}
         """
+        if self.field_match_pairs == {}:
+            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+        if self.applied_constraints == {}:
+            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
@@ -1038,7 +1053,7 @@ class JsonSynthesiser():
 
     def synthesise(
         self, schema_model:JsonSchemaClass, method="faker", amount=1, seed="random"
-    ) -> List[Any]:
+    ) -> List[Dict[str,Any]]:
         """
         The main call function of the synthesiser class
         Inputs:\n

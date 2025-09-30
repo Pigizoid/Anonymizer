@@ -17,7 +17,8 @@ def anon_func(
     manual:bool,
     default:str,
     fields:Dict[str,str],
-    output:Path
+    output:Path,
+    key_anon:bool
 ):
     """
     Inputs:\n
@@ -41,12 +42,12 @@ def anon_func(
     json_schema_flag = False
     if type(schema_model) == JsonSchemaClass:
         anonymised_data = anonymiser_json.anonymise(
-            schema_model, ingest, method, manual, default, fields, amount, seed=seed
+            schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon
         )
         json_schema_flag = True
     else:
         anonymised_data = anonymiser.anonymise(
-            schema_model, ingest, method, manual, default, fields, amount, seed=seed
+            schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon
         )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }

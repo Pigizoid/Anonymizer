@@ -27,6 +27,7 @@ field_sets = [
     {"foo":"default", "bar":"default", "zar":"default"},
 ]
 amounts = [1, 5, 10]
+key_anons = [True,False]
 
 input_sets = []
 for method in methods:
@@ -34,11 +35,12 @@ for method in methods:
         for default in defaults:
             for fields in field_sets:
                 for amount in amounts:
-                    input_sets.append((schema_model,input_data,method,manual,default,fields,amount,0))
-@pytest.mark.parametrize("schema_model, data, method, manual, default, fields, amount, seed",input_sets)
-def test_anonymise(schema_model, data, method, manual, default, fields, amount, seed):
+                    for key_anon in key_anons:
+                        input_sets.append((schema_model,input_data,method,manual,default,fields,amount,0,key_anon))
+@pytest.mark.parametrize("schema_model, data, method, manual, default, fields, amount, seed, key_anon",input_sets)
+def test_anonymise(schema_model, data, method, manual, default, fields, amount, seed, key_anon):
     print(fields)
-    return_data = anonymise(schema_model, data, method, manual, default, fields, amount, seed=seed)
+    return_data = anonymise(schema_model, data, method, manual, default, fields, amount, seed=seed, key_anon=key_anon)
     assert isinstance(return_data,dict)
 
 
@@ -119,6 +121,8 @@ anon_methods = ["perturb" for _ in range(len(input_data))]
 
 def test_anonymise_data_perturb():
     return_data = anonymise_data(input_data, anon_methods, 0)
+    print(input_data)
+    print(return_data)
     assert type(return_data["field_0"]) is type(input_data["field_0"])
     assert type(return_data["field_1"]) is type(input_data["field_1"])
     assert type(return_data["field_2"]) is type(input_data["field_2"])

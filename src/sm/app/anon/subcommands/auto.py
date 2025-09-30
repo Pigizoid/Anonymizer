@@ -37,6 +37,7 @@ def anon_auto_func(schema_model,output_file_path,ingest,flags):
         anon_flags.default,
         anon_flags.fields,
         output_file_path,
+        anon_flags.key_anon
     )
 
     close_folder(output_file_path)
@@ -51,6 +52,7 @@ def anon_auto_command(
     amount: int = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
     default: str = "mask",
+    key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
 ):
     """
     A subcommand for the anon command\n

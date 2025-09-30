@@ -34,44 +34,25 @@ def make_one_decimal(x:int, decimal_precision:float, min_scaled:float, scaled_mu
     else:
         return None
 
-def field_attr_map(attr):
-    if attr == "strip_whitespace":
-        return_attr = None
-    elif attr == "to_upper":
-        return_attr = None
-    elif attr == "to_lower":
-        return_attr = None
-    elif attr == "strict":
-        return_attr = None
-    elif attr == "default":
-        return_attr = ["default"]
-    elif attr == "annotation":
-        return_attr = ["type"]
-    elif attr == "min_length":
-        return_attr = ["minLength","minProperties","minItems"]
-    elif attr == "max_length":
-        return_attr = ["maxLength","maxProperties","maxItems"]
-    elif attr == "pattern":
-        return_attr = ["pattern"]
-    elif attr == "gt":
-        return_attr = ["exclusiveMinimum"]
-    elif attr == "lt":
-        return_attr = ["exclusiveMaximum"]
-    elif attr == "ge":
-        return_attr = ["minimum"]
-    elif attr == "le":
-        return_attr = ["maximum"]
-    elif attr == "multiple_of":
-        return_attr = ["multipleOf"]
-    elif attr == "allow_inf_nan":
-        return_attr = None
-    elif attr == "max_digits":
-        return_attr = None
-    elif attr == "decimal_places":
-        return_attr = None
-    else:
-        return_attr = None
-    return return_attr
+field_attr_map = {
+    "strip_whitespace":None,
+    "to_upper":None,
+    "to_lower":None,
+    "strict":None,
+    "default":["default"],
+    "annotation":["type"],
+    "min_length":["minLength","minProperties","minItems"],
+    "max_length":["maxLength","maxProperties","maxItems"],
+    "pattern":["pattern"],
+    "gt":["exclusiveMinimum"],
+    "lt":["exclusiveMaximum"],
+    "ge":["minimum"],
+    "le":["maximum"],
+    "multiple_of":["multipleOf"],
+    "allow_inf_nan":None,
+    "max_digits":None,
+    "decimal_places":None
+}
 
 def check_generation_constraints(name:str, field:dict) -> Dict[str, Any]:
     """
@@ -97,8 +78,7 @@ def check_generation_constraints(name:str, field:dict) -> Dict[str, Any]:
         constraints["required"] = field["required"]
     else:
         constraints["required"] = True
-    for attr in all_constr_attribs:
-        map_attr = field_attr_map(attr)
+    for attr,map_attr in field_attr_map.items():
         if map_attr != None:
             for m_attr in map_attr:
                 if m_attr in field:

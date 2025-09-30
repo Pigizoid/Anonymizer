@@ -494,10 +494,6 @@ class Synthesiser():
             value with constraints applied to it
         """
         data_type = constraints["annotation"]
-        if constraints["annotation"] is bytes:
-            return_value = constraints["annotation"](str(return_value), "utf-8")
-        else:
-            return_value = constraints["annotation"](return_value)
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
@@ -963,6 +959,10 @@ class Synthesiser():
             synthesised data = 
             {field name: content}
         """
+        if self.field_match_pairs == {}:
+            self.field_match_pairs = recursive_match_fields(schema_model,method)
+        if self.applied_constraints == {}:
+            self.applied_constraints = recursive_get_applied_constraints(schema_model)
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")

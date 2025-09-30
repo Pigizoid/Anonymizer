@@ -16,6 +16,7 @@
     cout: true
     manual: false
     default: "mask"
+    key_anon: false
     fields:
       name: default
       email: default

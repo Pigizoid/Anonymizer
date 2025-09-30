@@ -29,6 +29,7 @@ field_tests = [
     {"name": "perturb"},
     {"name": "synth"},
 ]
+key_anons = [True,False]
 
 test_list = []
 for fields in field_tests:
@@ -36,25 +37,27 @@ for fields in field_tests:
         for manual in manuals:
             for amount in amounts:
                 for method in methods:
-                    test_list.append(
-                        (
-                            schema_model,
-                            seed,
-                            method,
-                            amount,
-                            start_index,
-                            ingest,
-                            cout,
-                            manual,
-                            default,
-                            fields,
-                            output,
+                    for key_anon in key_anons:
+                        test_list.append(
+                            (
+                                schema_model,
+                                seed,
+                                method,
+                                amount,
+                                start_index,
+                                ingest,
+                                cout,
+                                manual,
+                                default,
+                                fields,
+                                output,
+                                key_anon
+                            )
                         )
-                    )
 
 
 @pytest.mark.parametrize(
-    "schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output",
+    "schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output, key_anon",
     test_list,
 )
 def test_anon_func(
@@ -69,6 +72,7 @@ def test_anon_func(
     default,
     fields,
     output,
+    key_anon
 ):
     print("CWD:", os.getcwd())
     print("Looking for:", os.path.abspath(f"{output}.json"))
@@ -86,6 +90,7 @@ def test_anon_func(
         default,
         fields,
         output,
+        key_anon
     )
     with open(f"{output}.json", "r") as f:
         assert len(f.readlines()) != 0

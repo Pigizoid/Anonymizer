@@ -15,31 +15,27 @@ Anonymizer
 |  |  \
 |  |  |anonymiser
 |  |  |  \
-|  |  |  |handling
-|  |  |  |  \
-|  |  |  |  |data_handling.py
-|  |  |  |  |model_handling.py
-|  |  |  |
+|  |  |  |anonymiser_json.py
 |  |  |  |anonymiser.py
 |  |  |
 |  |  |synthesiser
 |  |  |  \
-|  |  |  |field_match
+|  |  |  |helper_funcs
 |  |  |  |  \
-|  |  |  |  |calc_difference.py
-|  |  |  |  |match.py
+|  |  |  |  |constraints.py
+|  |  |  |  |matching_fields.py
+|  |  |  |  |provider_methods.py
 |  |  |  |
-|  |  |  |generator
+|  |  |  |synthesiser.py
+|  |  |
+|  |  |synthesiser_json
+|  |  |  \
+|  |  |  |helper_funcs
 |  |  |  |  \
-|  |  |  |  |constraint_based_generator.py
-|  |  |  |  |synth_based_generator.py
+|  |  |  |  |constraints.py
+|  |  |  |  |matching_fields.py
+|  |  |  |  |provider_methods.py
 |  |  |  |
-|  |  |  |initialiser
-|  |  |  |  \
-|  |  |  |  |get_constraints.py
-|  |  |  |  |match_methods.py
-|  |  |  |
-|  |  |  |misc.py
 |  |  |  |synthesiser.py
 |  |  |
 |  |  |app
@@ -64,6 +60,14 @@ Anonymizer
 |  |  |  |  |funcs.py
 |  |  |  |  |main.py
 |  |  |  |
+|  |  |  |extras
+|  |  |  |  \
+|  |  |  |  |subcommands
+|  |  |  |  |  \
+|  |  |  |  |  |json_converter.py
+|  |  |  |  |
+|  |  |  |  |main.py
+|  |  |  |
 |  |  |  |helper_funcs.py
 |  |  |  |main.py
 |  |  |  |models.py
@@ -71,6 +75,7 @@ Anonymizer
 |  |  |library
 |  |  |  \
 |  |  |  |dataclass.py
+|  |  |  |jsonschemaclass.py
 |  |  |
 |  |  |tools
 |  |  |  \
@@ -81,10 +86,10 @@ Anonymizer
 |  |  |  |  |regex_sre_parse.py
 |  |  |  |
 |  |  |  |model_funcs.py
+|  |  |  |schema_format_converter.py
 |  |  |
 |  |  |pre_made_data_creator.py
 |  |  |pre_made_data.py
-|  |  |main(old).py
 |
 |tests
 |  \
@@ -100,23 +105,55 @@ Anonymizer
 |  |
 |  |test_synthesiser_folder
 |  |  \
-|  |  |test_field_match
+|  |  |test_helper_funcs
 |  |  |  \
-|  |  |  |test_calc_difference.py
-|  |  |  |test_match.py
+|  |  |  |models.py
+|  |  |  |test_constraints.py
+|  |  |  |test_matching_fields.py
+|  |  |  |test_provider_methods.py
 |  |  |
-|  |  |test_generator
-|  |  |  \
-|  |  |  |test_constraint_based_generator.py
-|  |  |  |test_synth_based_generator.py
-|  |  |
-|  |  |test_initialiser
-|  |  |  \
-|  |  |  |test_get_constraints.py
-|  |  |  |test_match_methods.py
-|  |  |
-|  |  |test_misc.py
 |  |  |test_synthesiser.py
+|  |
+|  |test_synthesiser_json_folder
+|  |  \
+|  |  |test_helper_funcs
+|  |  |  \
+|  |  |  |models.py
+|  |  |  |test_constraints.py
+|  |  |  |test_matching_fields.py
+|  |  |  |test_provider_methods.py
+|  |  |
+|  |  |test_synthesiser.py
+|  |
+|  |test_app
+|  |  \
+|  |  |test_anon
+|  |  |  \
+|  |  |  |test_subcommands
+|  |  |  |  \
+|  |  |  |  |test_auto.py
+|  |  |  |  |test_manual.py
+|  |  |  |
+|  |  |  |test_funcs.py
+|  |  |  |test_main.py
+|  |  |
+|  |  |test_synth
+|  |  |  \
+|  |  |  |test_subcommands
+|  |  |  |  \
+|  |  |  |  |test_batch.py
+|  |  |  |  |test_single.py
+|  |  |  |
+|  |  |  |test_funcs.py
+|  |  |  |test_main.py
+|  |  |
+|  |  |test_helper_funcs.py
+|  |  |test_main.py
+|  |  |test_models.py
+|  |
+|  |test_library
+|  |  \
+|  |  |test_dataclass.py
 |
 |.gitignore
 |.python-version

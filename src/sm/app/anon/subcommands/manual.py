@@ -39,6 +39,7 @@ def anon_manual_func(schema_model,output_file_path,ingest,flags):
         anon_flags.default,
         anon_flags.fields,
         output_file_path,
+        anon_flags.key_anon
     )
 
     close_folder(output_file_path)
@@ -54,6 +55,7 @@ def anon_manual_command(
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
     default: Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
+    key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
 ):
     """
     A subcommand for the anon command\n

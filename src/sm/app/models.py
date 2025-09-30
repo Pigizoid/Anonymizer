@@ -23,6 +23,7 @@ class AnonymiserConfig(BaseModel):
     manual: bool = False
     default: typing.Literal["mask", "synth", "perturb"] = "mask"
     fields: typing.Dict[str, str] = {}
+    key_anon: bool = False
 
 
 class Settings(BaseSettings):

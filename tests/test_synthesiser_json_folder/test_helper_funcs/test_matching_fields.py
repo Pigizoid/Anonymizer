@@ -3,8 +3,9 @@ import pytest
 from faker import Faker
 fake = Faker()
 from src.sm.pre_made_data import provider_methods
-from src.sm.synthesiser.helper_funcs.matching_fields import levenshtein_distance, calc_difference, match_fields, recursive_match_fields
-from tests.test_synthesiser_folder.test_helper_funcs.models import test_Address_4
+from src.sm.synthesiser_json.helper_funcs.matching_fields import levenshtein_distance, calc_difference, match_fields
+
+
 
 
 test_word_num = 10
@@ -92,7 +93,6 @@ def test_calc_difference_alternate_abbreviation():
     assert value == 0
 
 
-
 field_names_1 = ["street", "city"]
 
 
@@ -125,22 +125,3 @@ def test_match_fields_alternate_methods(method, expected):
     )
 
 
-
-def test_recursive_match_fields():
-    return_data = recursive_match_fields(test_Address_4, "mixed")
-    assert isinstance(return_data, dict)
-    assert all([isinstance(x, dict) for x in return_data.values()])
-    assert "test_Address_4" in return_data
-    assert "test_Address_3" in return_data
-    assert list(return_data["test_Address_4"].keys()) == [
-        "name",
-        "phone_number",
-        "social_security_number",
-        "extra",
-    ]
-    assert list(return_data["test_Address_3"].keys()) == [
-        "street",
-        "city",
-        "social_security_number",
-        "continent",
-    ]

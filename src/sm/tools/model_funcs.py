@@ -56,10 +56,12 @@ def infer_json_type(property:Dict[str,Any]):
             if "uniqueItems" in property and property["uniqueItems"] == True:
                 return set
             else:
-                if isinstance(property["items"],list):
+                if "prefixItems" in property:
                     return tuple
-                else:
-                    return list
+                elif "items" in property:
+                    if isinstance(property["items"],list):
+                        return tuple
+                return list
         elif data_type == "number":
             return float
         elif data_type == "integer":
@@ -86,6 +88,8 @@ def infer_json_args(property:Dict[str,Any]):
         return property
     if "enum" in property:
         data_args = [p for p in property["enum"]]
+    elif "prefixItems" in property:
+        data_args = property["prefixItems"]
     elif "items" in property:
         data_args = [property["items"]]
     elif "anyOf" in property:
