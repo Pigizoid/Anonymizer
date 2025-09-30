@@ -4,7 +4,7 @@ import os
 import json
 
 from tests.schema import test_user as schema_model
-from src.sm.app.anon.funcs import anon_func
+from src.smoke_mirrors.app.anon.funcs import anon_func
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]

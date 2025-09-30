@@ -1,7 +1,7 @@
 import pytest
 import pathlib
 import os
-from src.sm.app.main import app
+from src.smoke_mirrors.app.main import app
 
 from typer.testing import CliRunner
 

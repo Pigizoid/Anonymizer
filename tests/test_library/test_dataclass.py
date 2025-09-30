@@ -1,6 +1,6 @@
 
-from src.sm.library.dataclass import AnonField,SynthField
-from src.sm.tools.model_funcs import get_model_fields
+from src.smoke_mirrors.library.dataclass import AnonField,SynthField
+from src.smoke_mirrors.tools.model_funcs import get_model_fields
 from tests.schema import test_user
 import pytest
 

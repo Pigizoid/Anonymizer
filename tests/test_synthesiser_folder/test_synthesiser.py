@@ -1,16 +1,16 @@
-from src.sm.synthesiser.synthesiser import Synthesiser
+from src.smoke_mirrors.synthesiser.synthesiser import Synthesiser
 
 import pytest
 import re
-from src.sm.pre_made_data import default_constr_dict
+from src.smoke_mirrors.pre_made_data import default_constr_dict
 from faker import Faker
 
 from pydantic import BaseModel
 
-from src.sm.tools.model_funcs import get_model_fields
-from src.sm.synthesiser.helper_funcs.matching_fields import recursive_match_fields
-from src.sm.synthesiser.helper_funcs.constraints import recursive_get_applied_constraints
-from src.sm.synthesiser.synthesiser import print_path
+from src.smoke_mirrors.tools.model_funcs import get_model_fields
+from src.smoke_mirrors.synthesiser.helper_funcs.matching_fields import recursive_match_fields
+from src.smoke_mirrors.synthesiser.helper_funcs.constraints import recursive_get_applied_constraints
+from src.smoke_mirrors.synthesiser.synthesiser import print_path
 
 from tests.test_synthesiser_folder.test_helper_funcs.models import generate_test1
 
@@ -49,7 +49,8 @@ def test_synthesise_recursive_dict():
 
 
 def test_progress_prints(capsys):
-    synth.synthesise(User, amount=5)
+    synthp = Synthesiser(cout=True)
+    synthp.synthesise(User, amount=5)
     captured = capsys.readouterr()
     assert "Completed:" in captured.out
 

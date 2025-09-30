@@ -1,4 +1,4 @@
-from sm.library.jsonschemaclass import JsonSchemaClass
+from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 
 
 test_Address = JsonSchemaClass("test_Address",{

@@ -11,7 +11,7 @@ Anonymizer
 |
 |src
 |  \
-|  |sm
+|  |smoke_mirrors
 |  |  \
 |  |  |anonymiser
 |  |  |  \

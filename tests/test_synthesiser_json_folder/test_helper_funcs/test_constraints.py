@@ -4,9 +4,9 @@ from pydantic import BaseModel, Field, constr
 from typing import Dict, Annotated, List, Union, Literal, Tuple, Set
 from decimal import Decimal
 
-from src.sm.pre_made_data import all_constr_attribs, default_constr_dict
-from src.sm.tools.model_funcs import get_json_model_fields
-from src.sm.synthesiser_json.helper_funcs.constraints import make_one_string, make_one_decimal, check_generation_constraints, make_new_contraints, get_applied_constraints
+from src.smoke_mirrors.pre_made_data import all_constr_attribs, default_constr_dict
+from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
+from src.smoke_mirrors.synthesiser_json.helper_funcs.constraints import make_one_string, make_one_decimal, check_generation_constraints, make_new_contraints, get_applied_constraints
 
 from tests.test_synthesiser_json_folder.test_helper_funcs.models import test_Address, test_Address_2, Constraints, ConstraintsNested, Constraints6
 

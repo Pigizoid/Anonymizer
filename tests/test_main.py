@@ -1,7 +1,7 @@
 # test_main.py
 
 '''
-from src.sm.main import app
+from src.smoke_mirrors.main import app
 
 
 from typer.testing import CliRunner

@@ -1,8 +1,8 @@
 import pytest
 from pydantic import BaseModel
-from src.sm.synthesiser.synthesiser import Synthesiser
-from src.sm.anonymiser.anonymiser import anonymise, subset_model, new_model, mask_value, perturb_value, anonymise_value, anonymise_data
-from src.sm.tools.model_funcs import get_model_fields
+from src.smoke_mirrors.synthesiser.synthesiser import Synthesiser
+from src.smoke_mirrors.anonymiser.anonymiser import anonymise, subset_model, new_model, mask_value, perturb_value, anonymise_value, anonymise_data
+from src.smoke_mirrors.tools.model_funcs import get_model_fields
 
 
 class schema_model(BaseModel):

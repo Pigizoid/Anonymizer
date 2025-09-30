@@ -2,15 +2,15 @@ if __name__ == "__main__":
     import os,sys,pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 
-from src.sm.synthesiser_json.synthesiser import JsonSynthesiser
+from src.smoke_mirrors.synthesiser_json.synthesiser import JsonSynthesiser
 
 import pytest
 import re
-from src.sm.pre_made_data import default_constr_dict, all_constr_attribs
+from src.smoke_mirrors.pre_made_data import default_constr_dict, all_constr_attribs
 from faker import Faker
 
-from src.sm.tools.model_funcs import get_json_model_fields
-from src.sm.synthesiser_json.synthesiser import print_path
+from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
+from src.smoke_mirrors.synthesiser_json.synthesiser import print_path
 
 from tests.test_synthesiser_json_folder.test_helper_funcs.models import Constraints, ConstraintsNested, test_Address_4, generate_test1, User
 from jsonschema import validate
@@ -49,7 +49,7 @@ def test_synthesise_recursive_dict():
 
 
 def test_progress_prints(capsys):
-    synth = JsonSynthesiser()
+    synth = JsonSynthesiser(cout=True)
     synth.synthesise(User, amount=5)
     captured = capsys.readouterr()
     assert "Completed:" in captured.out

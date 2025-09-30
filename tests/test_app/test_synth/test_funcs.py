@@ -3,7 +3,7 @@ import pathlib
 import os
 
 from tests.schema import test_user as schema_model
-from src.sm.app.synth.funcs import synth_func
+from src.smoke_mirrors.app.synth.funcs import synth_func
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]

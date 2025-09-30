@@ -1,6 +1,6 @@
 import os
 import pathlib
-from src.sm.app.main import app
+from src.smoke_mirrors.app.main import app
 from typer.testing import CliRunner
 
 runner = CliRunner()

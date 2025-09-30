@@ -2,8 +2,8 @@ import pytest
 
 from faker import Faker
 fake = Faker()
-from src.sm.pre_made_data import provider_methods
-from src.sm.synthesiser.helper_funcs.matching_fields import levenshtein_distance, calc_difference, match_fields, recursive_match_fields
+from src.smoke_mirrors.pre_made_data import provider_methods
+from src.smoke_mirrors.synthesiser.helper_funcs.matching_fields import levenshtein_distance, calc_difference, match_fields, recursive_match_fields
 from tests.test_synthesiser_folder.test_helper_funcs.models import test_Address_4
 
 

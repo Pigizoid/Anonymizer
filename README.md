@@ -11,32 +11,15 @@ TODO
 
 ## Environment and Installation
 Python v3.12+ <br/>
-Start by [installing](https://pipx.pypa.io/stable/installation/) pipx if you havent yet already <br/>
-`py -m pip install --user pipx` <br/>
-Follow installation instructions to get pipx on the appropriate environment path <br/>
-<br/>
-Install poetry using pipx <br/>
-`pipx install poetry` <br/>
-<br/>
-To install and set up packages run `poetry install` in application root 
-<br/>
-To optionally install testing environment use `poetry install --with test` <br/>
-<br/>
-If any errors occur try running `poetry sync`<br/>
+uv pip install smoke-mirrors
+uv pip install -e . --system
 
-
-TODO
 
 
 # System Components
-TODO
+
 ## Packages:
-Using pip v25.1.1+ <br/>
-<br/>
-Pytest v8.4.1 <br/>
-Pydantic v2.11.7 <br/>
-Pandas v2.3.1 <br/>
-<br/>
+
 
 # Usage
 ```example():```
@@ -45,7 +28,3 @@ Pandas v2.3.1 <br/>
   <img src="./img/test.png" alt="Test image" width="500">
 </p>
 
-purpose
-scope
-minimal
-feature description
