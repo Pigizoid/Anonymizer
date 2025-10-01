@@ -987,7 +987,7 @@ class Synthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:BaseModel, method="faker", amount=1, seed="random", cout=False
+        self, schema_model:BaseModel, method=None, amount=1, seed="random", cout=False
     ) -> List[BaseModel]:
         """
         The main call function of the synthesiser class
@@ -1027,8 +1027,10 @@ class Synthesiser():
                 self.seed = random.randint(0, 1_000_000_000_000)
                 random.seed(seed)
         """
-
-        self.method = method
+        if method != None:
+            self.method = method
+        else:
+            method = self.method
 
         self.field_match_pairs = recursive_match_fields(schema_model,method)
         self.applied_constraints = recursive_get_applied_constraints(schema_model)

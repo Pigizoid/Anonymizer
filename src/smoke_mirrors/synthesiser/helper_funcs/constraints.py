@@ -4,7 +4,7 @@ import exrex
 from pydantic import BaseModel, Field
 import inspect
 from smoke_mirrors.pre_made_data import all_constr_attribs, default_constr_dict
-from smoke_mirrors.tools.model_funcs import get_model_data, get_model_fields
+from smoke_mirrors.tools.model_funcs import get_model_data, get_model_fields, is_model, flatten_types
 
 
 def make_one_string(pattern):
@@ -123,13 +123,11 @@ def recursive_get_applied_constraints(
 
     for x in model_data:
         data_type = x[1].annotation
-        if (
-            inspect.isclass(data_type)
-            and issubclass(data_type, BaseModel)
-            and data_type.__name__ not in applied_constraints.keys()
-        ):
-            applied_constraints.update(
-                recursive_get_applied_constraints(data_type)
-            )
+        nested_types = [ft for ft in list(flatten_types(data_type)) if is_model(ft)]
+        for nt in nested_types:
+            if nt.__name__ not in applied_constraints.keys():
+                applied_constraints.update(
+                    recursive_get_applied_constraints(nt)
+                )
 
     return applied_constraints

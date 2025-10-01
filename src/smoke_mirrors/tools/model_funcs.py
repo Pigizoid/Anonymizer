@@ -1,10 +1,54 @@
 from pydantic import BaseModel
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from pydantic.fields import FieldInfo
-from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal
+from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal, Generator, get_origin, get_args
+import inspect
 
 ModelLike = Union[Type[BaseModel], BaseModel]
 
+def flatten_types(t) -> Generator[type, None, None]:
+    origin = get_origin(t)
+    args = get_args(t)
+
+    if origin is Union:
+        for arg in args:
+            if arg is not type(None):
+                yield from flatten_types(arg)
+    elif origin is not None:
+        for arg in args:
+            yield from flatten_types(arg)
+    else:
+        yield t
+
+def is_model(t):
+    return inspect.isclass(t) and issubclass(t, BaseModel)
+
+
+def flatten_json_types(property: dict) -> Generator[type, None, None]:
+    """
+    Recursively yield all base types from a JSON Schema property.
+    Handles anyOf, oneOf, allOf, items, prefixItems, enum, const, etc.
+    """
+    base_type = infer_json_type(property)
+    args = infer_json_args(property)
+
+    if base_type is Union:
+        for arg in args:
+            yield from flatten_json_types(arg)
+    elif base_type in (list, tuple, set):
+        for arg in args:
+            yield from flatten_json_types(arg)
+    elif base_type is JsonSchemaClass:
+        yield property
+    elif base_type is Literal:
+        for val in args:
+            yield type(val)
+    else:
+        yield base_type
+
+def is_json_model(t):
+    return (infer_json_type(t) is JsonSchemaClass)
+    
 
 def get_model_fields(schema_model: ModelLike) -> Dict[str, Any]:
     if isinstance(schema_model, type) and issubclass(schema_model, BaseModel):
@@ -115,6 +159,7 @@ def infer_json_args(property:Dict[str,Any]):
     else:
         data_args = []
     return data_args
+
 
 '''
 {

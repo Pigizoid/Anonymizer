@@ -1,8 +1,8 @@
-from typing import Dict, List, Set
+from typing import Dict, Union, List, Set, get_args, get_origin
 from pydantic import BaseModel
 import inspect
 from smoke_mirrors.pre_made_data import provider_methods
-from smoke_mirrors.tools.model_funcs import get_model_data
+from smoke_mirrors.tools.model_funcs import get_model_data, flatten_types, is_model
 
 def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
     """
@@ -204,11 +204,8 @@ def recursive_match_fields(schema_model:BaseModel, method, field_match_pairs:Dic
         field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
     for x in model_data:
         data_type = x[1].annotation
-        if (
-            inspect.isclass(data_type)
-            and issubclass(data_type, BaseModel)
-            and data_type.__name__ not in field_match_pairs.keys()
-        ):
-            # print(data_type.__name__, field_match_pairs.keys())
-            field_match_pairs.update(recursive_match_fields(data_type,method))
+        nested_types = [ft for ft in list(flatten_types(data_type)) if is_model(ft)]
+        for nt in nested_types:
+            if nt.__name__ not in field_match_pairs.keys():
+                field_match_pairs.update(recursive_match_fields(nt,method))
     return field_match_pairs

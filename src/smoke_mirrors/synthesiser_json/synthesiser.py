@@ -12,7 +12,7 @@ from typing import (
 from smoke_mirrors.synthesiser_json.helper_funcs.constraints import make_one_string, make_one_decimal, make_new_contraints, get_applied_constraints, check_generation_constraints
 from smoke_mirrors.synthesiser_json.helper_funcs.matching_fields import match_fields
 from smoke_mirrors.synthesiser_json.helper_funcs.provider_methods import list_match_methods, make_resolved_methods
-from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args
+from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder
 from collections import deque
@@ -956,18 +956,16 @@ class JsonSynthesiser():
         if schema_model.__name__ not in field_match_pairs.keys():
             field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
         for x in model_data:
-            data_type = infer_json_type(x[1])
-            if (
-                data_type is JsonSchemaClass
-                and data_type.__name__ not in field_match_pairs.keys()
-            ):
-                # print(data_type.__name__, field_match_pairs.keys())
-                ref_name = x[1]["$ref"].split("/")[-1]
-                if ref_name not in self.defs:
-                    raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
-                if self.defs == {}:
-                    raise Exception("Synthesiser .defs have not been defined")
-                field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
+            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            for nt in nested_types:
+                ref_name = nt["$ref"].split("/")[-1]
+                if ref_name not in field_match_pairs.keys():
+                    # print(data_type.__name__, field_match_pairs.keys())
+                    if ref_name not in self.defs:
+                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                    if self.defs == {}:
+                        raise Exception("Synthesiser .defs have not been defined")
+                    field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
         return field_match_pairs
 
     def recursive_get_applied_constraints(
@@ -995,19 +993,17 @@ class JsonSynthesiser():
         )
 
         for x in model_data:
-            data_type = infer_json_type(x[1])
-            if (
-                data_type is JsonSchemaClass
-                and data_type.__name__ not in applied_constraints.keys()
-            ):
-                ref_name = x[1]["$ref"].split("/")[-1]
-                if ref_name not in self.defs:
-                    raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
-                if self.defs == {}:
-                    raise Exception("Synthesiser .defs have not been defined")
-                applied_constraints.update(
-                    self.recursive_get_applied_constraints(self.defs[ref_name])
-                )
+            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            for nt in nested_types:
+                ref_name = nt["$ref"].split("/")[-1]
+                if ref_name not in applied_constraints.keys():
+                    if ref_name not in self.defs:
+                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                    if self.defs == {}:
+                        raise Exception("Synthesiser .defs have not been defined")
+                    applied_constraints.update(
+                        self.recursive_get_applied_constraints(self.defs[ref_name])
+                    )
         return applied_constraints
     # ----- recursive functions -----
 
@@ -1054,7 +1050,7 @@ class JsonSynthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:JsonSchemaClass, method="faker", amount=1, seed="random",cout=False
+        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",cout=False
     ) -> List[Dict[str,Any]]:
         """
         The main call function of the synthesiser class
@@ -1068,6 +1064,10 @@ class JsonSynthesiser():
             list of pydantic BaseModel with synthesised data
             [BaseModel]*amount
         """
+        if isinstance(schema_model,dict):
+            if "title" not in schema_model:
+                raise Exception("JSON schema must have a title")
+            schema_model = JsonSchemaClass(schema_model["title"],schema_model)
         if cout:
             self.cout = cout
         if amount == 0:
@@ -1095,7 +1095,10 @@ class JsonSynthesiser():
                 random.seed(seed)
         """
         self.defs = schema_model.defs
-        self.method = method
+        if method != None:
+            self.method = method
+        else:
+            method = self.method
 
         self.field_match_pairs = self.recursive_match_fields(schema_model,method)
         self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
