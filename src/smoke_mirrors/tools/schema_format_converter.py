@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 import json
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from pathlib import Path
 def convert_to_JSON(schema_model:BaseModel):
     if isinstance(schema_model, type) and issubclass(schema_model, BaseModel):
         JSON_schema = schema_model.model_json_schema()
+    elif isinstance(schema_model,JsonSchemaClass):
+        JSON_schema = schema_model.contents
     else:
         raise Exception("Unhandled schema type")
     return JSON_schema

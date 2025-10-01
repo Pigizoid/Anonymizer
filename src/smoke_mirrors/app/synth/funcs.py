@@ -47,11 +47,11 @@ def synth_func(
             else:
                 front_string = ""
             json_str = json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
-            flush.append(f'{front_string}"{index + start_index}": {json_str}')
+            flush.append(json_str)
             if str(output).startswith("http"):
                 request_entries.append(data)
         else:
-            flush.append(f"{index + 1 + start_index}: {data}")
+            flush.append(data)
     if output is not None:
         if str(output).startswith("http"):
             send_batch_to_API(schema_model, output, request_entries)

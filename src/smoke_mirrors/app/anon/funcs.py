@@ -44,9 +44,9 @@ def anon_func(
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
 
-    flush_output = {}
+    flush_output = []
     with open(f"{output}.json", "a") as f:
-        for index, content in anonymised_data.items():
+        for index,content in anonymised_data.items():
             if cout:
                 print("-" * 60)
                 print(f"Input data:\n\t{ingest[index]}")
@@ -59,5 +59,5 @@ def anon_func(
                         f"output {str(idx)}{' ' * (10 - len(str(idx)))}{output_data}"
                     )
                 flush_list.append(output_data)
-            flush_output[index] = flush_list
+            flush_output.append(flush_list)
         f.write(json.dumps(flush_output, indent=4, default= lambda v: make_json_safe(v)))

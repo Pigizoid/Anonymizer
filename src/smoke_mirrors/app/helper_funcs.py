@@ -31,13 +31,13 @@ def make_json_safe(obj):
 
 def load_folder(output):
     with open(f"{output}.json", "w") as f:
-        f.write("{")
+        f.write("[")
 
 
 def close_folder(file_path):
     if file_path is not None:
         with open(f"{file_path}.json", "a") as f:
-            f.write("\n}\n")
+            f.write("\n]\n")
 
 
 def send_to_API(schema_model, output, data):
@@ -312,12 +312,12 @@ def get_unique_folder_name(base_path: Path) -> Path:
         new_path = parent / f"{stem}_(copy {counter})"
     return new_path
 
-def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0,use_parent=False):
+def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
-    elif depth == 0 and use_parent==False:
+    elif output_path_name.resolve().parent == "outputs":
         output_path_name = get_unique_folder_name(Path(output_path_name))
         os.makedirs(output_path_name)
     for file_path,contents in schema_models.items():
