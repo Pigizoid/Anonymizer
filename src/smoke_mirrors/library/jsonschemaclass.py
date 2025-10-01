@@ -19,12 +19,11 @@ def floating_point_sanitize_schema(schema_contents):
 
 @dataclass
 class JsonSchemaClass:
-    name: str
     contents: Any
     defs: dict = field(init=False)
 
     def __post_init__(self):
-        self.__name__ = self.name
+        self.__name__ = self.contents["title"]
         self.sanitised_contents = floating_point_sanitize_schema(self.contents)
         self.required = self.contents["required"]
         self.properties = self.contents["properties"]
@@ -32,7 +31,7 @@ class JsonSchemaClass:
         if "$defs" in self.contents:
             defs = {}
             for name,content in self.contents["$defs"].items():
-                defs[name] = JsonSchemaClass(name,content)
+                defs[name] = JsonSchemaClass(content)
             self.defs = defs
         else:
             self.defs = {}

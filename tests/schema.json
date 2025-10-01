@@ -1,0 +1,23 @@
+{
+        "properties": {
+                "name": {
+                        "title": "Name",
+                        "type": "string"
+                },
+                "email": {
+                        "title": "Email",
+                        "type": "string"
+                },
+                "age": {
+                        "title": "Age",
+                        "type": "integer"
+                }
+        },
+        "required": [
+                "name",
+                "email",
+                "age"
+        ],
+        "title": "test_user",
+        "type": "object"
+}

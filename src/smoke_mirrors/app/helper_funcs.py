@@ -86,7 +86,7 @@ def load_schema_pydantic(schema_path:Path):
 
         classes = inspect.getmembers(module, inspect.isclass)
         filtered = [
-            {name: cls}
+            {name: JsonSchemaClass(cls.model_json_schema())}
             for name, cls in classes
             if cls.__module__ == "imported_schema_model"
         ]
@@ -94,7 +94,7 @@ def load_schema_pydantic(schema_path:Path):
             raise Exception(f"No pydantic schema in schema file {schema_path}")
         schema_models = filtered # automatically ordered alphabetically
     except:
-        return None
+        raise Exception(f"Failed to import pydantic schema model on path '{schema_path}'")
     return schema_models
 
 def load_schema_json(schema_path:Path):
@@ -109,7 +109,7 @@ def load_schema_json(schema_path:Path):
     try:
         with open(schema_path,"r") as f:
             file_data = json.load(f)
-            schema_models = JsonSchemaClass(schema_path.stem,file_data)
+            schema_models = JsonSchemaClass(file_data)
     except Exception as e:
         print(f"Exception: {e}")
         return None
@@ -128,7 +128,10 @@ def load_ingest(ingest_path:Path):
     return ingest_path
 
 def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
-    if file_type[0] != ".":
+    file_flag = False
+    if file_type is None:
+        file_flag = True
+    elif file_type[0] != ".":
         file_type = "."+file_type
     if recursed_path.is_dir():
         # folder case
@@ -139,7 +142,7 @@ def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
                 continue
             result.append(return_val)
         return {recursed_path.stem: result} if result else None
-    elif recursed_path.suffix == file_type:
+    elif (file_flag == True and recursed_path.suffix in [".json",".py"]) or (recursed_path.suffix == file_type):
         # file case
         return {recursed_path.stem: loading_func(recursed_path)}
     else:
@@ -212,10 +215,12 @@ def flatten_loaded_schemas(
                 _flatten(item)
         else:
             if not any(
-                (r.__name__ == schema.__name__ and schemas_equal(r, schema))
+                r.__name__ == schema.__name__
                 for r in result
             ):
                 result.append(schema)
+            else:
+                raise Exception(f"Schemas with identical names eixst in the folder, schema -> {schema.__name__}")
 
     _flatten(schema_models)
     return result

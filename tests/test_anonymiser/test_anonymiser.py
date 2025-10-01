@@ -1,8 +1,9 @@
 import pytest
 from pydantic import BaseModel
-from src.smoke_mirrors.synthesiser.synthesiser import Synthesiser
+from src.smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
+from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from src.smoke_mirrors.anonymiser.anonymiser import anonymise, subset_model, new_model, mask_value, perturb_value, anonymise_value, anonymise_data
-from src.smoke_mirrors.tools.model_funcs import get_model_fields
+from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 
 
 class schema_model(BaseModel):
@@ -13,7 +14,7 @@ class schema_model(BaseModel):
 
 vals = [True, 1.5, 15, b"hello", "hello", []]
 methods = ["faker", "mimesis", "mixed"]
-synth = Synthesiser()
+synth = JsonSynthesiser()
 schema_input_data = {"foo": "hello", "bar": 10, "zar": True}
 input_data = {"0":schema_input_data}
 manuals = [True, False]
@@ -36,7 +37,7 @@ for method in methods:
             for fields in field_sets:
                 for amount in amounts:
                     for key_anon in key_anons:
-                        input_sets.append((schema_model,input_data,method,manual,default,fields,amount,0,key_anon))
+                        input_sets.append((JsonSchemaClass(schema_model.model_json_schema()),input_data,method,manual,default,fields,amount,0,key_anon))
 @pytest.mark.parametrize("schema_model, data, method, manual, default, fields, amount, seed, key_anon",input_sets)
 def test_anonymise(schema_model, data, method, manual, default, fields, amount, seed, key_anon):
     print(fields)
@@ -76,7 +77,7 @@ def test_perturb_value(field_value):
 
 vals = [True, 1.5, 15, b"hello", "hello", []]
 methods = ["mask", "synth", "perturb"]
-synth = Synthesiser()
+synth = JsonSynthesiser()
 anonymise_value_test_data = []
 for method in methods:
     anonymise_value_test_data.extend([(val, ["name", method]) for val in vals])
@@ -162,8 +163,8 @@ class schema_model(BaseModel):
 
 def test_subset_model():
     field_names = ["bar", "zar"]
-    return_model = subset_model(schema_model, field_names)
-    names = [name for name in get_model_fields(return_model).keys()]
+    return_model = subset_model(JsonSchemaClass(schema_model.model_json_schema()), field_names)
+    names = [name for name in get_json_model_fields(return_model).keys()]
     assert names == field_names
 
 
@@ -171,6 +172,5 @@ data = {"foo": "hello", "bar": 10, "zar": False}
 def test_new_model():
     field_names = ["bar", "zar"]
     return_model = new_model(data, field_names)
-    names = [name for name in get_model_fields(return_model).keys()]
+    names = [name for name in get_json_model_fields(return_model).keys()]
     assert names == field_names
-

@@ -406,10 +406,6 @@ recursive_types = {
     frozenset,
 }
 all_constr_attribs = {
-    "strip_whitespace",
-    "to_upper",
-    "to_lower",
-    "strict",  # first 4 are from pydantic StringConstraint aka constr()
     "default",
     "annotation",
     "min_length",
@@ -419,18 +415,11 @@ all_constr_attribs = {
     "lt",
     "ge",
     "le",
-    "multiple_of",
-    "allow_inf_nan",
-    "max_digits",
-    "decimal_places",
+    "multiple_of"
 }
 
 default_constr_dict = {
     "required": True,
-    "strip_whitespace": None,
-    "to_upper": None,
-    "to_lower": None,
-    "strict": None,
     "default": None,
     "annotation": None,
     "min_length": None,
@@ -441,9 +430,6 @@ default_constr_dict = {
     "ge": None,
     "le": None,
     "multiple_of": None,
-    "allow_inf_nan": None,
-    "max_digits": None,
-    "decimal_places": None,
     "origin": None,
     "args": None,
 }

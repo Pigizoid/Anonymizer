@@ -5,10 +5,9 @@ if __name__ == "__main__":
     import os,sys,pathlib
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 from smoke_mirrors.anonymiser.anonymiser import anonymise_data
-from smoke_mirrors.synthesiser.synthesiser import Synthesiser
-from smoke_mirrors.tools.model_funcs import get_model_fields
+from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
+from smoke_mirrors.tools.model_funcs import get_json_model_fields
 from pydantic import BaseModel, Field
-from pydantic.fields import FieldInfo
 from src.smoke_mirrors.synthesiser.helper_funcs.matching_fields import match_fields
 from src.smoke_mirrors.synthesiser.helper_funcs.constraints import check_generation_constraints
 
@@ -61,10 +60,10 @@ class AnonField(SMField):
 
 @dataclass
 class SynthField(SMField):
-    field_info : FieldInfo
+    field_info : Dict
 
     def __post_init__(self):
-        self.synth = Synthesiser(method=self.method)
+        self.synth = JsonSynthesiser(method=self.method)
         self.match_name = match_fields([self.field_name],method=self.method)[self.field_name]
         self.applied_constraints = check_generation_constraints(self.field_name,self.field_info)
         self.type = self.applied_constraints["annotation"]
@@ -80,7 +79,7 @@ class User(BaseModel):
 
 
 if __name__ == "__main__":
-    fields = get_model_fields(User)
+    fields = get_json_model_fields(User.model_json_schema)
     amount = 10
     #usage 1
     data = dict(

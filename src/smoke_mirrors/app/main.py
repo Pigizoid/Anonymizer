@@ -24,7 +24,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
     """
 
     def yaml_settings_source() -> Dict[str, Any]:
-        if not config_path.exists():
+        if config_path is None or not config_path.exists():
             return {}  # returning {} as empty to allow defaults to parse
 
         try:
@@ -66,7 +66,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         }
         defaults = {
             "schema_path": "schema.py",
-            "schema_type": "py",
+            "schema_type": None,
             "synth": synth_defaults,
             "anon": anon_defaults,
         }
@@ -145,15 +145,15 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
 def main(
     ctx: typer.Context,
     config: Optional[Path] = typer.Option(
-        None, #default
-        exists=True
+        None,
+        exists=True,
     ),
     schema_path: Optional[Path] = typer.Option(
         None,
         exists=True,
     ),
     schema_type: Optional[str] = typer.Option(
-        "py"
+        None
     ),
     seed: Optional[str] = typer.Option(
         False

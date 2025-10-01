@@ -1,14 +1,24 @@
-from pydantic import BaseModel, create_model
 from typing import Dict, List, Tuple, Set, Any, Union
-from smoke_mirrors.tools.model_funcs import get_model_data, get_model_fields
-from smoke_mirrors.synthesiser.synthesiser import Synthesiser
+from smoke_mirrors.tools.model_funcs import get_json_model_data
+from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from smoke_mirrors.pre_made_data import recursive_types
 import random
 import string
+from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
+from jsonschema import validate
 
+type_map = {
+    str: "string",
+    int: "integer",
+    float: "number",
+    bool: "boolean",
+    list: "array",
+    dict: "object",
+    type(None): "null"
+}
 
 # ----- Model handling -----
-def subset_model(schema_model:BaseModel, field_names:List[str]) -> BaseModel:
+def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSchemaClass:
     """
     Inputs:\n
         schema model
@@ -17,15 +27,68 @@ def subset_model(schema_model:BaseModel, field_names:List[str]) -> BaseModel:
         schema model with name "new_schema_model" that contanins only field names in the list of field names
         inferences output data types from the input schema
     """
+    rval = schema_model.properties
+    print(rval)
     fields = {
-        name: (field.annotation, field.default)
-        for name, field in get_model_fields(schema_model).items()
+        name: field
+        for name, field in schema_model.properties.items()
         if name in field_names
     }
-    return create_model("new_schema_model", **fields)
+    schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":field_names}
+    return JsonSchemaClass(schema_model)
 
 
-def new_model(data:Dict[str,Any], field_names:List[str]) -> BaseModel:
+def infer_type(value: Any) -> Union[str, Dict[str, Any]]:
+    if isinstance(value, str):
+        return {"type": "string"}
+    elif isinstance(value, bool):
+        return {"type": "boolean"}
+    elif isinstance(value, int):
+        return {"type": "integer"}
+    elif isinstance(value, float):
+        return {"type": "number"}
+    elif isinstance(value, list):
+        if value and len(value)!=0:
+            return {
+                "type": "array",
+                "items": infer_type(value[0])
+            }
+        else:
+            return {"type": "array", "items": {"type": "null"}}
+    elif isinstance(value, dict):
+        if value and len(value)!=0:
+            return {
+                "type": "object",
+                "additionalProperties": infer_type(list(value.values())[0])
+            }
+        else:
+            return {"type": "object", "additionalProperties": {"type": "null"}}
+    else:
+        return {"type": "null"}
+    
+def new_precise_model(data: Dict[str, Any], field_names: List[str]) -> JsonSchemaClass:
+    """
+    Inputs:\n
+        dict of data = {field_name:content}
+        list of field names
+    Outputs:\n
+        schema model with name "new_schema_model" that contanins only field names in the list of field names
+        inferences output data types from the input data
+    """
+    fields = {}
+    for name in field_names:
+        if name in data:
+            fields[name] = infer_type(data[name])
+    schema_model = {
+        "title": "new_schema_model",
+        "type": "object",
+        "properties": fields,
+        "required": list(field_names)
+    }
+    return JsonSchemaClass(schema_model)
+
+
+def new_model(data:Dict[str,Any], field_names:List[str]) -> Dict[str,Any]:
     """
     Inputs:\n
         dict of data = {field_name:content}
@@ -35,11 +98,12 @@ def new_model(data:Dict[str,Any], field_names:List[str]) -> BaseModel:
         inferences output data types from the input data
     """
     fields = {
-        name: (type(content))
+        name:{"title":name, "type":type_map.get(type(content), "string")}
         for name, content in data.items()
         if name in field_names
     }
-    return create_model("new_schema_model", **fields)
+    schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":list(field_names)}
+    return JsonSchemaClass(schema_model)
 # ----- Model handling -----
 
 
@@ -116,7 +180,7 @@ def perturb_value(field_value: Any) -> Any:
         return field_value
 
 
-def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[int,str,None]="random", synth:Synthesiser=None) -> Any:
+def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[int,str,None]="random", synth:JsonSynthesiser=None) -> Any:
     """
     Inputs:\n
         value to anonymise
@@ -140,7 +204,7 @@ def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[i
         )
 
 
-def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,str]], seed: Union[int,str,None]="random", synth:Synthesiser=None,key_anon=False) -> Any:
+def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,str]], seed: Union[int,str,None]="random", synth:JsonSynthesiser=None, key_anon=False) -> Any:
     """
     Recursive method\n
     Inputs:\n
@@ -191,8 +255,8 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[BaseModel,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, cout=False
-) -> Dict[str, List[BaseModel]]:
+    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, cout=False
+) -> Dict[str, List[Any]]:
     """
     Inputs:\n
         schema model
@@ -207,9 +271,9 @@ def anonymise(
         amount as an int
         optional anonymisation seed
     Outputs:\n
-        dict of lists of schema BaseModel
+        dict of lists of data
             {index:  #index as integer
-                [{BaseModel}] * amount
+                [{Dict}] * amount
             }
     """
     anonymised_data = {}
@@ -219,9 +283,15 @@ def anonymise(
     for index, data_entry in data.items():
         schema_match = True
         if schema_model is not None:
-            try:
-                schema_model(**data_entry)
-            except:
+            schemas = [schema_model.contents, schema_model.sanitised_contents]
+            schema_match = True
+            for schema in schemas:
+                try:
+                    validate(instance=data_entry, schema=schema)
+                    break
+                except Exception:
+                    continue
+            else:
                 schema_match = False
         else:
             schema_match = False
@@ -235,7 +305,7 @@ def anonymise(
 
         else:  # auto
             if schema_match:
-                field_names = [x[0] for x in get_model_data(schema_model)]
+                field_names = [x[0] for x in get_json_model_data(schema_model)]
 
             else:
                 field_names = data_entry.keys()
@@ -247,8 +317,7 @@ def anonymise(
         # name_match_pairs = synth.match_fields(field_names)
         # field_names = [ field for field,match in name_match_pairs.items() if match != ""]
         result_schema = new_model(data_entry, data_entry.keys())
-
-        synth = Synthesiser(method=method)
+        synth = JsonSynthesiser(method=method)
 
         if manual or default != "synth":
             return_data = [
@@ -278,7 +347,11 @@ def anonymise(
                     new_fields[field] = return_entry[field]
                 else:
                     new_fields[field] = getattr(return_entry, field)
-            anonymised_data_set.append(result_schema(**new_fields))
+            try:
+                validate(instance=new_fields, schema=result_schema.contents)
+            except:
+                validate(instance=new_fields, schema=result_schema.sanitised_contents)
+            anonymised_data_set.append(new_fields)
         anonymised_data[index] = anonymised_data_set
     return anonymised_data
 # ----- Central function -----

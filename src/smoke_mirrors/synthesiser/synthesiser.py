@@ -7,35 +7,33 @@ from typing import (
     Optional,
     Literal,
     Any,
-    Annotated,
     Type,
-    get_args,
-    get_origin,
 )
-from smoke_mirrors.synthesiser.helper_funcs.constraints import make_one_string, make_one_decimal, make_new_contraints, recursive_get_applied_constraints
-from smoke_mirrors.synthesiser.helper_funcs.matching_fields import match_fields, recursive_match_fields
+from smoke_mirrors.synthesiser.helper_funcs.constraints import make_one_string, make_new_contraints, get_applied_constraints, check_generation_constraints
+from smoke_mirrors.synthesiser.helper_funcs.matching_fields import match_fields
 from smoke_mirrors.synthesiser.helper_funcs.provider_methods import list_match_methods, make_resolved_methods
-from smoke_mirrors.tools.model_funcs import get_model_fields
+from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder
 from collections import deque
 from multiprocessing import Pool
 from functools import partial
-from pydantic import BaseModel
+from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from decimal import Decimal, ROUND_HALF_UP
 from smoke_mirrors.pre_made_data import (
-    all_constr_attribs,
     default_constr_dict,
     recursive_types,
     python_builtin_types,
 )
+from jsonschema import validate
 import re
 import time
 import string
 import random
 import rstr
-import inspect
 import exrex
+import json
+
 
 
 
@@ -92,7 +90,7 @@ string_list = string.ascii_letters + string.digits
 
 
 
-class Synthesiser():
+class JsonSynthesiser():
     def __init__(self, method="faker",cout=False):
         self.outputpooling = {}
         self.method = method
@@ -102,6 +100,9 @@ class Synthesiser():
         self.word_tokens_set = data_set['word_tokens_set'] # {word: set(word.split("_")) for word in word_list}
         self.resolved_methods = make_resolved_methods(self.word_list, methods_map)
         self.cout = cout
+        self.defs = {}
+        self.applied_constraints = {}
+        self.field_match_pairs = {}
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
@@ -215,10 +216,6 @@ class Synthesiser():
                         rstr.xeger(pattern) for x in range(max(1, pooling_count))
                     ]
 
-                if constraints["to_upper"] is not None:
-                    data_pool = [item.upper() for item in data_pool]
-                elif constraints["to_lower"] is not None:
-                    data_pool = [item.lower() for item in data_pool]
                 if data_pool == []:
                     raise Exception(f"No data pool for {constraints['pattern']}")
             else:
@@ -226,10 +223,6 @@ class Synthesiser():
                 data_type = constraints["annotation"]
                 if data_type is str:
                     temp_string_list = string_list
-                    if constraints["to_upper"] is not None:
-                        temp_string_list = [item.upper() for item in temp_string_list]
-                    elif constraints["to_lower"] is not None:
-                        temp_string_list = [item.lower() for item in temp_string_list]
                     if constraints["min_length"] is not None:
                         min_length = constraints["min_length"]
                     else:
@@ -272,137 +265,28 @@ class Synthesiser():
                         )
 
                     if constraints["multiple_of"]:
-                        multiple_of = constraints["multiple_of"]
-                        first = ((gt + multiple_of) // multiple_of) * multiple_of
+                        multiple_of = Decimal(str(constraints["multiple_of"]))
+                        first = (Decimal(Decimal(gt) + multiple_of) // multiple_of) * multiple_of
 
-                        if data_type is int or (
-                            (data_type is float)
-                            and constraints["decimal_places"] is None
-                        ):
-                            count = (lt - gt) // multiple_of
+                        if data_type is int or data_type is float:
+                            count = Decimal(lt - gt) // multiple_of
                             if count <= 0:
                                 raise Exception(
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
                                 )
                             try:
                                 data_pool = [
-                                    first + (idx + 1) * multiple_of
-                                    for idx in range(count - 1)
+                                    first + Decimal(idx+1) * multiple_of
+                                    for idx in range(int(count) - 1)
                                 ]  # count is capped at poling_count
                             except:
                                 data_pool == []
-                        else:  # data_type is float and constraints["decimal_places"] is not None
-                            decimal_places = constraints["decimal_places"]
-                            scale = Decimal(10) ** Decimal(decimal_places)
-                            decimal_precision = Decimal(10) ** Decimal(
-                                decimal_places * -1
-                            )
-                            # print(str(multiple_of))
-                            # print(Decimal(repr(multiple_of)).as_tuple())
-                            precision = Decimal(10) ** (
-                                Decimal(repr(multiple_of)).as_tuple().exponent
-                            )
-                            # print(precision)
-
-                            first = (
-                                (Decimal(gt) + Decimal(multiple_of))
-                                // Decimal(multiple_of)
-                            ) * Decimal(multiple_of)
-
-                            first = Decimal(first).quantize(
-                                precision, rounding=ROUND_HALF_UP
-                            )
-                            multiple_of = Decimal(multiple_of).quantize(
-                                precision, rounding=ROUND_HALF_UP
-                            )
-
-                            min_scaled = Decimal(first * scale)
-                            scaled_mult = Decimal(multiple_of * scale)
-
-                            # print(first,multiple_of,min_scaled,scaled_mult,scale)
-
-                            data_pool = []
-                            try:
-                                if max(1, pooling_count) > 100:
-                                    with Pool() as p:
-                                        func = partial(
-                                            make_one_decimal,
-                                            decimal_precision=decimal_precision,
-                                            min_scaled=min_scaled,
-                                            scaled_mult=scaled_mult,
-                                            scale=scale,
-                                        )
-                                        data_pool = p.map(
-                                            func,
-                                            range(
-                                                int(
-                                                    (lt * scale - min_scaled)
-                                                    // scaled_mult
-                                                )
-                                                - 1
-                                            ),
-                                        )
-                                    data_pool = [d for d in data_pool if d is not None]
-                                else:
-                                    for x in range(
-                                        int((lt * scale - min_scaled) // scaled_mult)
-                                        - 1
-                                    ):
-                                        potential_val = (
-                                            min_scaled + (x + 1) * scaled_mult
-                                        ) / scale
-                                        if potential_val == potential_val.quantize(
-                                            decimal_precision, rounding=ROUND_HALF_UP
-                                        ):
-                                            data_pool.append(potential_val)
-                            except Exception:
-                                data_pool = []
-                            if data_pool == []:
-                                raise Exception(
-                                    f"No multiples of {multiple_of} fit in the range [{gt}, {lt}) with max decimal digits{decimal_places}."
-                                )
                     else:
-                        if constraints["decimal_places"] is not None:
-                            data_pool = [
-                                round(
-                                    random.uniform(gt, lt),
-                                    constraints["decimal_places"],
-                                )
-                                for _ in range(max(1, pooling_count))
-                            ]
-                        else:
-                            data_pool = [
-                                random.randint(gt, lt)
-                                for _ in range(max(1, pooling_count))
-                            ]
-
-                    if constraints["allow_inf_nan"] is not None:
-                        allowed_inf_types = ["inf", "-inf", "nan"]
-                        if (
-                            constraints["gt"] is not None
-                            or constraints["ge"] is not None
-                        ):
-                            allowed_inf_types.remove("-inf")
-                            allowed_inf_types.remove("nan")
-                        if (
-                            constraints["lt"] is not None
-                            or constraints["le"] is not None
-                        ):
-                            allowed_inf_types.remove("inf")
-                            if "nan" in allowed_inf_types:
-                                allowed_inf_types.remove("nan")
-                        if constraints["multiple_of"]:
-                            allowed_inf_types = []
-                        if constraints["max_digits"]:
-                            allowed_inf_types = []
-
-                        if data_type is float and allowed_inf_types != []:
-                            data_pool.extend(
-                                [
-                                    random.choice(allowed_inf_types)
-                                    for x in range(len(data_pool))
-                                ]
-                            )
+                        data_pool = [
+                            random.randint(gt, lt)
+                            for _ in range(max(1, pooling_count))
+                        ]
+                    
                     random.shuffle(data_pool)
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
@@ -416,7 +300,6 @@ class Synthesiser():
                                 data_pool.append(item)
                             else:
                                 break
-
                 elif data_type is bool:
                     data_pool = [
                         random.randint(1, 2) == 1 for x in range(max(1, pooling_count))
@@ -499,15 +382,6 @@ class Synthesiser():
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
-            if constraints["to_upper"] is not None:
-                temp_string_list = [item.upper() for item in string_list]
-            elif constraints["to_lower"] is not None:
-                temp_string_list = [item.lower() for item in string_list]
-
-            if constraints["to_upper"] is not None:
-                return_value = return_value.upper()
-            elif constraints["to_lower"]:
-                return_value = return_value.lower()
             if constraints["min_length"] is not None:
                 min_length = constraints["min_length"]
             else:
@@ -551,9 +425,7 @@ class Synthesiser():
                 multiple_of = constraints["multiple_of"]
                 first = ((gt + multiple_of) // multiple_of) * multiple_of
 
-                if data_type is int or (
-                    (data_type is float) and constraints["decimal_places"] is None
-                ):
+                if data_type is int or data_type is float:
                     count = (lt - gt) // multiple_of
                     if count <= 0:
                         raise Exception(
@@ -562,20 +434,13 @@ class Synthesiser():
                     idx = (return_value // multiple_of) % count
 
                     return_value = first + idx * multiple_of
-                else:  # data_type is float and constraints["decimal_places"] is not None
+            else:
+                try:
+                    return_value = int(return_value)
+                except:
                     return_value = self.generate_from_constraints(
                         match_name, constraints, generate_path
                     )
-            else:
-                if constraints["decimal_places"] is not None:
-                    return_value = round(return_value, constraints["decimal_places"])
-                else:
-                    try:
-                        return_value = int(return_value)
-                    except:
-                        return_value = self.generate_from_constraints(
-                            match_name, constraints, generate_path
-                        )
 
         elif data_type is bool:
             try:
@@ -624,290 +489,277 @@ class Synthesiser():
         # print(f"	Generating for: {field_name}")
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
-        data_type = applied_constraints["origin"]
-        output_data = ""
-        if data_type == Annotated:
-            # print(applied_constraints)
-            # print("~~")
-            new_info = get_args(applied_constraints["annotation"])
-            new_data_type = new_info[0]  # [0] is the data type
-            # print(new_data_type)
-            constr_constraints = {}
-            for attr in all_constr_attribs:
-                for new_inf in new_info[1:]:
-                    return_val = getattr(
-                        new_inf, attr, None
-                    )  # [1:] is the data constraints
-                    if return_val is not None:
-                        break
-                constr_constraints[attr] = return_val
-            # print(constr_constraints)
-            new_constraints = constr_constraints
-            new_constraints["required"] = True
-            new_constraints["annotation"] = new_data_type
-            new_constraints["origin"] = get_origin(new_data_type)
-            new_constraints["args"] = get_args(new_data_type)
-            # print("___")
-            # print(new_constraints)
-            generate_path += ".Annotated"
-            output_data = self.generate_synth_data(
-                field_name, match_name, new_constraints, generate_path
-            )
-            # print("returned:",output_data)
+        applied_constraints = check_generation_constraints(field_name,applied_constraints["origin"])
+        '''
+        {
+            'additionalProperties': {
+                'maxLength': 2000, 
+                'type': 'string'
+            }, 
+            'minProperties': 30, 
+            'propertyNames': {
+                'maxLength': 1000
+            }, 
+            'title': 'Name', 
+            'type': 'object', 
+            'required': True
+        }
+        '''
+        data_type = applied_constraints["annotation"]
+        data_args = applied_constraints["args"]
+        # data_args = get_args(applied_constraints["annotation"])
+        '''
+        if True:
+            print(f"	{applied_constraints}")
+            print(f"	origin: {applied_constraints["origin"]}")
+            print(f"	args: {applied_constraints["args"]}")
+            input("...")
+        '''
+            
+        # all traversals can be considered "annotated"
+        if data_type is type(None) or data_type is None:
+            output_data = None
+        elif data_type in recursive_types:
+            if applied_constraints["min_length"] is not None:
+                min_amount = applied_constraints["min_length"]
+            else:
+                min_amount = 1
+            if applied_constraints["max_length"] is not None:
+                max_amount = applied_constraints["max_length"]
+            else:
+                max_amount = min_amount + 4
 
-        else:
-            if not data_type:  # if data_type is None:
-                data_type = applied_constraints["annotation"]
-            data_args = applied_constraints["args"]
-            # data_args = get_args(applied_constraints["annotation"])
-            # print(f"	{data_type}\n	{data_args}")
-            if data_type is type(None):
-                output_data = None
-            elif data_type in recursive_types:
-                if applied_constraints["min_length"] is not None:
-                    min_amount = applied_constraints["min_length"]
-                else:
-                    min_amount = 1
-                if applied_constraints["max_length"] is not None:
-                    max_amount = applied_constraints["max_length"]
-                else:
-                    max_amount = min_amount + 4
+            new_applied_constraints = make_new_contraints(applied_constraints)
 
-                new_applied_constraints = make_new_contraints(applied_constraints)
-
-                if data_type in [List, list]:
-                    output_data = []
-                    if len(data_args) == 0:
-                        data_args = [str]
-                    for x in range(random.randint(min_amount, max_amount)):
-                        chosen_index = random.randint(0, len(data_args) - 1)
-                        chosen_type = data_args[chosen_index]
-                        new_applied_constraints["annotation"] = chosen_type
-                        new_applied_constraints["origin"] = get_origin(chosen_type)
-                        new_applied_constraints["args"] = get_args(chosen_type)
-                        list_generate_path = (
-                            generate_path + f".List({chosen_index})[{max_amount}]"
-                        )
-                        output_data.append(
-                            self.generate_synth_data(
-                                field_name,
-                                match_name,
-                                new_applied_constraints,
-                                list_generate_path,
-                            )
-                        )
-
-                elif data_type in [Dict, dict]:
-                    new_left_applied_constraints = new_applied_constraints.copy()
-                    new_right_applied_constraints = new_applied_constraints.copy()
-                    if len(data_args) == 0:
-                        data_args = [str, str]
-                    chosen_type_left = data_args[0]
-                    new_left_applied_constraints["annotation"] = chosen_type_left
-                    new_left_applied_constraints["origin"] = get_origin(
-                        chosen_type_left
-                    )
-                    new_left_applied_constraints["args"] = get_args(chosen_type_left)
-                    chosen_type_right = data_args[1]
-                    new_right_applied_constraints["annotation"] = chosen_type_right
-                    new_right_applied_constraints["origin"] = get_origin(
-                        chosen_type_right
-                    )
-                    new_right_applied_constraints["args"] = get_args(chosen_type_right)
-                    output_data = {}
-                    current_amount = 0
-                    target_amount = random.randint(min_amount, max_amount)
-                    current_tries = 0
-                    target_amountx2 = target_amount * 2
-                    # for x in range(random.randint(min_amount,max_amount)):
-                    dict_keys = set()
-                    while current_amount < target_amount:
-                        generate_path_v1 = generate_path + f".Dict(Left)[{max_amount}]"
-                        v1 = self.generate_synth_data(
-                            field_name,
-                            match_name,
-                            new_left_applied_constraints,
-                            generate_path_v1,
-                        )
-
-                        dict_keys.add(v1)
-                        current_amount = len(dict_keys)
-                        current_tries += 1
-                        if current_tries > target_amountx2:
-                            if min_amount != 1:
-                                raise Exception(
-                                    f"Not enough provider keys for {field_name}, \nkeys: {dict_keys}"
-                                )
-                            else:
-                                break
-                    for key in dict_keys:
-                        generate_path_v2 = generate_path + f".Dict(Right)[{max_amount}]"
-                        v2 = self.generate_synth_data(
-                            field_name,
-                            match_name,
-                            new_right_applied_constraints,
-                            generate_path_v2,
-                        )
-                        output_data[key] = v2
-
-                elif data_type in [Tuple, tuple]:
-                    output_data = []
-                    if len(data_args) == 0:
-                        data_args = [
-                            str for x in range(random.randint(min_amount, max_amount))
-                        ]
-                    for x in range(len(data_args)):
-                        chosen_type = data_args[x]
-                        new_applied_constraints["annotation"] = chosen_type
-                        new_applied_constraints["origin"] = get_origin(chosen_type)
-                        new_applied_constraints["args"] = get_args(chosen_type)
-                        tuple_generate_path = (
-                            generate_path + f".Tuple({x})[{max_amount}]"
-                        )
-                        output_data.append(
-                            self.generate_synth_data(
-                                field_name,
-                                match_name,
-                                new_applied_constraints,
-                                tuple_generate_path,
-                            )
-                        )
-
-                elif data_type in [Set, set, frozenset]:
-                    output_data = set()
-                    current_amount = 0
-                    target_amount = random.randint(min_amount, max_amount)
-                    if len(data_args) == 0:
-                        data_args = [str]
-                    chosen_type = data_args[0]
-                    new_applied_constraints["annotation"] = chosen_type
-                    new_applied_constraints["origin"] = get_origin(chosen_type)
-                    new_applied_constraints["args"] = get_args(chosen_type)
-                    current_tries = 0
-                    target_amountx2 = target_amount * 2
-                    if data_type is frozenset:
-                        pathstr = "FrozenSet"
-                    else:
-                        pathstr = "Set"
-                    while current_amount < target_amount:
-                        set_generate_path = (
-                            generate_path + f".{pathstr}({0})[{max_amount}]"
-                        )
-                        output_data.add(
-                            self.generate_synth_data(
-                                field_name,
-                                match_name,
-                                new_applied_constraints,
-                                set_generate_path,
-                            )
-                        )
-                        current_amount = len(output_data)
-                        current_tries += 1
-                        if current_tries > target_amountx2:
-                            if min_amount != 1:
-                                raise Exception(
-                                    f"Not enough provider keys for {field_name}"
-                                )
-                            else:
-                                break
-                    if data_type is frozenset:
-                        output_data = frozenset(output_data)
-
-                elif data_type == Union:
+            if data_type in [List, list]:
+                output_data = []
+                if len(data_args) == 0:
+                    data_args = [{"type":"string"}]
+                for x in range(random.randint(min_amount, max_amount)):
                     chosen_index = random.randint(0, len(data_args) - 1)
                     chosen_type = data_args[chosen_index]
-                    new_applied_constraints["annotation"] = chosen_type
-                    new_applied_constraints["origin"] = get_origin(chosen_type)
-                    new_applied_constraints["args"] = get_args(chosen_type)
-                    generate_path += f".Union({chosen_index})"
-                    output_data = self.generate_synth_data(
-                        field_name, match_name, new_applied_constraints, generate_path
+                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
+                    new_applied_constraints["origin"] = chosen_type
+                    new_applied_constraints["args"] = infer_json_args(chosen_type)
+                    list_generate_path = (
+                        generate_path + f".List({chosen_index})[{max_amount}]"
                     )
-
-                elif data_type == Optional:
-                    # should use Union, but still here for fallback
-                    data_args.extend(None)
-                    chosen_index = random.randint(0, len(data_args) - 1)
-                    chosen_type = data_args[chosen_index]
-                    if chosen_type is None:
-                        output_data = None
-                    else:
-                        new_applied_constraints["annotation"] = chosen_type
-                        new_applied_constraints["origin"] = get_origin(chosen_type)
-                        new_applied_constraints["args"] = get_args(chosen_type)
-                        generate_path += f".Optional({chosen_index})"
-                        output_data = self.generate_synth_data(
+                    output_data.append(
+                        self.generate_synth_data(
                             field_name,
                             match_name,
                             new_applied_constraints,
-                            generate_path,
+                            list_generate_path,
                         )
-
-                elif data_type == Literal:
-                    output_data = random.choice(data_args)
-
-                else:
-                    raise Exception(
-                        f"Recersive data type| {data_type} : {data_args} |not handled"
                     )
-            elif data_type in python_builtin_types:
-                if match_name == "":
-                    func = None
-                else:
-                    func = self.resolved_methods[match_name]
-                if applied_constraints["pattern"] or not func or match_name == "":
-                    output_data = self.generate_from_constraints(
-                        field_name, applied_constraints, generate_path
+            elif data_type in [Dict, dict]:
+                new_left_applied_constraints = new_applied_constraints.copy()
+                new_right_applied_constraints = new_applied_constraints.copy()
+                if len(data_args) == 0:
+                    data_args = [{"type":"string"}, {"type":"string"}]
+                chosen_type_left = data_args[0]
+                new_left_applied_constraints["annotation"] = infer_json_type(chosen_type_left)
+                new_left_applied_constraints["origin"] = chosen_type_left
+                new_left_applied_constraints["args"] = infer_json_args(chosen_type_left)
+                chosen_type_right = data_args[1]
+                new_right_applied_constraints["annotation"] = infer_json_type(chosen_type_right)
+                new_right_applied_constraints["origin"] = chosen_type_right
+                new_right_applied_constraints["args"] = infer_json_args(chosen_type_right)
+                output_data = {}
+                current_amount = 0
+                target_amount = random.randint(min_amount, max_amount)
+                current_tries = 0
+                target_amountx2 = target_amount * 2
+                # for x in range(random.randint(min_amount,max_amount)):
+                dict_keys = set()
+                while current_amount < target_amount:
+                    generate_path_v1 = generate_path + f".Dict(Left)[{max_amount}]"
+                    v1 = self.generate_synth_data(
+                        field_name,
+                        match_name,
+                        new_left_applied_constraints,
+                        generate_path_v1,
                     )
-                else:
-                    if generate_path not in self.outputpooling or (
-                        generate_path in self.outputpooling
-                        and self.outputpooling[generate_path] == []
-                    ):
-                        pooling_numbers = list(
-                            map(int, re.findall(r"\[(\d+)\]", generate_path))
-                        )
-                        pooling_count = 1
-                        for x in pooling_numbers:
-                            pooling_count *= x
 
-                        start_time = time.time()
-                        data_temp_pool = [func() for _ in range(pooling_count)]
-
-                        data_pool = [
-                            self.apply_constraints(
-                                func_val,
-                                applied_constraints,
-                                match_name,
-                                generate_path,
-                                pooling_count,
-                                pooling_numbers[0],
+                    dict_keys.add(v1)
+                    current_amount = len(dict_keys)
+                    current_tries += 1
+                    if current_tries > target_amountx2:
+                        if min_amount != 1:
+                            raise Exception(
+                                f"Not enough provider keys for {field_name}, \nkeys: {dict_keys}"
                             )
-                            for func_val in data_temp_pool
-                        ]
+                        else:
+                            break
+                for key in dict_keys:
+                    generate_path_v2 = generate_path + f".Dict(Right)[{max_amount}]"
+                    v2 = self.generate_synth_data(
+                        field_name,
+                        match_name,
+                        new_right_applied_constraints,
+                        generate_path_v2,
+                    )
+                    output_data[key] = v2
 
-                        elapsed_time = time.time() - start_time
-                        if self.cout:
-                            print_path(generate_path, elapsed_time)
+            elif data_type in [Tuple, tuple]:
+                output_data = []
+                if len(data_args) == 0:
+                    data_args = [
+                        {"type":"string"} for _ in range(random.randint(min_amount, max_amount))
+                    ]
+                for x in range(len(data_args)):
+                    chosen_type = data_args[x]
+                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
+                    new_applied_constraints["origin"] = chosen_type
+                    new_applied_constraints["args"] = infer_json_args(chosen_type)
+                    tuple_generate_path = (
+                        generate_path + f".Tuple({x})[{max_amount}]"
+                    )
+                    output_data.append(
+                        self.generate_synth_data(
+                            field_name,
+                            match_name,
+                            new_applied_constraints,
+                            tuple_generate_path,
+                        )
+                    )
 
-                        self.outputpooling[generate_path] = data_pool
-                    output_data = self.outputpooling[generate_path].pop()
+            elif data_type in [Set, set, frozenset]:
+                output_data = set()
+                current_amount = 0
+                target_amount = random.randint(min_amount, max_amount)
+                if len(data_args) == 0:
+                    data_args = [{"type":"string"}]
+                chosen_type = data_args[0]
+                new_applied_constraints["annotation"] = infer_json_type(chosen_type)
+                new_applied_constraints["origin"] = chosen_type
+                new_applied_constraints["args"] = infer_json_args(chosen_type)
+                current_tries = 0
+                target_amountx2 = target_amount * 2
+                if data_type is frozenset:
+                    pathstr = "FrozenSet"
+                else:
+                    pathstr = "Set"
+                while current_amount < target_amount:
+                    set_generate_path = (
+                        generate_path + f".{pathstr}({0})[{max_amount}]"
+                    )
+                    output_data.add(
+                        self.generate_synth_data(
+                            field_name,
+                            match_name,
+                            new_applied_constraints,
+                            set_generate_path,
+                        )
+                    )
+                    current_amount = len(output_data)
+                    current_tries += 1
+                    if current_tries > target_amountx2:
+                        if min_amount != 1:
+                            raise Exception(
+                                f"Not enough provider keys for {field_name}"
+                            )
+                        else:
+                            break
+                output_data = list(output_data)
+
+            elif data_type == Union:
+                chosen_index = random.randint(0, len(data_args) - 1)
+                chosen_type = data_args[chosen_index]
+                new_applied_constraints["annotation"] = infer_json_type(chosen_type)
+                new_applied_constraints["origin"] = chosen_type
+                new_applied_constraints["args"] = infer_json_args(chosen_type)
+                generate_path += f".Union({chosen_index})"
+                output_data = self.generate_synth_data(
+                    field_name, match_name, new_applied_constraints, generate_path
+                )
+
+            elif data_type == Optional:
+                # should use Union, but still here for fallback
+                data_args.extend({"type":"null"})
+                chosen_index = random.randint(0, len(data_args) - 1)
+                chosen_type = data_args[chosen_index]
+                if chosen_type is None:
+                    output_data = None
+                else:
+                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
+                    new_applied_constraints["origin"] = chosen_type
+                    new_applied_constraints["args"] = infer_json_args(chosen_type)
+                    generate_path += f".Optional({chosen_index})"
+                    output_data = self.generate_synth_data(
+                        field_name,
+                        match_name,
+                        new_applied_constraints,
+                        generate_path,
+                    )
+
+            elif data_type == Literal:
+                output_data = random.choice(data_args)
 
             else:
-                if inspect.isclass(data_type) and (
-                    issubclass(data_type, BaseModel) or isinstance(data_type, BaseModel)
+                raise Exception(
+                    f"Recersive data type| {data_type} : {data_args} |not handled"
+                )
+        elif data_type in python_builtin_types:
+            if match_name == "":
+                func = None
+            else:
+                func = self.resolved_methods[match_name]
+            if applied_constraints["pattern"] is not None or not func or match_name == "":
+                output_data = self.generate_from_constraints(
+                    field_name, applied_constraints, generate_path
+                )
+            else:
+                if generate_path not in self.outputpooling or (
+                    generate_path in self.outputpooling
+                    and self.outputpooling[generate_path] == []
                 ):
-                    output_data = self.synthesise_recursive(
-                        data_type, self.method, amount=1, path=generate_path + "."
+                    pooling_numbers = list(
+                        map(int, re.findall(r"\[(\d+)\]", generate_path))
                     )
-                    # print("big nested")
+                    pooling_count = 1
+                    for x in pooling_numbers:
+                        pooling_count *= x
 
-                else:
-                    raise Exception(
-                        f"Unkown data type ({data_type}) for field {field_name}"
-                    )
-        # print(f"Data: {output_data}")
-        # print("__")
+                    start_time = time.time()
+                    data_temp_pool = [func() for _ in range(pooling_count)]
+
+                    data_pool = [
+                        self.apply_constraints(
+                            func_val,
+                            applied_constraints,
+                            match_name,
+                            generate_path,
+                            pooling_count,
+                            pooling_numbers[0],
+                        )
+                        for func_val in data_temp_pool
+                    ]
+
+                    elapsed_time = time.time() - start_time
+                    if self.cout:
+                        print_path(generate_path, elapsed_time)
+
+                    self.outputpooling[generate_path] = data_pool
+                output_data = self.outputpooling[generate_path].pop()
+
+        else:
+            if data_type is JsonSchemaClass:
+                ref_name = applied_constraints["origin"]["$ref"].split("/")[-1]
+                data_type = self.defs[ref_name]
+                output_data = self.synthesise_recursive(
+                    data_type, self.method, amount=1, path=generate_path + "."
+                )
+                # print("big nested")
+
+            else:
+                raise Exception(
+                    f"Unkown data type ({data_type}) for field {field_name}"
+                )
+        '''if True:
+            print(f"Data: {output_data},{type(output_data)}")
+            print("__")
+        '''
         # apply constraints of output after data is provided
         return output_data
 
@@ -945,9 +797,84 @@ class Synthesiser():
         return value
     # ----- Constraint based generation -----
 
+    # ----- recursive functions -----
+    def recursive_match_fields(self,schema_model:JsonSchemaClass, method, field_match_pairs:Dict[str,Dict[str,str]]=None) -> Dict[str, Dict[str, str]]:
+        """
+        Goes through an input schema model and matches all fields to a generation provider\n
+        recurses through nested schemas, adding to list of providers for each field\n
+        uses optional field_match_pairs input during recursion and remove duplicate nested schemas\n
+        Inputs:\n
+            schema model
+            optional field match pairs (generated during output from recursion)
+        Outputs:\n
+            field match pairs = {schema name: {field name: match name}}
+        """
+        if self.defs == {}:
+            self.defs = schema_model.defs
+        if field_match_pairs is None:
+            field_match_pairs = {}
+        # in body not in function, because default collections are stored in memory not by instance
+        model_data = get_json_model_data(schema_model)
+        field_names = [x[0] for x in model_data]
+
+        if schema_model.__name__ not in field_match_pairs.keys():
+            field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
+        for x in model_data:
+            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            for nt in nested_types:
+                ref_name = nt["$ref"].split("/")[-1]
+                if ref_name not in field_match_pairs.keys():
+                    # print(data_type.__name__, field_match_pairs.keys())
+                    if ref_name not in self.defs:
+                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                    if self.defs == {}:
+                        raise Exception("Synthesiser .defs have not been defined")
+                    field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
+        return field_match_pairs
+
+    def recursive_get_applied_constraints(
+        self, schema_model:JsonSchemaClass
+    ) -> Dict[str, Dict[str, Dict[str, Any]]]:
+        """
+        Inputs:\n
+            schema model
+        Outputs:\n
+            nested constraints for all recursed schemas = 
+            { 
+                schema name: {
+                    field name: constraints
+                }
+            }
+        Recursive function to get applied constraint of input schema and all nested schemas\n
+        """
+        if self.defs == {}:
+            self.defs = schema_model.defs
+        applied_constraints = {}
+        model_data = get_json_model_data(schema_model)
+
+        applied_constraints[schema_model.__name__] = get_applied_constraints(
+            schema_model
+        )
+
+        for x in model_data:
+            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            for nt in nested_types:
+                ref_name = nt["$ref"].split("/")[-1]
+                if ref_name not in applied_constraints.keys():
+                    if ref_name not in self.defs:
+                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                    if self.defs == {}:
+                        raise Exception("Synthesiser .defs have not been defined")
+                    applied_constraints.update(
+                        self.recursive_get_applied_constraints(self.defs[ref_name])
+                    )
+        return applied_constraints
+    # ----- recursive functions -----
+
+
     # ----- Central called functions -----
     def synthesise_recursive(
-        self, schema_model:BaseModel, method="faker", amount:int=1, path:str=""
+        self, schema_model:JsonSchemaClass, method="faker", amount:int=1, path:str=""
     ) -> Dict[str, Any]:
         """
         The main recursive call of the synthesiser class\n
@@ -962,13 +889,13 @@ class Synthesiser():
             {field name: content}
         """
         if self.field_match_pairs == {}:
-            self.field_match_pairs = recursive_match_fields(schema_model,method)
+            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
         if self.applied_constraints == {}:
-            self.applied_constraints = recursive_get_applied_constraints(schema_model)
+            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
-        for name in get_model_fields(schema_model).keys():
+        for name in get_json_model_fields(schema_model).keys():
             # print(f"Field:{name}")
             if not self.applied_constraints[schema_name][name]["required"]:
                 if random.randint(1, 2) == 1:
@@ -987,8 +914,8 @@ class Synthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:BaseModel, method=None, amount=1, seed="random", cout=False
-    ) -> List[BaseModel]:
+        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",cout=False
+    ) -> List[Dict[str,Any]]:
         """
         The main call function of the synthesiser class
         Inputs:\n
@@ -1001,6 +928,10 @@ class Synthesiser():
             list of pydantic BaseModel with synthesised data
             [BaseModel]*amount
         """
+        if isinstance(schema_model,dict):
+            if "title" not in schema_model:
+                raise Exception("JSON schema must have a title")
+            schema_model = JsonSchemaClass(schema_model)
         if cout:
             self.cout = cout
         if amount == 0:
@@ -1027,21 +958,25 @@ class Synthesiser():
                 self.seed = random.randint(0, 1_000_000_000_000)
                 random.seed(seed)
         """
+        self.defs = schema_model.defs
         if method != None:
             self.method = method
         else:
             method = self.method
 
-        self.field_match_pairs = recursive_match_fields(schema_model,method)
-        self.applied_constraints = recursive_get_applied_constraints(schema_model)
+        self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+        self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
         # print(self.applied_constraints)
         dataset = []
         for x in range(amount):
             synthesised_data = self.synthesise_recursive(
                 schema_model, method=method, amount=amount
             )
-
-            dataset.append(schema_model(**synthesised_data))
+            try:
+                validate(instance=synthesised_data, schema=schema_model.contents)
+            except:
+                validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+            dataset.append(synthesised_data)
             if self.cout:
                 if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                     print(

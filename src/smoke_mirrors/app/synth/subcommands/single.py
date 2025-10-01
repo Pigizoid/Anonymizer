@@ -8,7 +8,8 @@ from smoke_mirrors.app.helper_funcs import (
     load_file_path, 
     close_folder, 
     recursive_folder_schema_handler, 
-    load_output_path_flag
+    load_output_path_flag,
+    flatten_loaded_schemas
 )
 from smoke_mirrors.app.models import SynthesiserConfig
 from pathlib import Path

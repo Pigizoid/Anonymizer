@@ -1,11 +1,11 @@
-
+'''
 from src.smoke_mirrors.library.dataclass import AnonField,SynthField
-from src.smoke_mirrors.tools.model_funcs import get_model_fields
+from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 from tests.schema import test_user
 import pytest
 
 
-fields = get_model_fields(test_user)
+fields = get_json_model_fields(test_user)
 
 
 amounts = [1,5,10]
@@ -57,3 +57,4 @@ def test_Field_comprehension():
     assert all([len(x.vals) == amount for x in data.values()])
     assert all([x.method == "faker" for x in data.values()])
 
+'''

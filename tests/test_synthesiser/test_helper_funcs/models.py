@@ -1,7 +1,7 @@
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 
 
-test_Address = JsonSchemaClass("test_Address",{
+test_Address = JsonSchemaClass({
     "properties":{
         "street": {"type":"string"},
         "city": {"type":"string"}
@@ -11,7 +11,7 @@ test_Address = JsonSchemaClass("test_Address",{
     "title":"test_Address"
 })
 
-test_Address_2 = JsonSchemaClass("test_Address_2",{
+test_Address_2 = JsonSchemaClass({
     "properties":{
         "street": {"type":"string"},
         "city": {"type":"string"},
@@ -23,7 +23,7 @@ test_Address_2 = JsonSchemaClass("test_Address_2",{
     "title":"test_Address_2"
 })
 
-test_Address_3 = JsonSchemaClass("test_Address_3",{
+test_Address_3 = JsonSchemaClass({
         "properties": {
                 "street": {
                         "title": "Street",
@@ -52,7 +52,7 @@ test_Address_3 = JsonSchemaClass("test_Address_3",{
         "type": "object"
 })
 
-test_Address_4 = JsonSchemaClass("test_Address_4",{
+test_Address_4 = JsonSchemaClass({
         "$defs": {
                 "test_Address_3": {
                         "properties": {
@@ -110,7 +110,7 @@ test_Address_4 = JsonSchemaClass("test_Address_4",{
         "type": "object"
 })
 
-Constraints6 = JsonSchemaClass("Constraints6",{
+Constraints6 = JsonSchemaClass({
         "properties": {
                 "constr_strip_whitespace": {
                         "title": "Constr Strip Whitespace",
@@ -244,7 +244,7 @@ Constraints6 = JsonSchemaClass("Constraints6",{
         "type": "object"
 })
 
-Constraints = JsonSchemaClass("Constraints",{
+Constraints = JsonSchemaClass({
         "$defs": {
                 "ConstraintsNested": {
                         "properties": {
@@ -512,7 +512,7 @@ Constraints = JsonSchemaClass("Constraints",{
         "type": "object"
 })
 
-ConstraintsNested = JsonSchemaClass("ConstraintsNested",{
+ConstraintsNested = JsonSchemaClass({
         "properties": {
                 "test_none": {
                         "title": "Test None",
@@ -637,7 +637,7 @@ ConstraintsNested = JsonSchemaClass("ConstraintsNested",{
         "type": "object"
 })
 
-generate_test1 = JsonSchemaClass("generate_test1",{
+generate_test1 = JsonSchemaClass({
         "properties": {
                 "test_none": {
                         "title": "Test None",
@@ -762,7 +762,7 @@ generate_test1 = JsonSchemaClass("generate_test1",{
         "type": "object"
 })
 
-generate_test2 = JsonSchemaClass("generate_test2",{
+generate_test2 = JsonSchemaClass({
         "properties": {
                 "test_dict_fail": {
                         "additionalProperties": {
@@ -780,7 +780,7 @@ generate_test2 = JsonSchemaClass("generate_test2",{
         "type": "object"
 })
 
-User = JsonSchemaClass("User",{
+User = JsonSchemaClass({
     "properties":{
         "id": {"type":"integer"},
         "name": {"type":"string"}

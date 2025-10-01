@@ -3,8 +3,10 @@ import pathlib
 import os
 import json
 
-from tests.schema import test_user as schema_model
 from src.smoke_mirrors.app.anon.funcs import anon_func
+from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
+with open("tests\\schema.json","r") as f:
+    schema_model=JsonSchemaClass(json.load(f))
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]

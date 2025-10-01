@@ -1,13 +1,12 @@
 import json
-from smoke_mirrors.app.helper_funcs import load_ingest_data, make_json_safe
-from smoke_mirrors.anonymiser import anonymiser, anonymiser_json
-from pydantic import BaseModel
+from smoke_mirrors.app.helper_funcs import make_json_safe
+from smoke_mirrors.anonymiser import anonymiser
 from typing import Any, Dict, Union
 from pathlib import Path
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 
 def anon_func(
-    schema_model:Union[BaseModel,JsonSchemaClass],
+    schema_model:JsonSchemaClass,
     seed: Union[int,str,None],
     method:str,
     amount:int,
@@ -39,16 +38,9 @@ def anon_func(
         data to the output file and optionally prints output to the screen
     """
     # data comes in as a dict of dicts
-    json_schema_flag = False
-    if type(schema_model) == JsonSchemaClass:
-        anonymised_data = anonymiser_json.anonymise(
-            schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, cout=cout
-        )
-        json_schema_flag = True
-    else:
-        anonymised_data = anonymiser.anonymise(
-            schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, cout=cout
-        )
+    anonymised_data = anonymiser.anonymise(
+        schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, cout=cout
+    )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
 
@@ -61,10 +53,7 @@ def anon_func(
                 print("Output data:")
             flush_list = []
             for idx, x in enumerate(content):
-                if json_schema_flag == True:
-                    output_data = x
-                else:
-                    output_data = x.model_dump()
+                output_data = x
                 if cout:
                     print(
                         f"output {str(idx)}{' ' * (10 - len(str(idx)))}{output_data}"

@@ -1,8 +1,6 @@
-from typing import Dict, Union, List, Set, get_args, get_origin
-from pydantic import BaseModel
-import inspect
+from typing import Dict, List, Set
 from smoke_mirrors.pre_made_data import provider_methods
-from smoke_mirrors.tools.model_funcs import get_model_data, flatten_types, is_model
+
 
 def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
     """
@@ -183,29 +181,3 @@ def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
         field_match_pairs[name] = match
     return field_match_pairs
 
-def recursive_match_fields(schema_model:BaseModel, method, field_match_pairs:Dict[str,Dict[str,str]]=None) -> Dict[str, Dict[str, str]]:
-    """
-    Goes through an input schema model and matches all fields to a generation provider\n
-    recurses through nested schemas, adding to list of providers for each field\n
-    uses optional field_match_pairs input during recursion and remove duplicate nested schemas\n
-    Inputs:\n
-        schema model
-        optional field match pairs (generated during output from recursion)
-    Outputs:\n
-        field match pairs = {schema name: {field name: match name}}
-    """
-    if field_match_pairs is None:
-        field_match_pairs = {}
-    # in body not in function, because default collections are stored in memory not by instance
-    model_data = get_model_data(schema_model)
-    field_names = [x[0] for x in model_data]
-
-    if schema_model.__name__ not in field_match_pairs.keys():
-        field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
-    for x in model_data:
-        data_type = x[1].annotation
-        nested_types = [ft for ft in list(flatten_types(data_type)) if is_model(ft)]
-        for nt in nested_types:
-            if nt.__name__ not in field_match_pairs.keys():
-                field_match_pairs.update(recursive_match_fields(nt,method))
-    return field_match_pairs

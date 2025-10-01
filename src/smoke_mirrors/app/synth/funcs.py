@@ -1,15 +1,13 @@
 import json
 import time
 from smoke_mirrors.app.helper_funcs import send_batch_to_API, make_json_safe
-from smoke_mirrors.synthesiser.synthesiser import Synthesiser
-from smoke_mirrors.synthesiser_json.synthesiser import JsonSynthesiser
+from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from pathlib import Path
-from typing import Any, Union
-from pydantic import BaseModel
+from typing import Union
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 
 def synth_func(
-    schema_model:Union[BaseModel,JsonSchemaClass],
+    schema_model:JsonSchemaClass,
     method:str,
     amount:int,
     output:Path,
@@ -32,12 +30,7 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
-    json_schema_flag = False
-    if type(schema_model) == JsonSchemaClass:
-        json_schema_flag = True
-        synth = JsonSynthesiser(method=method,cout=cout)
-    else:
-        synth = Synthesiser(method=method,cout=cout)
+    synth = JsonSynthesiser(method=method,cout=cout)
     dataset = synth.synthesise(
         schema_model, method, amount, seed
     )  # returns as [ data, data, ... ]
@@ -53,12 +46,7 @@ def synth_func(
                 front_string = ",\n	"
             else:
                 front_string = ""
-            if json_schema_flag:
-                json_str = json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
-            else:
-                json_str = json.dumps(
-                    data.model_dump(), indent=4, default=lambda v: make_json_safe(v)
-                )
+            json_str = json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
             flush.append(f'{front_string}"{index + start_index}": {json_str}')
             if str(output).startswith("http"):
                 request_entries.append(data)
