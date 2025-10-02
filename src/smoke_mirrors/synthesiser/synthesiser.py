@@ -24,6 +24,7 @@ from smoke_mirrors.pre_made_data import (
     default_constr_dict,
     recursive_types,
     python_builtin_types,
+    provider_return_types
 )
 from jsonschema import validate
 import re
@@ -93,6 +94,8 @@ string_list = string.ascii_letters + string.digits
 class JsonSynthesiser():
     def __init__(self, method="faker",cout=False):
         self.outputpooling = {}
+        self.applied_constraints_cache = {}
+        self.schema_keys_cache = {}
         self.method = method
         data_set = provider_methods[method]
         self.word_list, methods_map = list_match_methods(method)
@@ -203,16 +206,17 @@ class JsonSynthesiser():
                         )
                     #"""
                     data_pool = [gen() for _ in range(max(1, pooling_count))]
-                    data_pool = [ val for val in data_pool if re.fullmatch(val) ]
+                    data_pool = [ val for val in data_pool if re.fullmatch(pattern,val) ]
                     tries = 0
-                    while len(data_pool) <= max(1, pooling_count) or tries == max(1, pooling_count):
+                    while len(data_pool) < max(1, pooling_count) or tries == max(1, pooling_count):
                         val = gen()
-                        if re.fullmatch(val):
+                        if re.fullmatch(pattern,val):
                             data_pool.append(val)
                         tries+=1
-                    if len(data_pool) <= max(1, pooling_count):
+                    if len(data_pool) < max(1, pooling_count):
                         raise Exception(f"Failed to generate values for pattern, {pattern}")
-                except:
+                except Exception as e:
+                    print(f"Exception raised: {e}")
                     try:
                         with Pool() as p:
                             data_pool = p.map(
@@ -502,32 +506,13 @@ class JsonSynthesiser():
         # print(f"	Generating for: {field_name}")
         # print(applied_constraints)
         # data_type = get_origin(applied_constraints["annotation"])
-        applied_constraints = check_generation_constraints(field_name,applied_constraints["origin"])
-        '''
-        {
-            'additionalProperties': {
-                'maxLength': 2000, 
-                'type': 'string'
-            }, 
-            'minProperties': 30, 
-            'propertyNames': {
-                'maxLength': 1000
-            }, 
-            'title': 'Name', 
-            'type': 'object', 
-            'required': True
-        }
-        '''
+        if generate_path in self.applied_constraints_cache:
+            applied_constraints = self.applied_constraints_cache[generate_path]
+        else:
+            applied_constraints = check_generation_constraints(field_name,applied_constraints["origin"])
+            self.applied_constraints_cache[generate_path] = applied_constraints
         data_type = applied_constraints["annotation"]
         data_args = applied_constraints["args"]
-        # data_args = get_args(applied_constraints["annotation"])
-        '''
-        if True:
-            print(f"	{applied_constraints}")
-            print(f"	origin: {applied_constraints["origin"]}")
-            print(f"	args: {applied_constraints["args"]}")
-            input("...")
-        '''
             
         # all traversals can be considered "annotated"
         if data_type is type(None) or data_type is None:
@@ -718,7 +703,7 @@ class JsonSynthesiser():
                 func = None
             else:
                 func = self.resolved_methods[match_name]
-            if applied_constraints["pattern"] is not None or not func or match_name == "":
+            if (applied_constraints["pattern"] is not None) or (match_name == "") or (match_name != "" and provider_return_types[match_name] != applied_constraints["annotation"]):
                 output_data = self.generate_from_constraints(
                     field_name, applied_constraints, generate_path
                 )
@@ -908,13 +893,18 @@ class JsonSynthesiser():
         schema_name = schema_model.__name__
         synthesised_data = {}
         # print("__")
-        for name in get_json_model_fields(schema_model).keys():
+        if schema_name in self.schema_keys_cache:
+            schema_keys = self.schema_keys_cache[schema_name]
+        else:
+            schema_keys = get_json_model_fields(schema_model).keys()
+            self.schema_keys_cache[schema_name] = schema_keys
+        for name in schema_keys:
             # print(f"Field:{name}")
             if not self.applied_constraints[schema_name][name]["required"]:
                 if random.randint(1, 2) == 1:
                     continue
 
-            generate_path = path + f"{schema_model.__name__}({name})[{amount}]"
+            generate_path = path + f"{schema_name}({name})[{amount}]"
             # self.apply_constraints(func(), applied_constraints, match_name, generate_path)
             synthesised_data[name] = self.generate_synth_data(
                 name,
@@ -927,7 +917,7 @@ class JsonSynthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",cout=False
+        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",cout=False, performance=False
     ) -> List[Dict[str,Any]]:
         """
         The main call function of the synthesiser class
@@ -972,6 +962,9 @@ class JsonSynthesiser():
                 random.seed(seed)
         """
         self.defs = schema_model.defs
+        self.outputpooling.clear()
+        self.applied_constraints_cache.clear()
+        self.schema_keys_cache.clear()
         if method != None:
             self.method = method
         else:
@@ -985,10 +978,11 @@ class JsonSynthesiser():
             synthesised_data = self.synthesise_recursive(
                 schema_model, method=method, amount=amount
             )
-            try:
-                validate(instance=synthesised_data, schema=schema_model.contents)
-            except:
-                validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+            if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
+                try:
+                    validate(instance=synthesised_data, schema=schema_model.contents)
+                except:
+                    validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
             dataset.append(synthesised_data)
             if self.cout:
                 if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time

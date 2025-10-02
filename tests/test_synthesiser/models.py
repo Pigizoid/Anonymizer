@@ -782,10 +782,17 @@ generate_test2 = JsonSchemaClass({
 
 User = JsonSchemaClass({
     "properties":{
+        "username": {
+                "maxLength": 20,
+                "minLength": 3,
+                "pattern": "^[a-zA-Z0-9_]+$",
+                "title": "Username",
+                "type": "string"
+        },
+        "name": {"type":"string"},
         "id": {"type":"integer"},
-        "name": {"type":"string"}
     },
-    "required": ["id","name"],
+    "required": ["id","name","username"],
     "type":"object",
     "title":"User"
 })

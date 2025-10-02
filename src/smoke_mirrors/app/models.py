@@ -12,6 +12,7 @@ class SynthesiserConfig(BaseModel):
     output: str = ""
     flat_output: bool = False
     cout: bool = False
+    performance: bool = False
 
 
 class AnonymiserConfig(BaseModel):

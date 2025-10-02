@@ -14,6 +14,7 @@ def synth_func(
     cout:bool = False,
     start_index:int = 0,
     seed: Union[int,str,None]="random",
+    performance: bool = False
 ):
     """
     Inputs:\n
@@ -32,14 +33,15 @@ def synth_func(
     start_time = time.time()
     synth = JsonSynthesiser(method=method,cout=cout)
     dataset = synth.synthesise(
-        schema_model, method, amount, seed
+        schema_model, method, amount, seed, performance=performance
     )  # returns as [ data, data, ... ]
     elapsed_time = time.time() - start_time  # end timer
     print(f"Generation | Time taken: {elapsed_time:.2f} seconds")
     flush = []
     if str(output).startswith("http"):
         request_entries = []
-
+    if cout:
+        print(f"Writing to file : {output}")
     for index, data in enumerate(dataset):
         if output is not None:
             if (index + 1 + start_index) != 1:
@@ -61,10 +63,6 @@ def synth_func(
                 f.write(flush_out)
     else:
         flush_out = "".join(flush)
-    if cout:
-        print(flush_out)
     flush.clear()
     if str(output).startswith("http"):
         request_entries.clear()
-    if output is not None and cout:
-        print(f"To file_path -> {output}")

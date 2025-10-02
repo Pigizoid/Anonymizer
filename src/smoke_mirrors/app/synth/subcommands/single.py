@@ -29,6 +29,7 @@ def synth_single_func(schema_model,output_file_path,flags):
         output_file_path,
         cout=synth_flags.cout,
         seed=seed,
+        performance=synth_flags.performance,
     )
 
     close_folder(output_file_path)
@@ -40,6 +41,7 @@ def synth_single_command(
     output: str = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
 ):
     """
     A subcommand for the synth command\n

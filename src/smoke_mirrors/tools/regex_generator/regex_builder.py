@@ -1159,6 +1159,8 @@ def compile_regex_to_function_source(
 
 if __name__ == "__main__":
     patterns = [
+        r"^[a-zA-Z0-9_]{3,20}$",
+        
         r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{12,20}$",
         r"^(a|b|c)\1{3,}$",
         r"^(?=.*foo)(?=.*bar)(?=.*baz).{10,50}$",
@@ -1265,3 +1267,4 @@ if __name__ == "__main__":
                     raise AssertionError("Generated string does not match pattern")
         except Exception as e:
             print("ERROR generating for pattern:", pat, " ->", e)
+        print("") #\n at end

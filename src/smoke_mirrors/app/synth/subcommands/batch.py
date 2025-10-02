@@ -31,6 +31,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
     else:
         batch = synth_flags.batch
     cout = synth_flags.cout
+    performance = synth_flags.performance
     batch_index = 0
     for y in range(amount // batch):
         print(
@@ -44,6 +45,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
             cout=cout,
             start_index=batch_index,
             seed=seed,
+            performance=performance,
         )
         batch_index += batch
     if amount - batch_index != 0:
@@ -55,6 +57,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
             cout=cout,
             start_index=batch_index,
             seed=seed,
+            performance=performance,
         )
 
     close_folder(output_file_path)
@@ -69,6 +72,7 @@ def synth_batch_command(
     output: str = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
 ):
     """
     A subcommand for the synth command\n

@@ -140,13 +140,13 @@ from faker import Faker
 import mimesis
 from mimesis import Generic
 import inspect
-from enum import Enum
                 
                 \n''')
-        f.write("class provider_return_types(Enum):\n")
+        f.write("provider_return_types = {\n")
         names, instances = list_match_methods("mixed")
         for x, v in generate_provider_return_types(names, instances).items():
-            f.write(f"    {x} = {v.__name__}\n")
+            f.write(f"    '{x}' : {v.__name__},\n")
+        f.write("}\n")
         
         methods = ["faker","mimesis","mixed"]
         f.write("provider_methods = {\n")

@@ -330,7 +330,6 @@ def load_file_path(output):
 
 def load_output_path_flag(file_path):
     pathobj = Path(file_path)
-    print("p:",pathobj,"s:",file_path)
     if len(pathobj.parts)>1:
         return_file_path =  pathobj.parent / "outputs" / pathobj.name
     else:

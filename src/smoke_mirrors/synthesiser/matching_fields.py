@@ -108,6 +108,12 @@ def calc_difference(
         distance = levenshtein_distance(target_word, word.lower()) * cross_points
     return distance
 
+
+def filter_word_list(target_tokens_set, word_list): #filters any words with less than 2 characters in common
+    target_letters = set(''.join(target_tokens_set))
+    return [word for word in word_list if len(set(word) & target_letters) > 1]
+
+
 def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
     """
     1. calculates the distance of each field_name in the list:\n
@@ -131,16 +137,20 @@ def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
         target_word = t_word.lower()
         target_tokens = target_word.split("_")
         target_tokens_set = set(target_tokens)
-        for word in word_list:
-            distance = calc_difference(
-                target_word,
-                word,
-                word_tokens[word],
-                word_tokens_set[word],
-                target_tokens,
-                target_tokens_set,
-            )
-            distances.append([word, distance])
+        if t_word in word_list:
+            distances.append([t_word,0])
+        else:
+            filtered_word_list = filter_word_list(target_tokens_set,word_list)
+            for word in filtered_word_list:
+                distance = calc_difference(
+                    target_word,
+                    word,
+                    word_tokens[word],
+                    word_tokens_set[word],
+                    target_tokens,
+                    target_tokens_set,
+                )
+                distances.append([word, distance])
         sorted_by_distance = sorted(distances, key=lambda dist: dist[1])
         if sorted_by_distance != [] and sorted_by_distance[0] != []:
             min_value = sorted_by_distance[0][1]
