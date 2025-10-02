@@ -147,41 +147,6 @@ def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
         return {recursed_path.stem: loading_func(recursed_path)}
     else:
         return None
-    '''
-    {
-        'schema.py': <class 'imported_schema_model.Address'>
-    }
-    all data: {
-        'models': [
-            {
-                'schema1': <class 'imported_schema_model.Address'>
-            },
-            {
-                'schema2': <class 'imported_schema_model.Address'>
-            },
-            {
-                'submodels1': [
-                    {
-                        'schema1': <class 'imported_schema_model.Address'>
-                    },
-                    {  
-                        'schema2': <class 'imported_schema_model.Address'>
-                    }
-                ]
-            }, 
-            {
-                'submodels2': [
-                    {
-                        'schema1': <class 'imported_schema_model.Address'>
-                    }, 
-                    {
-                        'schema2': <class 'imported_schema_model.Address'>
-                    }
-                ]
-            }
-        ]
-    }
-    '''
 
 
 def schemas_equal(a, b) -> bool:
@@ -220,7 +185,7 @@ def flatten_loaded_schemas(
             ):
                 result.append(schema)
             else:
-                raise Exception(f"Schemas with identical names eixst in the folder, schema -> {schema.__name__}")
+                raise Exception(f"Schemas with identical names exist in the folder, schema name -> {schema.__name__}")
 
     _flatten(schema_models)
     return result
@@ -317,7 +282,7 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
-    elif output_path_name.resolve().parent == "outputs":
+    elif output_path_name.resolve().parent.name == "outputs":
         output_path_name = get_unique_folder_name(Path(output_path_name))
         os.makedirs(output_path_name)
     for file_path,contents in schema_models.items():

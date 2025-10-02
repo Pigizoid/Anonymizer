@@ -10,6 +10,7 @@ class SynthesiserConfig(BaseModel):
     amount: int = 1
     batch: int = 0
     output: str = ""
+    flat_output: bool = False
     cout: bool = False
 
 

@@ -12,7 +12,7 @@ from faker import Faker
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 from src.smoke_mirrors.synthesiser.synthesiser import print_path
 
-from tests.test_synthesiser.test_helper_funcs.models import Constraints, ConstraintsNested, test_Address_4, generate_test1, User
+from tests.test_synthesiser.models import Constraints, ConstraintsNested, test_Address_4, generate_test1, User
 from jsonschema import validate
 
 

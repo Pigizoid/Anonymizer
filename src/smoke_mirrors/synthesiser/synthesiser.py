@@ -9,9 +9,9 @@ from typing import (
     Any,
     Type,
 )
-from smoke_mirrors.synthesiser.helper_funcs.constraints import make_one_string, make_new_contraints, get_applied_constraints, check_generation_constraints
-from smoke_mirrors.synthesiser.helper_funcs.matching_fields import match_fields
-from smoke_mirrors.synthesiser.helper_funcs.provider_methods import list_match_methods, make_resolved_methods
+from smoke_mirrors.synthesiser.constraints import make_one_string, make_new_contraints, get_applied_constraints, check_generation_constraints
+from smoke_mirrors.synthesiser.matching_fields import match_fields
+from smoke_mirrors.synthesiser.provider_methods import list_match_methods, make_resolved_methods
 from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder

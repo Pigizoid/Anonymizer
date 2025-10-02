@@ -67,6 +67,7 @@ def synth_batch_command(
     amount: int = None,
     batch: int = None,
     output: str = None,
+    flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
     cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
 ):
     """
@@ -84,5 +85,7 @@ def synth_batch_command(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags}")
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+    if flat_output:
+        schema_models = {schema_model.__name__:schema_model for schema_model in flatten_loaded_schemas(schema_models)}
     output_path_name = load_output_path_flag(flags.synth.output)
     recursive_folder_schema_handler(schema_models,synth_batch_func,flags,output_path_name)

@@ -8,8 +8,8 @@ from smoke_mirrors.anonymiser.anonymiser import anonymise_data
 from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from smoke_mirrors.tools.model_funcs import get_json_model_fields
 from pydantic import BaseModel, Field
-from src.smoke_mirrors.synthesiser.helper_funcs.matching_fields import match_fields
-from src.smoke_mirrors.synthesiser.helper_funcs.constraints import check_generation_constraints
+from smoke_mirrors.synthesiser.matching_fields import match_fields
+from smoke_mirrors.synthesiser.constraints import check_generation_constraints
 
 
 '''

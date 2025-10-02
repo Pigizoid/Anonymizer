@@ -17,7 +17,7 @@ def convert_to_JSON(schema_model:BaseModel):
 
 def write_JSON_schema(schema_model:BaseModel,write_path:Path,flags=None):
     JSON_output = convert_to_JSON(schema_model)
-    with open(f"{write_path}.json","w+") as f:
+    with open(f"{write_path}_(json).json","w+") as f:
         output_str = json.dumps(JSON_output, indent=8, default=lambda v: str(v))
         f.write(output_str)
 

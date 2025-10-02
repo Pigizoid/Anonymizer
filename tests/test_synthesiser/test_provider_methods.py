@@ -1,4 +1,4 @@
-from src.smoke_mirrors.synthesiser.helper_funcs.provider_methods import list_faker_methods, list_mimesis_methods, list_match_methods, make_resolved_methods
+from smoke_mirrors.synthesiser.provider_methods import list_faker_methods, list_mimesis_methods, list_match_methods, make_resolved_methods
 
 from faker import Faker
 

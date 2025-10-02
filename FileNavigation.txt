@@ -15,27 +15,13 @@ Anonymizer
 |  |  \
 |  |  |anonymiser
 |  |  |  \
-|  |  |  |anonymiser_json.py
 |  |  |  |anonymiser.py
 |  |  |
 |  |  |synthesiser
 |  |  |  \
-|  |  |  |helper_funcs
-|  |  |  |  \
-|  |  |  |  |constraints.py
-|  |  |  |  |matching_fields.py
-|  |  |  |  |provider_methods.py
-|  |  |  |
-|  |  |  |synthesiser.py
-|  |  |
-|  |  |synthesiser_json
-|  |  |  \
-|  |  |  |helper_funcs
-|  |  |  |  \
-|  |  |  |  |constraints.py
-|  |  |  |  |matching_fields.py
-|  |  |  |  |provider_methods.py
-|  |  |  |
+|  |  |  |constraints.py
+|  |  |  |matching_fields.py
+|  |  |  |provider_methods.py
 |  |  |  |synthesiser.py
 |  |  |
 |  |  |app
@@ -94,35 +80,16 @@ Anonymizer
 |tests
 |  \
 |  |schema.py
-|  |test_anonymiser_folder
+|  |test_anonymiser
 |  |  \
-|  |  |test_handling
-|  |  |  \
-|  |  |  |test_data_handling.py
-|  |  |  |test_model_handling.py
-|  |  |
 |  |  |test_anonymiser.py
 |  |
-|  |test_synthesiser_folder
+|  |test_synthesiser
 |  |  \
-|  |  |test_helper_funcs
-|  |  |  \
-|  |  |  |models.py
-|  |  |  |test_constraints.py
-|  |  |  |test_matching_fields.py
-|  |  |  |test_provider_methods.py
-|  |  |
-|  |  |test_synthesiser.py
-|  |
-|  |test_synthesiser_json_folder
-|  |  \
-|  |  |test_helper_funcs
-|  |  |  \
-|  |  |  |models.py
-|  |  |  |test_constraints.py
-|  |  |  |test_matching_fields.py
-|  |  |  |test_provider_methods.py
-|  |  |
+|  |  |models.py
+|  |  |test_constraints.py
+|  |  |test_matching_fields.py
+|  |  |test_provider_methods.py
 |  |  |test_synthesiser.py
 |  |
 |  |test_app

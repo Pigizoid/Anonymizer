@@ -4,9 +4,9 @@ from decimal import Decimal
 
 from src.smoke_mirrors.pre_made_data import all_constr_attribs, default_constr_dict
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
-from src.smoke_mirrors.synthesiser.helper_funcs.constraints import make_one_string, check_generation_constraints, make_new_contraints, get_applied_constraints
+from smoke_mirrors.synthesiser.constraints import make_one_string, check_generation_constraints, make_new_contraints, get_applied_constraints
 
-from tests.test_synthesiser.test_helper_funcs.models import test_Address, test_Address_2, Constraints, ConstraintsNested, Constraints6
+from tests.test_synthesiser.models import test_Address, test_Address_2, Constraints, ConstraintsNested, Constraints6
 
 import re
 
