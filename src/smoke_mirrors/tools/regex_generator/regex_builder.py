@@ -1159,6 +1159,7 @@ def compile_regex_to_function_source(
 
 if __name__ == "__main__":
     patterns = [
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12,}$",
         r"^[a-zA-Z0-9_]{3,20}$",
         
         r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{12,20}$",
@@ -1225,14 +1226,13 @@ if __name__ == "__main__":
         r"^[ -~]{50}$",
         r"^[a-z]{1000}$",
     ]
-
     amount = 100000
     for pat in patterns:
         print("=== pattern:", pat, "=== amount:", amount)
         import time
         import re
         start = time.time()
-        max_repeat = 6
+        max_repeat = 1
         try:
             parsed_local = list(regex_sre_parse.parse(pat))
             anchored = is_pattern_anchored(parsed_local)

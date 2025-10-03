@@ -12,7 +12,7 @@ from typing import (
 from smoke_mirrors.synthesiser.constraints import make_one_string, make_new_contraints, get_applied_constraints, check_generation_constraints
 from smoke_mirrors.synthesiser.matching_fields import match_fields
 from smoke_mirrors.synthesiser.provider_methods import list_match_methods, make_resolved_methods
-from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types
+from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types, load_parse_json_schema
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder
 from collections import deque
@@ -152,31 +152,44 @@ class JsonSynthesiser():
                 min_length = constraints["min_length"]
                 max_length = constraints["max_length"]
                 pattern = constraints["pattern"]
-                if min_length is None and max_length is None:
-                    pattern = pattern
-                elif min_length is not None and max_length is None:
-                    # pattern = f"^(?=.{{{min_length},}}$)(?:{pattern})$"
-                    if pattern[-1] == "$":
-                        pattern = pattern[:-1]
-                    while pattern[-1] in ["+", "*", "?"]:
-                        pattern = pattern[:-1]
-                    pattern = pattern + f"{{{min_length},}}$"
 
-                elif min_length is None and max_length is not None:
-                    # pattern = f"^(?=.{{0,{max_length}}}$)(?:{pattern})$"
-                    if pattern[-1] == "$":
-                        pattern = pattern[:-1]
-                    while pattern[-1] in ["+", "*", "?"]:
-                        pattern = pattern[:-1]
-                    pattern = pattern + f"{{0,{max_length}}}$"
+                quantifier_match = re.search(r"(.*?)(\{\d+(?:,\d*)?\})(\$?)$", pattern)
+                if quantifier_match:
+                    base, quant, end = quantifier_match.groups()
+                    
+                    m = re.match(r"\{(\d+)(?:,(\d*))?\}", quant)
+                    if m:
+                        existing_min = int(m.group(1))
+                        existing_max = int(m.group(2)) if m.group(2) not in (None, '') else None
+
+                        new_min = min_length if min_length is not None else existing_min
+                        if max_length is not None:
+                            new_max = max_length
+                        else:
+                            new_max = existing_max
+
+                        if new_max is None:
+                            new_quant = f"{{{new_min}}}"
+                        elif new_min == new_max:
+                            new_quant = f"{{{new_min}}}"
+                        else:
+                            new_quant = f"{{{new_min},{new_max}}}"
+
+                        pattern = base + new_quant + end
                 else:
-                    # pattern = f"^(?=.{{{min_length},{max_length}}}$)(?:{pattern})$"
-                    if pattern[-1] == "$":
+                    if pattern.endswith("$"):
                         pattern = pattern[:-1]
-                    while pattern[-1] in ["+", "*", "?"]:
+                    while pattern and pattern[-1] in ["+", "*", "?"]:
                         pattern = pattern[:-1]
-                    pattern = pattern + f"{{{min_length},{max_length}}}$"
 
+                    if min_length is None and max_length is None:
+                        pattern = pattern
+                    elif min_length is not None and max_length is None:
+                        pattern = pattern + f"{{{min_length}}}$"
+                    elif min_length is None and max_length is not None:
+                        pattern = pattern + f"{{0,{max_length}}}$"
+                    else:
+                        pattern = pattern + f"{{{min_length},{max_length}}}$"
                 # print(pattern)
                 # print(exrex.getone(pattern))
                 # print(self.make_one_string(pattern))
@@ -205,6 +218,7 @@ class JsonSynthesiser():
                             [(pattern, i) for i in range(pooling_count)]
                         )
                     #"""
+                    
                     data_pool = [gen() for _ in range(max(1, pooling_count))]
                     data_pool = [ val for val in data_pool if re.fullmatch(pattern,val) ]
                     tries = 0
@@ -396,6 +410,11 @@ class JsonSynthesiser():
             value with constraints applied to it
         """
         data_type = constraints["annotation"]
+        if type(return_value) != constraints["annotation"]:
+            try:
+                return_value = constraints["annotation"](return_value)
+            except:
+                return_value = None
         if data_type is str:
             # print("\tconstraining str")
             temp_string_list = string_list
@@ -811,12 +830,15 @@ class JsonSynthesiser():
             self.defs = schema_model.defs
         if field_match_pairs is None:
             field_match_pairs = {}
-        # in body not in function, because default collections are stored in memory not by instance
+        schema_name = schema_model.__name__
+        if schema_model.contents["type"] != "object":
+            field_match_pairs[schema_name] = match_fields([schema_name], method)
+
         model_data = get_json_model_data(schema_model)
         field_names = [x[0] for x in model_data]
 
-        if schema_model.__name__ not in field_match_pairs.keys():
-            field_match_pairs[schema_model.__name__] = match_fields(field_names, method)
+        if schema_name not in field_match_pairs.keys():
+            field_match_pairs[schema_name] = match_fields(field_names, method)
         for x in model_data:
             nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
             for nt in nested_types:
@@ -824,7 +846,7 @@ class JsonSynthesiser():
                 if ref_name not in field_match_pairs.keys():
                     # print(data_type.__name__, field_match_pairs.keys())
                     if ref_name not in self.defs:
-                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                        raise Exception(f"'{ref_name}' not in defs '{self.defs}'")
                     if self.defs == {}:
                         raise Exception("Synthesiser .defs have not been defined")
                     field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
@@ -891,28 +913,39 @@ class JsonSynthesiser():
         if self.applied_constraints == {}:
             self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
         schema_name = schema_model.__name__
+
         synthesised_data = {}
         # print("__")
-        if schema_name in self.schema_keys_cache:
-            schema_keys = self.schema_keys_cache[schema_name]
-        else:
-            schema_keys = get_json_model_fields(schema_model).keys()
-            self.schema_keys_cache[schema_name] = schema_keys
-        for name in schema_keys:
-            # print(f"Field:{name}")
-            if not self.applied_constraints[schema_name][name]["required"]:
-                if random.randint(1, 2) == 1:
-                    continue
-
-            generate_path = path + f"{schema_name}({name})[{amount}]"
-            # self.apply_constraints(func(), applied_constraints, match_name, generate_path)
-            synthesised_data[name] = self.generate_synth_data(
-                name,
-                self.field_match_pairs[schema_name][name],
-                self.applied_constraints[schema_name][name],
+        if schema_model.contents["type"] != "object":
+            generate_path = path + f"{schema_name}({schema_name})[{amount}]"
+            synthesised_data = self.generate_synth_data(
+                schema_name,
+                self.field_match_pairs[schema_name][schema_name],
+                self.applied_constraints[schema_name][schema_name],
                 generate_path,
             )
-            # print(f"	Data:{synthesised_data[name]}")
+
+        else:
+            if schema_name in self.schema_keys_cache:
+                schema_keys = self.schema_keys_cache[schema_name]
+            else:
+                schema_keys = get_json_model_fields(schema_model).keys()
+                self.schema_keys_cache[schema_name] = schema_keys
+            for name in schema_keys:
+                # print(f"Field:{name}")
+                if not self.applied_constraints[schema_name][name]["required"]:
+                    if random.randint(1, 2) == 1:
+                        continue
+
+                generate_path = path + f"{schema_name}({name})[{amount}]"
+                # self.apply_constraints(func(), applied_constraints, match_name, generate_path)
+                synthesised_data[name] = self.generate_synth_data(
+                    name,
+                    self.field_match_pairs[schema_name][name],
+                    self.applied_constraints[schema_name][name],
+                    generate_path,
+                )
+                # print(f"	Data:{synthesised_data[name]}")
         # print("__")
         return synthesised_data
 
@@ -935,6 +968,7 @@ class JsonSynthesiser():
             if "title" not in schema_model:
                 raise Exception("JSON schema must have a title")
             schema_model = JsonSchemaClass(schema_model)
+        schema_model = load_parse_json_schema(schema_model)
         if cout:
             self.cout = cout
         if amount == 0:
@@ -969,28 +1003,50 @@ class JsonSynthesiser():
             self.method = method
         else:
             method = self.method
-
-        self.field_match_pairs = self.recursive_match_fields(schema_model,method)
-        self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
-        # print(self.applied_constraints)
-        dataset = []
-        for x in range(amount):
-            synthesised_data = self.synthesise_recursive(
-                schema_model, method=method, amount=amount
-            )
-            if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                try:
-                    validate(instance=synthesised_data, schema=schema_model.contents)
-                except:
-                    validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
-            dataset.append(synthesised_data)
+        if schema_model.contents["type"] != "object":
+            dataset = []
+            constraints = check_generation_constraints("",schema_model.contents)
+            if "title" in schema_model.contents:
+                field_name = schema_model.contents["title"]
+                self.field_match_pairs = match_fields([field_name],method)
+                match_name = self.field_match_pairs[field_name]
+            else:
+                field_name = ""
+                match_name = ""
+                self.field_match_pairs = {}
+            
+            
+            for x in range(amount):
+                synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
+                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
+                    try:
+                        validate(instance=synthesised_data, schema=schema_model.contents)
+                    except:
+                        validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+                dataset.append(synthesised_data)
+            return dataset
+        else:
+            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
+            # print(self.applied_constraints)
+            dataset = []
+            for x in range(amount):
+                synthesised_data = self.synthesise_recursive(
+                    schema_model, method=method, amount=amount
+                )
+                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
+                    try:
+                        validate(instance=synthesised_data, schema=schema_model.contents)
+                    except:
+                        validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+                dataset.append(synthesised_data)
+                if self.cout:
+                    if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
+                        print(
+                            f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
+                            end="\r",
+                        )
             if self.cout:
-                if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
-                    print(
-                        f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
-                        end="\r",
-                    )
-        if self.cout:
-            print(f"Completed: {amount}/{amount}{' ' * 30}")
-        return dataset
+                print(f"Completed: {amount}/{amount}{' ' * 30}")
+            return dataset
     # ----- Central called functions -----

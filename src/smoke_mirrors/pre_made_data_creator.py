@@ -72,7 +72,7 @@ def list_faker_methods() -> Tuple[list, dict]:
     fake = Faker()
     for attr in dir(fake):
         try:  # this is used to ensure the providers dont error when called
-            if not attr.startswith("_") and callable(getattr(fake, attr)):
+            if not attr.startswith("_") and callable(getattr(fake, attr)) and attr.lower() == attr:
                 methods.append(attr)
                 methods_map[attr] = fake
         except:
@@ -99,7 +99,7 @@ def list_mimesis_methods() -> Tuple[list, dict]:
             except (TypeError, ValueError):
                 continue
             for attr in dir(instance):
-                if not attr.startswith("_") and callable(getattr(instance, attr)):
+                if not attr.startswith("_") and callable(getattr(instance, attr)) and attr.lower() == attr:
                     methods.append(attr)
                     methods_map[attr] = instance
     return (methods, methods_map)

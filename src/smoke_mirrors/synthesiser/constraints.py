@@ -112,7 +112,11 @@ def get_applied_constraints(schema_model:JsonSchemaClass) -> Dict[str, Dict[str,
     """
     applied_constraints = {}
 
-    for name, field in get_json_model_fields(schema_model).items():
-        applied_constraints[name] = check_generation_constraints(name, field)
+    if schema_model.contents["type"] != "object":
+        applied_constraints[schema_model.__name__] = check_generation_constraints(schema_model.__name__, schema_model.contents)
+    else:
+        fields = get_json_model_fields(schema_model).items()
+        for name, field in fields:
+            applied_constraints[name] = check_generation_constraints(name, field)
 
     return applied_constraints

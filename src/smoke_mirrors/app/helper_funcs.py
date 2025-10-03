@@ -12,32 +12,7 @@ import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
 from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields
-
-
-def make_json_safe(obj):
-    if isinstance(obj, (set, list, tuple, frozenset)):
-        return [make_json_safe(v) for v in obj]
-    elif isinstance(obj, dict):
-        return {k: make_json_safe(v) for k, v in obj.items()}
-    elif isinstance(obj, Decimal):
-        return float(obj)
-    elif isinstance(obj, complex):
-        return {"real": obj.real, "imag": obj.imag}
-    elif isinstance(obj, bytes):
-        return obj.decode("utf-8", errors="replace")
-    else:
-        return obj
-
-
-def load_folder(output):
-    with open(f"{output}.json", "w") as f:
-        f.write("[")
-
-
-def close_folder(file_path):
-    if file_path is not None:
-        with open(f"{file_path}.json", "a") as f:
-            f.write("\n]\n")
+import re
 
 
 def send_to_API(schema_model, output, data):
@@ -54,7 +29,6 @@ def send_to_API(schema_model, output, data):
         # response = requests.post(output,json=entry)
         print(response)
 
-
 def send_batch_to_API(schema_model, output, data):
     start_time = time.time()
 
@@ -66,6 +40,30 @@ def send_batch_to_API(schema_model, output, data):
     elapsed_time = time.time() - start_time  # end timer
     print(f"Response: {response} | Time taken: {elapsed_time:.2f} seconds")
     return response
+
+
+
+def make_json_safe(obj):
+    if isinstance(obj, (set, list, tuple, frozenset)):
+        return [make_json_safe(v) for v in obj]
+    elif isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, Decimal):
+        return float(obj)
+    elif isinstance(obj, complex):
+        return {"real": obj.real, "imag": obj.imag}
+    elif isinstance(obj, bytes):
+        return obj.decode("utf-8", errors="replace")
+    else:
+        return obj
+
+def load_folder(output):
+    with open(f"{output}.json", "w") as f:
+        f.write("[")
+def close_folder(file_path):
+    if file_path is not None:
+        with open(f"{file_path}.json", "a") as f:
+            f.write("\n]\n")
 
 # ----- recursive file loading -----
 def load_schema_pydantic(schema_path:Path):
@@ -88,7 +86,7 @@ def load_schema_pydantic(schema_path:Path):
         filtered = [
             {name: JsonSchemaClass(cls.model_json_schema())}
             for name, cls in classes
-            if cls.__module__ == "imported_schema_model"
+            if cls.__module__ == "imported_schema_model" and issubclass(cls,BaseModel)
         ]
         if filtered == []:
             raise Exception(f"No pydantic schema in schema file {schema_path}")
@@ -277,20 +275,44 @@ def get_unique_folder_name(base_path: Path) -> Path:
         new_path = parent / f"{stem}_(copy {counter})"
     return new_path
 
-def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0):
+def get_latest_folder_name(base_path: Path) -> Path:
+    parent = base_path.parent
+    stem = base_path.name
+
+    # Regex to match: stem, stem_(copy), stem_(copy N)
+    pattern = re.compile(rf"^{re.escape(stem)}(?:_\(copy(?: (\d+))?\))?$")
+
+    candidates = []
+    for item in parent.iterdir():
+        if item.is_dir():
+            match = pattern.match(item.name)
+            if match:
+                num = int(match.group(1)) if match.group(1) else (1 if "copy" in item.name else 0)
+                candidates.append((num, item))
+
+    if not candidates:
+        return base_path
+    return max(candidates, key=lambda x: x[0])[1]
+
+def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0,unique_folder=True):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
     elif output_path_name.resolve().parent.name == "outputs":
-        output_path_name = get_unique_folder_name(Path(output_path_name))
-        os.makedirs(output_path_name)
+        if unique_folder == True:
+            output_path_name = get_unique_folder_name(Path(output_path_name))
+            os.makedirs(output_path_name)
+        else:
+            output_path_name = get_latest_folder_name(Path(output_path_name))
     for file_path,contents in schema_models.items():
         new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            uf = True
             for inner_path in contents:
-                recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1)
+                recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1,unique_folder = uf)
+                uf = False
         else:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents),contents.__name__}| {new_path}")
             if contents == None:
@@ -299,20 +321,25 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
             command(schema_model,new_path,flags=flags)
     return None
 
-def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0):
+def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0,unique_folder=True):
     #1. check if output_path_name directory exists (could be nested)
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
     elif depth == 0:
-        output_path_name = get_unique_folder_name(output_path_name)
-        os.makedirs(output_path_name)
+        if unique_folder == True:
+            output_path_name = get_unique_folder_name(Path(output_path_name))
+            os.makedirs(output_path_name)
+        else:
+            output_path_name = get_latest_folder_name(Path(output_path_name))
     for file_path,contents in ingests.items():
         new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            uf = True
             for inner_path in contents:
-                recursive_ingest_json_handler(inner_path,command,flags,new_path,schema_models,depth=depth+1)
+                recursive_ingest_json_handler(inner_path,command,flags,new_path,schema_models,depth=depth+1,unique_folder = uf)
+                uf = False
         else:
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             ingest = load_ingest_data(contents)

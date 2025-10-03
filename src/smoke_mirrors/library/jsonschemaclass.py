@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any,Dict
 import copy
 from decimal import Decimal
 
@@ -19,24 +19,37 @@ def floating_point_sanitize_schema(schema_contents):
 
 @dataclass
 class JsonSchemaClass:
-    contents: Any
+    contents: Dict[str,Any]
+    name: str = None
     defs: dict = field(init=False)
 
     def __post_init__(self):
-        self.__name__ = self.contents["title"]
+        if "title" in self.contents:
+            self.__name__ = self.contents["title"]
+        else:
+            self.__name__ = self.name
         self.sanitised_contents = floating_point_sanitize_schema(self.contents)
-        self.required = self.contents["required"]
-        self.properties = self.contents["properties"]
+        if self.contents["type"] != "object":
+            self.required = []
+            self.properties = self.contents
+        else:
+            self.required = self.contents["required"]
+            self.properties = self.contents["properties"]
         self.fields = copy.deepcopy(self.properties)
         if "$defs" in self.contents:
             defs = {}
             for name,content in self.contents["$defs"].items():
-                defs[name] = JsonSchemaClass(content)
+                defs[name] = JsonSchemaClass(content,name=name)
+            defs[self.__name__] = self.contents
             self.defs = defs
         else:
             self.defs = {}
-        for name,field in self.fields.items():
-            if name in self.required:
-                self.fields[name]["required"] = True
-            else:
-                self.fields[name]["required"] = False
+        if self.contents["type"] != "object":
+            self.fields["required"] = True
+        else:
+            for name,field in self.fields.items():
+                if name in self.required:
+                    self.fields[name]["required"] = True
+                else:
+                    self.fields[name]["required"] = False
+

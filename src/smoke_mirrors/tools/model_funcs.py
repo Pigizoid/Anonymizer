@@ -3,6 +3,8 @@ from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from pydantic.fields import FieldInfo
 from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal, Generator, get_origin, get_args
 import inspect
+import re
+from copy import deepcopy
 
 ModelLike = Union[Type[BaseModel], BaseModel]
 
@@ -161,23 +163,253 @@ def infer_json_args(property:Dict[str,Any]):
     return data_args
 
 
-'''
-{
-    'items': {
-        'patternProperties': {
-            '^\\d{3}(-\\d{6})?$': {
-                'items': {
-                    'pattern': '^\\d{5}(-\\d{4})?$', 
-                    'type': 'string'
-                    }, 
-                'type': 'array'
-            }
-        }, 
-        'type': 'object'
-    }, 
-    'title': 'Zip Code', 
-    'type': 'array', 
-    'required': True
-}
-'''
+def strip_json_schema_ids(schema_model):
+    if isinstance(schema_model,list):
+        for i,item in enumerate(schema_model):
+            schema_model[i] = strip_json_schema_ids(item)
+    elif isinstance(schema_model,dict):
+        if "$id" in schema_model:
+            schema_model.pop("$id")
+        for key,value in schema_model.items():
+            schema_model[key] = strip_json_schema_ids(value)
+    return schema_model
+
+def walk_json_schema_defs(schema_model,definitions=None,path="",name=""):
+    if definitions is None:
+        definitions = []
+    if path == "":
+        path = f"[{name}]"
+    if isinstance(schema_model,list):
+        for i,item in enumerate(schema_model):
+            recursed_path = path+f"({i})"
+            definitions = walk_json_schema_defs(item,definitions,recursed_path)
+    elif isinstance(schema_model,dict):
+        for key,value in schema_model.items():
+            recursed_path = path+f"[{key}]"
+            if key == "$anchor" or key == "$defs" or key == "$id":
+                definitions = walk_json_schema_defs(value,definitions=definitions,path=recursed_path)
+                if key == "$defs":
+                    definitions.append(path+"[$defs]")
+                else:
+                    definitions.append(path)
+            else:
+                definitions = walk_json_schema_defs(value,definitions=definitions,path=recursed_path)
+    return definitions
+
+def return_json_schema_ref_names(schema_model,references=None):
+    if references is None:
+        references = []
+    if isinstance(schema_model,list):
+        for i,item in enumerate(schema_model):
+            references = return_json_schema_ref_names(item,references=references)
+    elif isinstance(schema_model,dict):
+        for key,value in schema_model.items():
+            if key == "$ref":
+                value = value.split("/")[-1]
+                value = value.split("#")[-1]
+                references.append(value)
+            else:
+                references = return_json_schema_ref_names(value,references=references)
+    return references
+
+def walk_json_schema_refs(schema_model,references=None,path="",name=""):
+    if references is None:
+        references = []
+    if path == "":
+        path = f"[{name}]"
+    if isinstance(schema_model,list):
+        for i,item in enumerate(schema_model):
+            recursed_path = path+f"({i})"
+            references = walk_json_schema_refs(item,references=references,path=recursed_path)
+    elif isinstance(schema_model,dict):
+        for key,value in schema_model.items():
+            if key == "$ref":
+                references.append(path)
+            else:
+                recursed_path = path+f"[{key}]"
+                references = walk_json_schema_refs(value,references=references,path=recursed_path)
+    return references
+
+
+def ref_pass_model(schema_model:JsonSchemaClass):
+    definitions = walk_json_schema_defs(schema_model.contents,name=schema_model.__name__)
+    references = walk_json_schema_refs(schema_model.contents,name=schema_model.__name__)
+    return (references,definitions)
+
+def ref_pass_openapi_model(schema_model:Dict[str,Any],name:str):
+    definitions = [ "[components][schemas]"+path for path in walk_json_schema_defs(schema_model,name=name) ]
+    references = [ "[components][schemas]"+path for path in walk_json_schema_refs(schema_model,name=name) ]
+    return (references,definitions)
+
+
+def load_parse_json_schema(schema_model:JsonSchemaClass):
+    new_schema_model = deepcopy(schema_model.contents)
+    references,definitions = ref_pass_model(schema_model)
+    schema_name = schema_model.__name__
+    context = {schema_name:schema_model.contents}
+    def_id_items = {}
+
+    for definition in definitions:
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', definition)
+        current = context
+        last_key = None
+        for key, idx in tokens:
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        if "$id" in current:
+            if current["$id"].startswith("http"):
+                def_id_items[current["$id"].split("/")[-1]] = last_key
+            else:
+                def_id_items[current["$id"]] = last_key
+    
+    for reference in references: # resolve all refs first
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', reference)
+        current = context
+        parent = None
+        last_key = None
+        for key, idx in tokens:
+            parent = current
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        new_val = current["$ref"]
+        new_val = new_val.split("/")[-1]
+        new_val = new_val.split("#")[-1]
+        if new_val in def_id_items.keys():
+            new_val = def_id_items[new_val]
+        new_val = "#/$defs/"+new_val
+        parent[last_key]["$ref"] = new_val
+
+    built_defs = {}
+    for definition in definitions:#  make all defs and give all defs to all schemas
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', definition)
+        current = context
+        last_key = None
+        for key, idx in tokens:
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        if "$id" in current:
+            new_def = deepcopy(current)
+            new_def["title"] = last_key
+            built_defs[new_def["title"]] = new_def
+        if "$anchor" in current:
+            new_def = deepcopy(current)
+            new_def["title"] = current["$anchor"]
+            built_defs[new_def["title"]] = new_def
+        if "$id" not in current and "$anchor" not in current: # $defs
+            for name,schema in current.items():
+                built_defs[name] = schema
+    built_defs[schema_name] = strip_json_schema_ids(new_schema_model)
+    new_schema_model = strip_json_schema_ids(context[schema_name])
+    for built_def in built_defs.values():
+        if "$defs" in built_def:
+            built_def.pop("$defs")
+    needed_built_defs = {name:strip_json_schema_ids(content) for name,content in built_defs.items() if name in return_json_schema_ref_names(new_schema_model)}
+    new_schema_model["$defs"] = needed_built_defs
+    new_schema_model["title"] = schema_name
+    if "required" not in new_schema_model:
+        new_schema_model["required"] = []
+
+    return_schema = JsonSchemaClass(new_schema_model)
+    return return_schema
+
+def load_schemas_from_openapi(schema_model:Dict[str,Any]):
+    if "openapi" not in schema_model:
+        raise Exception(f"Schema model is not an openapi object")
+    new_schema_model = deepcopy(schema_model)
+    schemas = [ref_pass_openapi_model(schema,name) for name,schema in new_schema_model["components"]["schemas"].items()]
+    schemas = [[reference for schema0 in schemas for reference in schema0[0]],[definition for schema1 in schemas for definition in schema1[1]]]
+    context = {"components":new_schema_model["components"]}
+
+    def_id_items = {}
+
+    for definition in schemas[1]:
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', definition)
+        current = context
+        last_key = None
+        for key, idx in tokens:
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        if "$id" in current:
+            if current["$id"].startswith("http"):
+                def_id_items[current["$id"].split("/")[-1]] = last_key
+            else:
+                def_id_items[current["$id"]] = last_key
+
+    for reference in schemas[0]: # resolve all refs first
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', reference)
+        current = context
+        parent = None
+        last_key = None
+        for key, idx in tokens:
+            parent = current
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        new_val = current["$ref"]
+        new_val = new_val.split("/")[-1]
+        new_val = new_val.split("#")[-1]
+        if new_val in def_id_items.keys():
+            new_val = def_id_items[new_val]
+        new_val = "#/$defs/"+new_val
+        parent[last_key]["$ref"] = new_val
+    
+    built_defs = {}
+    for definition in schemas[1]:#  make all defs and give all defs to all schemas
+        tokens = re.findall(r'\[([^\]]+)\]|\((\d+)\)', definition)
+        current = context
+        last_key = None
+        for key, idx in tokens:
+            if key:  # dict access
+                last_key = key
+                current = current[key]
+            elif idx:  # list access
+                last_key = int(idx)
+                current = current[int(idx)]
+        if "$id" in current:
+            new_def = deepcopy(current)
+            new_def["title"] = last_key
+            built_defs[new_def["title"]] = new_def
+        if "$anchor" in current:
+            new_def = deepcopy(current)
+            new_def["title"] = current["$anchor"]
+            built_defs[new_def["title"]] = new_def
+        if "$id" not in current and "$anchor" not in current: # $defs
+            for name,schema in current.items():
+                built_defs[name] = schema
+    for name,schema in new_schema_model["components"]["schemas"].items():
+        built_defs[name] = strip_json_schema_ids(schema)
+    for built_def in built_defs.values():
+        if "$defs" in built_def:
+            built_def.pop("$defs")
+    for name,schema in new_schema_model["components"]["schemas"].items():
+        needed_built_defs = {name:strip_json_schema_ids(content) for name,content in built_defs.items() if name in return_json_schema_ref_names(schema)}
+        schema["$defs"] = needed_built_defs
+        schema["title"] = name
+        if "required" not in schema:
+            schema["required"] = []
+
+    return_schemas = {name:strip_json_schema_ids(content) for name,content in new_schema_model["components"]["schemas"].items() }
+    
+    return return_schemas
+
+
 

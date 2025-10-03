@@ -45,6 +45,8 @@ def anon_func(
     # { index: [model, * amount] }
 
     flush_output = []
+    if cout:
+        print(f"Writing to file : {output}")
     with open(f"{output}.json", "a") as f:
         for index,content in anonymised_data.items():
             if cout:

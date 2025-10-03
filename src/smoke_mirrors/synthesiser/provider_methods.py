@@ -8,17 +8,11 @@ fake = Faker()
 generic = mimesis.Generic(mimesis.locales.Locale.EN)
 
 def list_faker_methods() -> Tuple[list, dict]:
-    """
-    method for listing all generation providers in Faker\n
-    Outputs:\n
-        tuple of (methods,methods_map):
-            methods_map = {provider_name, parent callable}
-    """
     methods = []
     methods_map = {}
     for attr in dir(fake):
         try:  # this is used to ensure the providers dont error when called
-            if not attr.startswith("_") and callable(getattr(fake, attr)):
+            if not attr.startswith("_") and callable(getattr(fake, attr)) and attr.lower() == attr:
                 methods.append(attr)
                 methods_map[attr] = fake
         except:
@@ -26,12 +20,6 @@ def list_faker_methods() -> Tuple[list, dict]:
     return (methods, methods_map)
 
 def list_mimesis_methods() -> Tuple[list, dict]:
-    """
-    method for listing all generation providers in mimesis\n
-    Outputs:\n
-        tuple of (methods,methods_map):
-            methods_map = {provider_name, parent callable}
-    """
     methods = []
     methods_map = {}
     for provider_name in sorted(generic.__dict__.keys()):
@@ -50,7 +38,7 @@ def list_mimesis_methods() -> Tuple[list, dict]:
             except (TypeError, ValueError):
                 continue
             for attr in dir(instance):
-                if not attr.startswith("_") and callable(getattr(instance, attr)):
+                if not attr.startswith("_") and callable(getattr(instance, attr)) and attr.lower() == attr:
                     methods.append(attr)
                     methods_map[attr] = instance
     return (methods, methods_map)

@@ -135,6 +135,10 @@ def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
         closest_matches = []
         distances = []
         target_word = t_word.lower()
+        if target_word == "":
+            break
+        if target_word[0] == "_":
+            target_word = target_word[1:]
         target_tokens = target_word.split("_")
         target_tokens_set = set(target_tokens)
         if t_word in word_list:
