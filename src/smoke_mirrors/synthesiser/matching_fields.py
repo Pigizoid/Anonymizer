@@ -1,5 +1,5 @@
 from typing import Dict, List, Set
-from smoke_mirrors.pre_made_data import provider_methods
+from smoke_mirrors.pre_made_data import provider_methods, provider_return_types
 
 
 def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
@@ -13,6 +13,7 @@ def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
     Inputs:\n
         word1 string
         word2 string
+        optional modifiers [ int, int, int ]  deletion, insertion, substitution
     Outputs:\n
         float
     """
@@ -33,6 +34,46 @@ def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
                 distance_point[i - 1][j - 1] + cost + modifiers[2],
             )
     return distance_point[len_word1][len_word2]
+
+def levenshtein_distance_fast(word1: str, word2: str, modifiers=(0,0,0), max_dist=None) -> float:
+    #trim prefixes
+    while word1 and word2 and word1[0] == word2[0]:
+        word1, word2 = word1[1:], word2[1:]
+    while word1 and word2 and word1[-1] == word2[-1]:
+        word1, word2 = word1[:-1], word2[:-1]
+    #trim prefixes
+
+    if modifiers is None:
+        modifiers = (0,0,0)
+    del_cost, ins_cost, sub_mod = modifiers
+    len_word1, len_word2 = len(word1), len(word2)
+    if len_word2 == 0:
+        return len_word1
+    if len_word1 < len_word2 and del_cost == ins_cost:
+        word1, word2 = word2, word1
+        len_word1, len_word2 = len_word2, len_word1
+    prev = list(range(len_word2 + 1))
+    curr = [0] * (len_word2 + 1)
+    word2_ords = [ord(c) for c in word2]
+    for i in range(1, len_word1 + 1):
+        curr[0] = i
+        word1_ch_ord = ord(word1[i - 1])
+        row_min = curr[0]
+        for prev1,prev2,word2ord1,j in zip(prev[1:len_word2+1],prev[0:len_word2],word2_ords[0:len_word2],range(1,len_word2+1)):
+            deletion = prev1 + 1 + del_cost
+            insertion = curr[j-1] + 1 + ins_cost
+            substitution = prev2 + (word1_ch_ord != word2ord1) + sub_mod
+            v = deletion if deletion < insertion else insertion
+            if substitution < v:
+                v = substitution
+            curr[j] = v
+            if v < row_min:
+                row_min = v
+        if max_dist is not None and row_min > max_dist:
+            return float('inf')
+        prev, curr = curr, prev
+    return prev[len_word2]
+
 
 def calc_difference(
     target_word:str,
@@ -72,7 +113,7 @@ def calc_difference(
     ) == word:  # abbreviation mapping	social_security_number -> ssn
         return 0
 
-    main_distance = levenshtein_distance(target_word, word.lower())  # close early exit
+    main_distance = levenshtein_distance_fast(target_word, word.lower())  # close early exit
     if main_distance <= 1 or main_distance >= len(target_word):
         return main_distance
 
@@ -92,7 +133,7 @@ def calc_difference(
                 distance = (main_distance / 2 + token_distance) / 2
             else:
                 token_distance = (
-                    levenshtein_distance(target_word, word.lower()) * cross_points
+                    levenshtein_distance_fast(target_word, word.lower()) * cross_points
                 )
                 distance = (main_distance + token_distance) / 2
         else:
@@ -101,20 +142,15 @@ def calc_difference(
                 distance = (main_distance / 2 + token_distance) / 2
             else:
                 token_distance = (
-                    levenshtein_distance(target_word, word.lower()) * cross_points
+                    levenshtein_distance_fast(target_word, word.lower()) * cross_points
                 )
                 distance = (main_distance + token_distance) / 2
     else:
-        distance = levenshtein_distance(target_word, word.lower()) * cross_points
+        distance = levenshtein_distance_fast(target_word, word.lower()) * cross_points
     return distance
 
 
-def filter_word_list(target_tokens_set, word_list): #filters any words with less than 2 characters in common
-    target_letters = set(''.join(target_tokens_set))
-    return [word for word in word_list if len(set(word) & target_letters) > 1]
-
-
-def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
+def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[str, str]:
     """
     1. calculates the distance of each field_name in the list:\n
         to the closest matching generation provider
@@ -144,7 +180,10 @@ def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
         if t_word in word_list:
             distances.append([t_word,0])
         else:
-            filtered_word_list = filter_word_list(target_tokens_set,word_list)
+            target_letters = set(''.join(target_tokens_set))
+            filtered_word_list = [word for word in word_list if len(set(word) & target_letters) > 1] #needs at least 2 letters
+            if field_types!= None and field_types[t_word] != None:
+                filtered_word_list = [word for word in word_list if provider_return_types[word] == field_types[t_word]] #needs to return the right type
             for word in filtered_word_list:
                 distance = calc_difference(
                     target_word,
@@ -164,7 +203,7 @@ def match_fields(field_names: List[str], method: str) -> Dict[str, str]:
             potential_matches = []
             for word in word_list:
                 if target_word in word:
-                    distance = levenshtein_distance(
+                    distance = levenshtein_distance_fast(
                         target_word, word, [-0.5, 0.5, -0.5]
                     )
                     potential_matches.append([word, distance])

@@ -2,24 +2,30 @@ from typing import Tuple, Dict, List, Any
 import inspect
 from faker import Faker
 import mimesis
+from smoke_mirrors.pre_made_data import provider_methods
 
 
 fake = Faker()
 generic = mimesis.Generic(mimesis.locales.Locale.EN)
 
-def list_faker_methods() -> Tuple[list, dict]:
+def list_faker_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     for attr in dir(fake):
-        try:  # this is used to ensure the providers dont error when called
-            if not attr.startswith("_") and callable(getattr(fake, attr)) and attr.lower() == attr:
+        try:
+            getattr(fake, attr)
+        except:
+            continue
+        if method_list == None:
+            if not attr.startswith("_") and attr.lower() == attr:
                 methods.append(attr)
                 methods_map[attr] = fake
-        except:
-            pass
+        elif attr in method_list:
+            methods.append(attr)
+            methods_map[attr] = fake
     return (methods, methods_map)
 
-def list_mimesis_methods() -> Tuple[list, dict]:
+def list_mimesis_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     for provider_name in sorted(generic.__dict__.keys()):
@@ -38,7 +44,15 @@ def list_mimesis_methods() -> Tuple[list, dict]:
             except (TypeError, ValueError):
                 continue
             for attr in dir(instance):
-                if not attr.startswith("_") and callable(getattr(instance, attr)) and attr.lower() == attr:
+                try:
+                    getattr(instance, attr)
+                except:
+                    continue
+                if method_list == None:
+                    if not attr.startswith("_") and attr.lower() == attr:
+                        methods.append(attr)
+                        methods_map[attr] = instance
+                elif attr in method_list:
                     methods.append(attr)
                     methods_map[attr] = instance
     return (methods, methods_map)
@@ -55,13 +69,13 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     if method == "faker":
-        methods, methods_map = list_faker_methods()
+        methods, methods_map = list_faker_methods(provider_methods["faker"]["word_list"])
     elif method == "mimesis":
-        methods, methods_map = list_mimesis_methods()
+        methods, methods_map = list_mimesis_methods(provider_methods["mimesis"]["word_list"])
     elif method == "mixed":
-        methodsF, methods_mapF = list_faker_methods()
+        methodsF, methods_mapF = list_faker_methods(provider_methods["faker"]["word_list"])
 
-        methodsM, methods_mapM = list_mimesis_methods()
+        methodsM, methods_mapM = list_mimesis_methods(provider_methods["mimesis"]["word_list"])
 
         methods = methodsF
         methods.extend(methodsM)

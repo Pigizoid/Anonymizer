@@ -314,8 +314,6 @@ def anonymise(
                         f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
                     )
             anon_methods = {field_name: default for field_name in field_names}
-        # name_match_pairs = synth.match_fields(field_names)
-        # field_names = [ field for field,match in name_match_pairs.items() if match != ""]
         result_schema = new_model(data_entry, data_entry.keys())
         synth = JsonSynthesiser(method=method)
 

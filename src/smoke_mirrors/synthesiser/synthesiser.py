@@ -721,7 +721,10 @@ class JsonSynthesiser():
             if match_name == "":
                 func = None
             else:
-                func = self.resolved_methods[match_name]
+                try:
+                    func = self.resolved_methods[match_name]
+                except:
+                    func = None
             if (applied_constraints["pattern"] is not None) or (match_name == "") or (match_name != "" and provider_return_types[match_name] != applied_constraints["annotation"]):
                 output_data = self.generate_from_constraints(
                     field_name, applied_constraints, generate_path
@@ -788,10 +791,15 @@ class JsonSynthesiser():
         Outputs:\n
             single generated value
         """
-        matched_field = match_fields([field_name],self.method)
+        matched_field = match_fields([field_name],self.method,field_types={field_name:field_type})
+        value = None
         if matched_field[field_name] != "":
             func = self.resolved_methods[matched_field[field_name]]
-            value = func()
+            try: #this will fail if the function cant be loaded in the current venv (e.g. importing)
+                value = func()
+            except:
+                pass
+        if value != None:
             try:
                 value = field_type(value)
             except:
@@ -832,13 +840,13 @@ class JsonSynthesiser():
             field_match_pairs = {}
         schema_name = schema_model.__name__
         if schema_model.contents["type"] != "object":
-            field_match_pairs[schema_name] = match_fields([schema_name], method)
+            field_match_pairs[schema_name] = match_fields([schema_name], method, field_types={schema_name:infer_json_type(schema_model.contents)})
 
         model_data = get_json_model_data(schema_model)
         field_names = [x[0] for x in model_data]
 
         if schema_name not in field_match_pairs.keys():
-            field_match_pairs[schema_name] = match_fields(field_names, method)
+            field_match_pairs[schema_name] = match_fields(field_names, method, field_types={name:infer_json_type(content) for name,content in model_data})
         for x in model_data:
             nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
             for nt in nested_types:
@@ -1008,7 +1016,7 @@ class JsonSynthesiser():
             constraints = check_generation_constraints("",schema_model.contents)
             if "title" in schema_model.contents:
                 field_name = schema_model.contents["title"]
-                self.field_match_pairs = match_fields([field_name],method)
+                self.field_match_pairs = match_fields([field_name],method,{field_name:infer_json_type(schema_model.contents)})
                 match_name = self.field_match_pairs[field_name]
             else:
                 field_name = ""

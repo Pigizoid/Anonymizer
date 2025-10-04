@@ -5,6 +5,7 @@ from smoke_mirrors.app.synth.main import synth_app
 from smoke_mirrors.app.anon.main import anon_app
 from smoke_mirrors.app.extras.main import json_app
 from smoke_mirrors.app.models import SynthesiserConfig, AnonymiserConfig, Settings
+from collections.abc import Mapping
 import typer
 import yaml
 
@@ -71,8 +72,6 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             "anon": anon_defaults,
         }
         return defaults
-
-    from collections.abc import Mapping
 
     def deep_merge(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
         """Standard deep dict merge: returns a new dict with b merged into a."""

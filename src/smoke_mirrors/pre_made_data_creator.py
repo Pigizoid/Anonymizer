@@ -144,8 +144,9 @@ import inspect
                 \n''')
         f.write("provider_return_types = {\n")
         names, instances = list_match_methods("mixed")
-        for x, v in generate_provider_return_types(names, instances).items():
-            f.write(f"    '{x}' : {v.__name__},\n")
+        p_types = generate_provider_return_types(names, instances)
+        for name, v in p_types.items():
+            f.write(f"    '{name}' : {v.__name__},\n")
         f.write("}\n")
         
         methods = ["faker","mimesis","mixed"]
@@ -153,10 +154,11 @@ import inspect
         for method in methods:
             f.write(f"    '{method}' : {{\n")
             word_list, _ = list_match_methods(method)
+            word_list = [word for word in word_list if word in p_types.keys()]
             f.write(f"        'word_list': {word_list},\n")
-            word_tokens = {word: word.split("_") for word in word_list}
+            word_tokens = {word: word.split("_") for word in word_list if word in p_types.keys()}
             f.write(f"        'word_tokens': {word_tokens},\n")
-            word_tokens_set = {word: set(word.split("_")) for word in word_list}
+            word_tokens_set = {word: set(word.split("_")) for word in word_list if word in p_types.keys()}
             f.write(f"        'word_tokens_set': {word_tokens_set}\n")
             f.write("    },\n")
         f.write("}\n")
