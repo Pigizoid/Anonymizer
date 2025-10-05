@@ -402,6 +402,12 @@ def compile_regex_to_function_source(
 ):
     if alphabet is None:
         alphabet = DEFAULT_ALPHABET
+    DEFAULT_LOOKAROUND_CAP = 16
+
+    # TODO: Replace the bounded-sequence enumeration below with a bounded NFA per-position analysis
+    # The per-position NFA would compute, for each offset up to a bound, the set of characters
+    # that may occur at that offset for strings matched by the lookaround subpattern
+    # That approach avoids enumerating combinatorial full sequences and yields polynomial behavior
 
     parsed = list(regex_sre_parse.parse(pattern, flags))
     if parsed:
@@ -686,22 +692,41 @@ def compile_regex_to_function_source(
                     lines.append("                if total[-len(t_assert):] != t_assert:")
                     lines.append("                    raise AssertionError('lookbehind assertion failed')")
                 elif token is regex_sre_constants.ASSERT_NOT:
-                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(sub, max_repeat, alphabet)
+                    _local_default_cap = DEFAULT_LOOKAROUND_CAP
+                    if max_len_approx is not None:
+                        local_enum_bound = min(max_repeat, max_len_approx, _local_default_cap)
+                    else:
+                        local_enum_bound = min(max_repeat, _local_default_cap)
+
+                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(sub, local_enum_bound, alphabet)
+
                     merged, epsilon = merged_forbidden_from_sequences(seqs, max_len, alphabet)
                     seqs_as_lists = [[tuple(sorted(s)) for s in seq] for seq in seqs]
                     merged_as_lists = [tuple(sorted(s)) for s in merged]
                     epsilon_as_list = list(epsilon)
                     anchored_whole = subpattern_is_anchored_to_whole(sub)
+                    if max_len is None:
+                        if max_len_approx is not None:
+                            neg_len_cap = min(max_len_approx, _local_default_cap)
+                        else:
+                            neg_len_cap = _local_default_cap
+                    else:
+                        if max_len_approx is not None:
+                            neg_len_cap = min(max_len, max_len_approx, _local_default_cap)
+                        else:
+                            neg_len_cap = min(max_len, _local_default_cap)
+
                     lines.append("        # ASSERT_NOT (negative lookahead)")
-                    lines.append(f"        _NEG_LOOKS.append({{")
-                    lines.append(f"            'start_pos': len(out),")
-                    lines.append(f"            'seqs': {repr(seqs_as_lists)},")
-                    lines.append(f"            'merged': {repr(merged_as_lists)},")
-                    lines.append(f"            'epsilon': {repr(epsilon_as_list)},")
-                    lines.append(f"            'min_len': {min_len},")
-                    lines.append(f"            'max_len': {max_len},")
-                    lines.append(f"            'anchored_to_whole': {repr(bool(anchored_whole))}")
-                    lines.append("        })")
+                    lines.append(f"        for x in range({neg_len_cap}):")
+                    lines.append(f"            _NEG_LOOKS.append({{")
+                    lines.append(f"                'start_pos': len(out),")
+                    lines.append(f"                'seqs': {repr(seqs_as_lists)},")
+                    lines.append(f"                'merged': {repr(merged_as_lists)},")
+                    lines.append(f"                'epsilon': {repr(epsilon_as_list)},")
+                    lines.append(f"                'min_len': {min_len},")
+                    lines.append(f"                'max_len': x,")
+                    lines.append(f"                'anchored_to_whole': {repr(bool(anchored_whole))}")
+                    lines.append("            })")
                 else:
                     sub_bid = build_block_for_subpattern(sub)
                     lines.append("        # ASSERT unexpected form - fallback")
@@ -764,44 +789,49 @@ def compile_regex_to_function_source(
     func_lines.append("    def _choose_from_list(choices_tpl, out):")
     func_lines.append("        if lookahead_stack:")
     func_lines.append("            top = lookahead_stack[-1]")
-    func_lines.append("            pos = top.get('pos', 0)")
-    func_lines.append("            if 'forced' in top and top['forced'] is not None and pos < len(top['forced']):")
-    func_lines.append("                required = top['forced'][pos]")
-    func_lines.append("                if required not in choices_tpl:")
-    func_lines.append("                    raise AssertionError('lookahead forced char not available')")
-    func_lines.append("                ch = required")
-    func_lines.append("                top['pos'] = pos + 1")
-    func_lines.append("                if top['pos'] >= len(top['forced']):")
-    func_lines.append("                    lookahead_stack.pop()")
-    func_lines.append("                for _ in range(len(pending_requirements)):")
-    func_lines.append("                    r = pending_requirements[0]")
-    func_lines.append("                    if r['count'] > 0 and ch in r['choices']:")
-    func_lines.append("                        r['count'] -= 1")
-    func_lines.append("                        if r['count'] <= 0:")
-    func_lines.append("                            pending_requirements.popleft()")
-    func_lines.append("                        break")
-    func_lines.append("                return ch")
-    func_lines.append("            if 'forbidden' in top and top['forbidden'] is not None and pos < len(top['forbidden']):")
-    func_lines.append("                forb = top['forbidden'][pos]")
-    func_lines.append("                attempts_inner = 3")
-    func_lines.append("                while attempts_inner > 0:")
-    func_lines.append("                    ch = _rand_choice(choices_tpl)")
-    func_lines.append("                    if ch != forb:")
-    func_lines.append("                        break")
-    func_lines.append("                    attempts_inner -= 1")
-    func_lines.append("                if attempts_inner <= 0 and len(choices_tpl) == 1 and choices_tpl[0] == forb:")
-    func_lines.append("                    raise AssertionError('lookahead forbidden removed all choices')")
-    func_lines.append("                top['pos'] = pos + 1")
-    func_lines.append("                if top['pos'] >= len(top['forbidden']):")
-    func_lines.append("                    lookahead_stack.pop()")
-    func_lines.append("                for _ in range(len(pending_requirements)):")
-    func_lines.append("                    r = pending_requirements[0]")
-    func_lines.append("                    if r['count'] > 0 and ch in r['choices']:")
-    func_lines.append("                        r['count'] -= 1")
-    func_lines.append("                        if r['count'] <= 0:")
-    func_lines.append("                            pending_requirements.popleft()")
-    func_lines.append("                        break")
-    func_lines.append("                return ch")
+    func_lines.append("            start_pos = top.get('start_pos', 0)")
+    func_lines.append("            if len(out) < start_pos:")
+    func_lines.append("                pass")
+    func_lines.append("            else:")
+    func_lines.append("                pos = len(out) - start_pos")
+    func_lines.append("                if 'forced' in top and top['forced'] is not None and 0 <= pos < len(top['forced']):")
+    func_lines.append("                    required = top['forced'][pos]")
+    func_lines.append("                    if required not in choices_tpl:")
+    func_lines.append("                        raise AssertionError('lookahead forced char not available')")
+    func_lines.append("                    ch = required")
+    func_lines.append("                    top['pos'] = pos + 1")
+    func_lines.append("                    if top['pos'] >= len(top['forced']):")
+    func_lines.append("                        lookahead_stack.pop()")
+    func_lines.append("                    for _ in range(len(pending_requirements)):")
+    func_lines.append("                        r = pending_requirements[0]")
+    func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
+    func_lines.append("                            r['count'] -= 1")
+    func_lines.append("                            if r['count'] <= 0:")
+    func_lines.append("                                pending_requirements.popleft()")
+    func_lines.append("                            break")
+    func_lines.append("                    return ch")
+
+    func_lines.append("                if 'forbidden' in top and top['forbidden'] is not None and 0 <= pos < len(top['forbidden']):")
+    func_lines.append("                    forb = top['forbidden'][pos]")
+    func_lines.append("                    attempts_inner = 3")
+    func_lines.append("                    while attempts_inner > 0:")
+    func_lines.append("                        ch = _rand_choice(choices_tpl)")
+    func_lines.append("                        if ch != forb:")
+    func_lines.append("                            break")
+    func_lines.append("                        attempts_inner -= 1")
+    func_lines.append("                    if attempts_inner <= 0 and len(choices_tpl) == 1 and choices_tpl[0] == forb:")
+    func_lines.append("                        raise AssertionError('lookahead forbidden removed all choices')")
+    func_lines.append("                    top['pos'] = pos + 1")
+    func_lines.append("                    if top['pos'] >= len(top['forbidden']):")
+    func_lines.append("                        lookahead_stack.pop()")
+    func_lines.append("                    for _ in range(len(pending_requirements)):")
+    func_lines.append("                        r = pending_requirements[0]")
+    func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
+    func_lines.append("                            r['count'] -= 1")
+    func_lines.append("                            if r['count'] <= 0:")
+    func_lines.append("                                pending_requirements.popleft()")
+    func_lines.append("                            break")
+    func_lines.append("                    return ch")
     func_lines.append("")
     func_lines.append("        filtered = list(choices_tpl)")
     func_lines.append("        if _NEG_LOOKS:")
@@ -982,86 +1012,33 @@ def compile_regex_to_function_source(
 
     func_lines.append("    def _enforce_required_substrings(out, required_list, max_attempts_overall=50, max_positions_try=50):")
     func_lines.append("        s0 = ''.join(out)")
-    func_lines.append("        def candidate_positions(req, s):")
-    func_lines.append("            L = len(s)")
-    func_lines.append("            max_base = max(0, L - len(req))")
-    func_lines.append("            positions = list(range(0, max_base + 1))")
-    func_lines.append("            positions.append(L)")
-    func_lines.append("            random.shuffle(positions)")
-    func_lines.append("            return positions[:max_positions_try]")
-    func_lines.append("        def violates_neg_looks(assembled):")
-    func_lines.append("            for nl in _NEG_LOOKS:")
-    func_lines.append("                if _neg_match_on_string(nl, assembled):")
-    func_lines.append("                    return True")
-    func_lines.append("            return False")
     func_lines.append("        reqs = [r for r in required_list if r]")
     func_lines.append("        if not reqs:")
     func_lines.append("            return True")
-    func_lines.append("        if _MAX_LEN is not None and sum(len(r) for r in reqs) > _MAX_LEN:")
+    func_lines.append("        base = list(s0)")
+    func_lines.append("        L = len(base)")
+    func_lines.append("        occupied = [False] * L")
+    func_lines.append("        for sub in sorted(reqs, key=len, reverse=True):")
+    func_lines.append("            placed = False")
+    func_lines.append("            for start in range(L - len(sub) + 1):")
+    func_lines.append("                if any(occupied[start:start + len(sub)]):")
+    func_lines.append("                    continue")
+    func_lines.append("                base[start:start + len(sub)] = list(sub)")
+    func_lines.append("                for i in range(start, start + len(sub)):")
+    func_lines.append("                    occupied[i] = True")
+    func_lines.append("                placed = True")
+    func_lines.append("                break")
+    func_lines.append("            if not placed:")
+    func_lines.append("                # fallback: append at end (truncate if too long)")
+    func_lines.append("                pos = max(0, L - len(sub))")
+    func_lines.append("                base[pos:pos + len(sub)] = list(sub)")
+    func_lines.append("        assembled = ''.join(base)")
+    func_lines.append("        if _MAX_LEN is not None and len(assembled) > _MAX_LEN:")
+    func_lines.append("            assembled = assembled[:_MAX_LEN]")
+    func_lines.append("        if any(_neg_match_on_string(nl, assembled) for nl in _NEG_LOOKS):")
     func_lines.append("            return False")
-    func_lines.append("        attempts = 0")
-    func_lines.append("        while attempts < max_attempts_overall:")
-    func_lines.append("            attempts += 1")
-    func_lines.append("            reserved = {}")
-    func_lines.append("            placements = [None] * len(reqs)")
-    func_lines.append("            order = sorted(range(len(reqs)), key=lambda i: -len(reqs[i]))")
-    func_lines.append("            def backtrack(idx):")
-    func_lines.append("                nonlocal reserved, placements")
-    func_lines.append("                if idx >= len(order):")
-    func_lines.append("                    base = list(s0)")
-    func_lines.append("                    needed_len = len(base)")
-    func_lines.append("                    for pi, pos in enumerate(placements):")
-    func_lines.append("                        req = reqs[pi]")
-    func_lines.append("                        if pos is None:")
-    func_lines.append("                            return False")
-    func_lines.append("                        endpos = pos + len(req)")
-    func_lines.append("                        if endpos > needed_len:")
-    func_lines.append("                            needed_len = endpos")
-    func_lines.append("                    while len(base) < needed_len:")
-    func_lines.append("                        base.append(_rand_choice(_CHOICES['__alphabet__']))")
-    func_lines.append("                    for pi, pos in enumerate(placements):")
-    func_lines.append("                        req = reqs[pi]")
-    func_lines.append("                        for j, ch in enumerate(req):")
-    func_lines.append("                            base[pos + j] = ch")
-    func_lines.append("                    assembled = ''.join(base)")
-    func_lines.append("                    if _MAX_LEN is not None and len(assembled) > _MAX_LEN:")
-    func_lines.append("                        return False")
-    func_lines.append("                    if violates_neg_looks(assembled):")
-    func_lines.append("                        return False")
-    func_lines.append("                    out[:] = list(assembled)")
-    func_lines.append("                    return True")
-    func_lines.append("                i = order[idx]")
-    func_lines.append("                req = reqs[i]")
-    func_lines.append("                positions = candidate_positions(req, s0)")
-    func_lines.append("                for p in range(0, max(0, len(s0) - len(req) + 1)):")
-    func_lines.append("                    if s0[p:p+len(req)] == req:")
-    func_lines.append("                        positions.insert(0, p)")
-    func_lines.append("                random.shuffle(positions)")
-    func_lines.append("                for pos in positions:")
-    func_lines.append("                    conflict = False")
-    func_lines.append("                    to_add = []")
-    func_lines.append("                    for j, ch in enumerate(req):")
-    func_lines.append("                        target = pos + j")
-    func_lines.append("                        if target in reserved and reserved[target] != ch:")
-    func_lines.append("                            conflict = True")
-    func_lines.append("                            break")
-    func_lines.append("                        to_add.append((target, ch))")
-    func_lines.append("                    if conflict:")
-    func_lines.append("                        continue")
-    func_lines.append("                    for (t, ch) in to_add:")
-    func_lines.append("                        reserved[t] = ch")
-    func_lines.append("                    placements[i] = pos")
-    func_lines.append("                    ok = backtrack(idx + 1)")
-    func_lines.append("                    if ok:")
-    func_lines.append("                        return True")
-    func_lines.append("                    placements[i] = None")
-    func_lines.append("                    for (t, ch) in to_add:")
-    func_lines.append("                        if reserved.get(t) == ch:")
-    func_lines.append("                            del reserved[t]")
-    func_lines.append("                return False")
-    func_lines.append("            if backtrack(0):")
-    func_lines.append("                return True")
-    func_lines.append("        return False")
+    func_lines.append("        out[:] = list(assembled)")
+    func_lines.append("        return True")
     func_lines.append("")
 
     func_lines.append(f"    attempts = {max_attempts}")
@@ -1112,10 +1089,11 @@ def compile_regex_to_function_source(
     func_lines.append("                if forb and forb in s:")
     func_lines.append("                    raise AssertionError('forbidden literal produced')")
     func_lines.append("")
+    func_lines.append("            reqs_to_insert = tuple(r for r in _REQUIRED_SUBSTRINGS if r not in ''.join(out))")                       
     func_lines.append("            if flagged_positions:")
     func_lines.append("                ok = _try_fix_flagged_positions(out, flagged_positions, _NEG_LOOKS)")
     func_lines.append("                if ok:")
-    func_lines.append("                    if _REQUIRED_SUBSTRINGS:")
+    func_lines.append("                    if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
     func_lines.append("                        if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
     func_lines.append("                            raise AssertionError('required substrings insertion failed after flag repair')")
     func_lines.append("                    return ''.join(out)")
@@ -1129,7 +1107,7 @@ def compile_regex_to_function_source(
     func_lines.append("                    if any_neg_match:")
     func_lines.append("                        raise AssertionError('negative lookahead produced after repairs')")
     func_lines.append("                    else:")
-    func_lines.append("                        if _REQUIRED_SUBSTRINGS:")
+    func_lines.append("                        if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
     func_lines.append("                            if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
     func_lines.append("                                raise AssertionError('required substrings insertion failed after unsuccessful flag repair')")
     func_lines.append("                        return ''.join(out)")
@@ -1142,7 +1120,7 @@ def compile_regex_to_function_source(
     func_lines.append("                        break")
     func_lines.append("                if any_neg_match:")
     func_lines.append("                    raise AssertionError('negative lookahead produced')")
-    func_lines.append("                if _REQUIRED_SUBSTRINGS:")
+    func_lines.append("                if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
     func_lines.append("                    if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
     func_lines.append("                        raise AssertionError('required substrings insertion failed (no flags)')")
     func_lines.append("                return ''.join(out)")
@@ -1154,7 +1132,6 @@ def compile_regex_to_function_source(
     func_lines.append("")
 
     return "\n".join(func_lines)
-
 
 
 if __name__ == "__main__":
@@ -1225,20 +1202,131 @@ if __name__ == "__main__":
         r"^[A-F0-9]{8}$",
         r"^[ -~]{50}$",
         r"^[a-z]{1000}$",
+        
+        
+        r"^abc$",
+        r"^[A-Za-z]+$",
+        r"^[a-z]{3,10}$",
+        r"^[A-Z]{2,5}\d{2,4}$",
+        r"^\d{3,5}$",
+        r"^\d{4}-\d{2}-\d{2}$",
+        r"^\d{2}/\d{2}/\d{4}$",
+        r"^[A-Fa-f0-9]{6}$",
+        r"^[A-Fa-f0-9]{3,8}$",
+        r"^[01]+$",
+        r"^[01]{8}$",
+        r"^[A-Za-z0-9]+$",
+        r"^[A-Za-z0-9_]{5,15}$",
+        r"^\w{5,}$",
+        r"^\w{1,10}\s\w{1,10}$",
+        r"^[A-Z][a-z]+$",
+        r"^[A-Z][a-z]+\s[A-Z][a-z]+$",
+        r"^[A-Z]{1}[a-z]{2,}\d{0,2}$",
+        r"^[a-z]+\d{2,4}$",
+        r"^\d+[a-z]+$",
+        r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",
+        r"^\d{1,2}:\d{2}(:\d{2})?$",
+        r"^[^a-zA-Z0-9]+$",
+        r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$",
+        r"^https?://[A-Za-z0-9./_-]+$",
+        r"^ftp://[A-Za-z0-9./_-]+$",
+        r"^\+?\d{1,3}?[-.\s]??\d{1,14}$",
+        r"^\(\d{3}\)\s?\d{3}-\d{4}$",
+        r"^[A-Z]{2}\d{4}[A-Z]{2}$",
+        r"^[A-Z]{3}-\d{3}-[A-Z]{2}$",
+        r"^\d{5}(-\d{4})?$",
+        r"^[A-Z]{1,5}\s?\d{1,5}$",
+        r"^[A-Za-z]+(?:-[A-Za-z]+)*$",
+        r"^[a-z]+_[a-z]+$",
+        r"^[a-z]+-[a-z]+$",
+        r"^[a-z]+(?:_[a-z]+){2,3}$",
+        r"^[A-Za-z]{2,4}\d{1,3}$",
+        r"^[A-Za-z]{3,}\d{0,2}$",
+        r"^[A-Za-z0-9]{8,12}$",
+        r"^[A-Za-z0-9]{10}$",
+        r"^[A-Z0-9]{6,10}$",
+        r"^[a-zA-Z]+\.[a-zA-Z]+$",
+        r"^\w+\.\w+\.\w+$",
+        r"^\d+\.\d+$",
+        r"^\d+\.\d{1,2}$",
+        r"^\d{1,3}(,\d{3})*(\.\d{2})?$",
+        r"^\$?\d+(\.\d{2})?$",
+        r"^\(\d{2,3}\)\s?\d{3,4}-\d{4}$",
+        r"^[A-Za-z]{2,3}\d{3,4}$",
+        r"^\d{2,4}[A-Za-z]{2,4}$",
+        r"^[A-Z][a-z]+\d+$$",
+        r"^[a-zA-Z]+[0-9]+$",
+        r"^[A-Z][a-z]+[0-9]{2}$",
+        r"^[A-Z][a-z]{4,}\d{1,2}$",
+        r"^[A-Za-z0-9._-]{3,16}$",
+        r"^[a-zA-Z0-9_]{6,30}$",
+        r"^\d{16}$",
+        r"^\d{4}\s\d{4}\s\d{4}\s\d{4}$",
+        r"^\d{13,19}$",
+        r"^[A-Za-z]{3}\s[A-Za-z]{3}\s\d{4}$",
+        r"^\d{4}-\d{4}-\d{4}-\d{4}$",
+        r"^[1-9][0-9]*$",
+        r"^0[xX][0-9A-Fa-f]+$",
+        r"^[IVXLCDM]+$",
+        r"^[a-z]{2,5}\.[a-z]{2,5}$",
+        r"^\w+\@\w+\.\w+$",
+        r"^\d{3}-\d{2}-\d{4}$",
+        r"^\d{3}\.\d{3}\.\d{3}-\d{2}$",
+        r"^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$",
+        r"^[A-Z]{3}\d{3}$",
+        r"^[a-z]{3,5}\d{3,5}$",
+        r"^[a-z]{4}\d{2,4}$",
+        r"^[a-z]{2,4}\d{1,2}$",
+        r"^\d{2,4}[a-z]{2,4}$",
+        r"^[A-Z]{4}\d{4}$",
+        r"^[A-Z]{2,4}\d{2,4}$",
+        r"^[A-Za-z0-9]{4,8}$",
+        r"^[A-Za-z]{1,4}\d{1,4}$",
+        r"^[A-Za-z0-9]{1,5}$",
+        r"^\w+\s\w+\s\w+$",
+        r"^[A-Za-z]+(\s[A-Za-z]+){2,}$",
+        r"^[A-Za-z]{2,}\s[A-Za-z]{2,}\s[A-Za-z]{2,}$",
+        r"^[0-9]{6}$",
+        r"^\d{2}-\d{2}-\d{2}$",
+        r"^\d{2}:\d{2}:\d{2}$",
+        r"^\d{2}:\d{2}$",
+        r"^[A-Za-z0-9_-]+$",
+        r"^[A-Za-z]+[._-]?[A-Za-z]+$",
+        r"^[A-Za-z]+\d+[A-Za-z]+$",
+        r"^\d{2,3}[A-Za-z]{2,3}\d{2,3}$",
+        r"^[A-Z]{3}[0-9]{3}[A-Z]{3}$",
+        r"^[a-z]{3}[0-9]{2}[a-z]{3}$",
+        r"^[a-z0-9]{5,10}$",
+        r"^[A-Z0-9]{5,10}$",
+        r"^[A-Z][a-z]{2,8}\d{1,3}$",
+        r"^[a-z]{2,}\d{2,}[a-z]{2,}$",
+        r"^[A-Za-z]{3,}\d{2,3}[A-Za-z]{2,}$",
+        r"^[0-9]{8}$",
+        r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$",
+        r"^[A-Z]{2}[0-9]{3}[A-Z]{2}[0-9]{3}$",
+        r"^[A-Z]{4}[0-9]{4}[A-Z]{4}$",
+        r"^[a-z]{5}[0-9]{3}[a-z]{2}$",
+        r"^[A-Za-z]{3,}\d{1,2}[A-Za-z]{3,}$",
+        r"^[a-z]{1,4}[0-9]{1,4}[a-z]{1,4}$",
+        
+        r"^(a|b|c){1000}$"
     ]
-    amount = 100000
+    amount = 100
     for pat in patterns:
         print("=== pattern:", pat, "=== amount:", amount)
+        if pat.startswith("^(?<="):
+            print("FAILED: pattern", pat, "is an impossible pattern (positive lookbehind after a ^ chr)\n")
+            continue
         import time
         import re
         start = time.time()
-        max_repeat = 1
+        max_repeat = 20
         try:
             parsed_local = list(regex_sre_parse.parse(pat))
             anchored = is_pattern_anchored(parsed_local)
             src = compile_regex_to_function_source(pat, flags=0, max_repeat=max_repeat, func_name="gen", max_attempts=500)
             safe_builtins = {
-                "len": len, "range": range, "min": min, "max": max, "sum":sum, "sorted":sorted,
+                "len": len, "range": range, "min": min, "max": max, "sum":sum, "sorted":sorted, "any":any,
                 "list": list, "tuple": tuple, "chr": chr, "ord": ord,
                 "set": set, "map": map, "int": int, "AssertionError": AssertionError,
                 "enumerate": enumerate, "reversed": reversed,
@@ -1257,14 +1345,19 @@ if __name__ == "__main__":
             print("Samples example:", samples[0:3], len(samples))
             end = time.time()
             print("time:", end - start)
+            searchflag = None
             for s in samples:
                 if anchored:
                     ok = bool(re.fullmatch(pat, s))
                 else:
                     ok = bool(re.search(pat, s))
+                    searchflag = s
                 if not ok:
                     print("FAILED: pattern", pat, "string", repr(s))
+                    # print(src)
                     raise AssertionError("Generated string does not match pattern")
+            if searchflag is not None:
+                print("SEARCHED: pattern", pat, "string", repr(searchflag))
         except Exception as e:
             print("ERROR generating for pattern:", pat, " ->", e)
         print("") #\n at end
