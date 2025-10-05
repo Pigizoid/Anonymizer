@@ -11,7 +11,7 @@ from pathlib import Path
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
-from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields
+from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi
 import re
 
 
@@ -107,7 +107,13 @@ def load_schema_json(schema_path:Path):
     try:
         with open(schema_path,"r") as f:
             file_data = json.load(f)
-            schema_models = JsonSchemaClass(file_data)
+            schema_models = []
+            if isinstance(file_data,dict) and "openapi" in file_data:
+                schemas = load_schemas_from_openapi(file_data)
+                for name,schema in schemas.items():
+                    schema_models.append({name:JsonSchemaClass(schema,name=name)})
+            else:
+                schema_models = JsonSchemaClass(file_data)
     except Exception as e:
         print(f"Exception: {e}")
         return None

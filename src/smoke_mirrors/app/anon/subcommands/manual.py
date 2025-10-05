@@ -85,6 +85,8 @@ def anon_manual_command(
     flags = return_flags(ctx, AnonymiserConfig)
     print(f"Args: {flags}")
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+    if schema_models == None:
+        raise Exception("No schemas loaded from input")
     schema_models = flatten_loaded_schemas(schema_models)
     ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
     output_path_name = load_output_path_flag(flags.anon.output)
