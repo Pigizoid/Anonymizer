@@ -30,7 +30,7 @@ def test_list_match_methods():
     assert all([method in return_data[1] for method in return_data[0]])
 
     faker_list = list_faker_methods(provider_methods["faker"]["word_list"])[0]
-    mimesis_list = list_mimesis_methods(provider_methods["faker"]["word_list"])[0]
+    mimesis_list = list_mimesis_methods(provider_methods["mimesis"]["word_list"])[0]
     faker_list.extend(mimesis_list)
     match_list = set(faker_list)
     assert all([match in return_data[0] for match in match_list])

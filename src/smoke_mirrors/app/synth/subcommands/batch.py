@@ -90,6 +90,8 @@ def synth_batch_command(
     print(f"Args: {flags}")
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
     print(schema_models)
+    if schema_models == None:
+        raise Exception("No schemas loaded from input")
     if flat_output:
         schema_models = {schema_model.__name__:schema_model for schema_model in flatten_loaded_schemas(schema_models)}
     output_path_name = load_output_path_flag(flags.synth.output)
