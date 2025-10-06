@@ -41,7 +41,16 @@ typer - 0.16.0
 
 # Usage
 ## CLI usage
+
+### Folder Structure
 Open selected directory in the terminal
+
+|folder
+|  \
+|  |models
+|  |data
+|  |config
+
 ```
 Usage: sm [OPTIONS] COMMAND [ARGS]
 
@@ -69,6 +78,40 @@ Usage: sm anon [OPTIONS] COMMAND [ARGS]
 │ manual
 ```
 
+## Config usage
+```yaml
+
+schema_path: schemas/user_schema.json  # Path to a schema file
+schema_type: json  # The type of schemas to include (e.g. json, py) (defaults to both)
+seed: 42  # Random seed
+
+# Configuration for the synthetic data generation process
+synth:
+  method: mixed                     # 'faker', 'mimesis', 'mixed' 
+  amount: 10                        # Number of records to generate
+  batch: 2                          # Batch size, 0 means no batching
+  output: data/synth_output.json    # Output file or directory
+  flat_output: true                 # Whether to flatten nested output structures
+  cout: false                       # Print extra output infornation to console
+  performance: false                # Turn on quick validation (after the first 10, validation is skipped)
+
+# Configuration for data anonymization
+anon:
+  ingest: data/raw_data.json        # Path to the input data
+  method: mask                      # 'mask', 'synth', 'perturb'
+  amount: 1                         # How many anonymized versions to create
+  start: 0                          # optional starting row index from data
+  output: data/anonymized.json      # Output file or directory
+  cout: false                       # Print extra output infornation to console
+  manual: false                     # If true, requires manual field decisions
+  default: mask                     # Default anonymization method for unspecified fields
+  key_anon: true                    # Whether to anonymize keys as well
+  fields:                           # Field-specific anonymization strategies
+    name: mask
+    age: perturb
+    email: synth
+```
+
 ## Package Usage
 ```py
 from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
@@ -76,8 +119,7 @@ from smoke_mirrors.anonymiser.anonymier import anonymise
 
 # methods ["faker","mimesis",mixed"]
 json_synth = JsonSynthesiser(method=...,amount=...) 
-val = json_synth.synthesise(json_schema)
+data = json_synth.synthesise(json_schema)
 
-val = anonymise()
-
+val = anonymise(json_schema,data)
 ```
