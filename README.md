@@ -1,4 +1,3 @@
-# REVIEW
 # Smoke and Mirrors
 
 ## Purpose
