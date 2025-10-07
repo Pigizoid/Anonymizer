@@ -19,7 +19,6 @@ class AnonymiserConfig(BaseModel):
     ingest: str = ""
     method: str = "mixed"
     amount: int = 1
-    start: int = 0
     output: str = ""
     stdcout: bool = False
     manual: bool = False

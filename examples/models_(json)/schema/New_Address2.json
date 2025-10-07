@@ -1,0 +1,30 @@
+{
+        "properties": {
+                "field_decimal": {
+                        "anyOf": [
+                                {
+                                        "exclusiveMaximum": 15.0,
+                                        "exclusiveMinimum": 3.0,
+                                        "multipleOf": 5e-06,
+                                        "type": "number"
+                                },
+                                {
+                                        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$",
+                                        "type": "string"
+                                }
+                        ],
+                        "title": "Field Decimal"
+                },
+                "field_float": {
+                        "exclusiveMinimum": 15,
+                        "title": "Field Float",
+                        "type": "number"
+                }
+        },
+        "required": [
+                "field_decimal",
+                "field_float"
+        ],
+        "title": "New_Address2",
+        "type": "object"
+}

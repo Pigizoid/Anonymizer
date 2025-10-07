@@ -1,24 +1,12 @@
 ---
-  schema: schema.py
-  schema_type: py
   seed: false
-  synthesiser:
-    method: mixed
-    amount: 500
-    batch:  100
-    output: output
-    stdcout: false
   anonymiser:
-    ingest: data.json
     method: mixed
     amount: 1
-    start: 8
     output: data_out
     stdcout: true
     manual: false
     default: "mask"
     fields:
-      zip_code: default
-      continent: default
-      phone_number: default
+      name: default
   

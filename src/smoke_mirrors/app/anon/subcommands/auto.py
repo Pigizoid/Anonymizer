@@ -20,24 +20,24 @@ anon_auto_subcommand = typer.Typer()
 def anon_auto_func(schema_model,output_file_path,ingest,flags):
     seed = flags.seed
     anon_flags = flags.anon
-    load_file_path(anon_flags.output)
+    load_file_path(output_file_path)
 
     if anon_flags.ingest is None:
         raise Exception("Config 'ingest' required")
 
     anon_func(
-        schema_model,
-        seed,
-        anon_flags.method,
-        anon_flags.amount,
-        anon_flags.start,
-        ingest,
-        anon_flags.stdcout,
-        anon_flags.manual,
-        anon_flags.default,
-        anon_flags.fields,
-        output_file_path,
-        anon_flags.key_anon
+        schema_model=schema_model,
+        seed=seed,
+        method=anon_flags.method,
+        amount=anon_flags.amount,
+        start_index=0,
+        ingest=ingest,
+        stdcout=anon_flags.stdcout,
+        manual=anon_flags.manual,
+        default=anon_flags.default,
+        fields=anon_flags.fields,
+        output=output_file_path,
+        key_anon=anon_flags.key_anon
     )
 
     close_folder(output_file_path)
@@ -67,14 +67,15 @@ def anon_auto_command(
     """
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
-    ctx.params["start"] = 0
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
-    print(f"Args: {flags}")
-    schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
-    if schema_models == None:
-        raise Exception("No schemas loaded from input")
-    schema_models = flatten_loaded_schemas(schema_models)
+    print(f"Args: {flags.dict(exclude={"synth","anon"})}")
+    print(flags.anon)
+    if flags.schema_path is None:
+        schema_models = None
+    else:
+        schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+        schema_models = flatten_loaded_schemas(schema_models)
     ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
     output_path_name = load_output_path_flag(flags.anon.output)
     recursive_ingest_json_handler(ingests,anon_auto_func,flags,output_path_name,schema_models)

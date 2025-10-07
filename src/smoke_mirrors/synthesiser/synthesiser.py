@@ -305,13 +305,16 @@ class JsonSynthesiser():
                                 raise Exception(
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
                                 )
-                            try:
-                                data_pool = [
-                                    first + Decimal(idx+1) * multiple_of
-                                    for idx in range(int(count) - 1)
-                                ]  # count is capped at poling_count
-                            except:
-                                data_pool == []
+
+                            needed_amount = max(1, pooling_count)
+                            max_start = (int(count)-1)-needed_amount
+                            min_start = random.randint(0,max_start)
+                            data_pool = [
+                                first + Decimal(idx+1+min_start) * multiple_of
+                                for idx in range(pooling_count)
+                            ]
+                        else:
+                            raise Exception(f"A multiple_of constraint was found on an incorrect type -> {data_type}")
                     else:
                         data_pool = [
                             random.randint(gt, lt)

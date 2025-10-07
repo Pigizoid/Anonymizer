@@ -1,0 +1,128 @@
+{
+        "$defs": {
+                "USER": {
+                        "properties": {
+                                "name": {
+                                        "title": "Name",
+                                        "type": "string"
+                                }
+                        },
+                        "required": [
+                                "name"
+                        ],
+                        "title": "USER",
+                        "type": "object"
+                }
+        },
+        "properties": {
+                "street": {
+                        "title": "Street",
+                        "type": "string"
+                },
+                "city": {
+                        "title": "City",
+                        "type": "string"
+                },
+                "zip_code": {
+                        "items": {
+                                "patternProperties": {
+                                        "^\\d{3}(-\\d{6})?$": {
+                                                "items": {
+                                                        "pattern": "^\\d{5}(-\\d{4})?$",
+                                                        "type": "string"
+                                                },
+                                                "type": "array"
+                                        }
+                                },
+                                "type": "object"
+                        },
+                        "title": "Zip Code",
+                        "type": "array"
+                },
+                "country": {
+                        "default": "USA",
+                        "title": "Country",
+                        "type": "string"
+                },
+                "social_security_number": {
+                        "title": "Social Security Number",
+                        "type": "string"
+                },
+                "continent": {
+                        "anyOf": [
+                                {
+                                        "type": "string"
+                                },
+                                {
+                                        "type": "null"
+                                }
+                        ],
+                        "title": "Continent"
+                },
+                "phone_number": {
+                        "items": {
+                                "additionalProperties": {
+                                        "items": {
+                                                "type": "string"
+                                        },
+                                        "type": "array"
+                                },
+                                "type": "object"
+                        },
+                        "title": "Phone Number",
+                        "type": "array"
+                },
+                "title": {
+                        "items": {
+                                "type": "string"
+                        },
+                        "title": "Title",
+                        "type": "array",
+                        "uniqueItems": true
+                },
+                "direction": {
+                        "enum": [
+                                "north",
+                                "south",
+                                "east",
+                                "west",
+                                100
+                        ],
+                        "title": "Direction"
+                },
+                "bananas": {
+                        "title": "Bananas",
+                        "type": "string"
+                },
+                "user": {
+                        "$ref": "#/$defs/USER"
+                },
+                "name": {
+                        "additionalProperties": {
+                                "maxLength": 2000,
+                                "type": "string"
+                        },
+                        "minProperties": 30,
+                        "propertyNames": {
+                                "maxLength": 1000
+                        },
+                        "title": "Name",
+                        "type": "object"
+                }
+        },
+        "required": [
+                "street",
+                "city",
+                "zip_code",
+                "social_security_number",
+                "continent",
+                "phone_number",
+                "title",
+                "direction",
+                "bananas",
+                "user",
+                "name"
+        ],
+        "title": "New_Address1",
+        "type": "object"
+}

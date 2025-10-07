@@ -4,6 +4,7 @@ from smoke_mirrors.anonymiser import anonymiser
 from typing import Any, Dict, Union
 from pathlib import Path
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
+import time
 
 def anon_func(
     schema_model:JsonSchemaClass,
@@ -38,28 +39,30 @@ def anon_func(
         data to the output file and optionally prints output to the screen
     """
     # data comes in as a dict of dicts
+    start = time.time()
     anonymised_data = anonymiser.anonymise(
         schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, stdcout=stdcout
     )
+    end = time.time()
+    elapsed_time = end-start
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
 
     flush_output = []
     if stdcout:
+        print(f"Anonymisation | Time taken: {elapsed_time:.2f} seconds")
         print(f"Writing to file : {output}")
+        print(f"Showing 1 of {len(anonymised_data)}")
+        print(f"Input data :\n\t{ingest[0]}")
+        print(f"Output data :\n\t{list(anonymised_data.values())[0]}")
     with open(f"{output}.json", "a") as f:
-        for index,content in anonymised_data.items():
-            if stdcout:
-                print("-" * 60)
-                print(f"Input data:\n\t{ingest[index]}")
-                print("Output data:")
-            flush_list = []
-            for idx, x in enumerate(content):
-                output_data = x
-                if stdcout:
-                    print(
-                        f"output {str(idx)}{' ' * (10 - len(str(idx)))}{output_data}"
-                    )
-                flush_list.append(output_data)
-            flush_output.append(flush_list)
-        f.write(json.dumps(flush_output, indent=4, default= lambda v: make_json_safe(v)))
+        for _,content in anonymised_data.items():
+            if len(content) == 1:
+                flush_list = content[0]
+            else:
+                flush_list = []
+                for idx, output_data in enumerate(content):
+                    flush_list.append(output_data)
+            flush_output.append(json.dumps(flush_list, indent=4, default= lambda v: make_json_safe(v)))
+        flush_output = ",".join(flush_output)
+        f.write(flush_output)

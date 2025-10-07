@@ -201,7 +201,7 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
     """
     Inputs:\n
         ingest string and loads the data from file or http
-    Uses start_index to offset where to begin loading data (json file start index unimplemented)\n
+    Uses start_index to offset where to begin loading data\n
     Outputs:\n
         file data Dict[str,Any]
     """
@@ -235,6 +235,8 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
     return data
 
 def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],ingest,ingest_path):
+    if schema_models is None:
+        return None
     matched_schemas = []
     first_entry = True
     for key,data_entry in ingest.items():
@@ -320,7 +322,7 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
                 recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1,unique_folder = uf)
                 uf = False
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents),contents.__name__}| {new_path}")
+            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents).__name__,contents.__name__}| {new_path}")
             if contents == None:
                 raise Exception(f"Error in file {file_path}")
             schema_model = contents
@@ -370,7 +372,7 @@ def load_output_path_flag(file_path):
     return return_file_path
 
 
-def return_flags(ctx, config_schema:BaseModel)->Dict[str,Any]:
+def return_flags(ctx, config_schema:BaseModel):
     """
     Key Note: Settings is a dynamically loaded function created by the typer CLI context as ctx\n
     Inputs:\n

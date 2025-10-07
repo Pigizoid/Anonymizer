@@ -6,6 +6,7 @@ import random
 import string
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
+from copy import deepcopy
 
 type_map = {
     str: "string",
@@ -278,45 +279,50 @@ def anonymise(
     """
     anonymised_data = {}
     if stdcout:
-        print(f"fields: {list(fields.values()) if len(fields.values())<5 else f"{list(field.values())[:5]}..."} |Seed: {seed} |Default: {default}")
+        print(f"fields: {list(fields.keys()) if len(fields.values())<5 else f"{list(field.values())[:5]}..."} |Seed: {seed} |Default: {default}")
     # print(data)
-    for index, data_entry in data.items():
+    synth = JsonSynthesiser(method=method)
+    schema_match = True
+    first_data_entry = list(data.values())[0]
+    if schema_model is not None:
+        schemas = [schema_model.contents, schema_model.sanitised_contents]
         schema_match = True
-        if schema_model is not None:
-            schemas = [schema_model.contents, schema_model.sanitised_contents]
-            schema_match = True
-            for schema in schemas:
-                try:
-                    validate(instance=data_entry, schema=schema)
-                    break
-                except Exception:
-                    continue
-            else:
-                schema_match = False
+        for schema in schemas:
+            try:
+                validate(instance=first_data_entry, schema=schema)
+                break
+            except Exception:
+                continue
         else:
             schema_match = False
-        if manual:
-            field_names = fields.keys()
-            anon_methods = {}
-            for key, value in fields.items():
-                if value == "default":
-                    value = default
-                anon_methods[key] = value
+    else:
+        schema_match = False
+    if manual:
+        field_names = fields.keys()
+        anon_methods = {}
+        for key, value in fields.items():
+            if value == "default":
+                value = default
+            anon_methods[key] = value
+    else:
+        if schema_match:
+            field_names = [x[0] for x in get_json_model_data(schema_model)]
 
-        else:  # auto
-            if schema_match:
-                field_names = [x[0] for x in get_json_model_data(schema_model)]
-
-            else:
-                field_names = data_entry.keys()
-                if stdcout:
-                    print(
-                        f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
-                    )
-            anon_methods = {field_name: default for field_name in field_names}
-        result_schema = new_model(data_entry, data_entry.keys())
-        synth = JsonSynthesiser(method=method)
-
+        else:
+            field_names = first_data_entry.keys()
+            if stdcout:
+                print(
+                    f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
+                )
+        anon_methods = {field_name: default for field_name in field_names}
+    result_schema = new_model(first_data_entry, first_data_entry.keys())
+    len_Data = len(data)
+    if manual or default != "synth":
+        if schema_match:
+            new_schema_model = subset_model(schema_model, field_names)
+        else:
+            new_schema_model = new_model(first_data_entry, field_names)
+    for index, data_entry in data.items():
         if manual or default != "synth":
             return_data = [
                 anonymise_data(
@@ -329,17 +335,12 @@ def anonymise(
                 for _ in range(amount)
             ]
         else:
-            if schema_match:
-                new_schema_model = subset_model(schema_model, field_names)
-            else:
-                new_schema_model = new_model(data_entry, field_names)
-
             return_data = synth.synthesise(
                 new_schema_model, method=method, amount=amount, seed=seed
             )
         for return_entry in return_data:
             anonymised_data_set = []
-            new_fields = data_entry.copy()
+            new_fields = deepcopy(data_entry)
             for field in field_names:
                 if isinstance(return_entry, dict):
                     new_fields[field] = return_entry[field]
@@ -350,6 +351,11 @@ def anonymise(
             except:
                 validate(instance=new_fields, schema=result_schema.sanitised_contents)
             anonymised_data_set.append(new_fields)
+        if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
+            print(
+                f"Completed: {index + 1}/{len_Data}:{round(((index + 1) / len_Data) * 100, 2)}%{' ' * 30}",
+                end="\r",
+            )
         anonymised_data[index] = anonymised_data_set
     return anonymised_data
 # ----- Central function -----

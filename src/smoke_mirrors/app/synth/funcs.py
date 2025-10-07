@@ -58,11 +58,11 @@ def synth_func(
         if str(output).startswith("http"):
             send_batch_to_API(schema_model, output, request_entries)
         else:
-            flush_out = "".join(flush)
+            flush_out = ",".join(flush)
             with open(f"{output}.json", "a") as f:
                 f.write(flush_out)
     else:
-        flush_out = "".join(flush)
+        flush_out = ",".join(flush)
     flush.clear()
     if str(output).startswith("http"):
         request_entries.clear()

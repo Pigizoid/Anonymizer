@@ -10,7 +10,6 @@
     ingest: tests\\data.json
     method: mixed
     amount: 1
-    start: 8
     output: tests\\data_out
     stdcout: true
     manual: false

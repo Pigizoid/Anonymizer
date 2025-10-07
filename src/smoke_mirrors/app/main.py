@@ -66,7 +66,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             name: field.default for name, field in AnonymiserConfig.model_fields.items()
         }
         defaults = {
-            "schema_path": "schema.py",
+            "schema_path": None,
             "schema_type": None,
             "synth": synth_defaults,
             "anon": anon_defaults,

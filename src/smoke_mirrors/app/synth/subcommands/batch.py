@@ -33,9 +33,11 @@ def synth_batch_func(schema_model,output_file_path,flags):
     stdcout = synth_flags.stdcout
     performance = synth_flags.performance
     batch_index = 0
+    aofb = + amount // batch
+    totam = aofb + (amount%batch != 0)
     for y in range(amount // batch):
         print(
-            f"Batch num: {y + 1} of {amount // batch} | Batch amount: {batch} | Completed: {batch_index}/{amount}  {'-' * 50}"
+            f"Batch num: {y + 1} of {totam} | Batch amount: {batch} | Total: {amount}"
         )
         synth_func(
             schema_model,
@@ -49,6 +51,9 @@ def synth_batch_func(schema_model,output_file_path,flags):
         )
         batch_index += batch
     if amount - batch_index != 0:
+        print(
+            f"Batch num: {totam} of {totam} | Batch amount: {amount-batch_index} | Total: {amount}"
+        )
         synth_func(
             schema_model,
             method,
@@ -87,7 +92,8 @@ def synth_batch_command(
     Runs the synthesiser tool in batch mode\n
     """
     flags = return_flags(ctx, SynthesiserConfig)
-    print(f"Args: {flags}")
+    print(f"Args: {flags.dict(exclude={"synth","anon"})}")
+    print(flags.synth)
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
     if schema_models == None:
         raise Exception("No schemas loaded from input")

@@ -100,7 +100,6 @@ anon:
   ingest: data/raw_data.json        # Path to the input data
   method: mask                      # 'mask', 'synth', 'perturb'
   amount: 1                         # How many anonymized versions to create
-  start: 0                          # optional starting row index from data
   output: data/anonymized.json      # Output file or directory
   stdcout: false                       # Print extra output infornation to console
   manual: false                     # If true, requires manual field decisions
