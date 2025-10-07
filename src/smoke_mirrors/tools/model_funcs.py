@@ -81,23 +81,29 @@ def get_json_model_data(json_model):
         model_data.append([field_name, model_field])
     return model_data
 
+data_types_dict = {
+    "null":None,
+    "boolean":bool,
+    "object":dict,
+    "number":float,
+    "integer":int,
+    "string":str
+}
+
 def infer_json_type(property:Dict[str,Any]):
     if not(isinstance(property,dict)):
         return property
     elif len(property) == 0:
         return str
-    if "enum" in property:
-        return Literal
-    elif "const" in property:
-        return Literal
+    if "enum" in property or "const" in property:
+        return Literal 
     elif "type" in property:
         data_type = property["type"]
-        if data_type == "null":
-            return None
-        elif data_type == "boolean":
-            return bool
-        elif data_type == "object":
-            return dict
+
+        if data_type in data_types_dict:
+            return data_types_dict[data_type]
+        elif isinstance(data_type,list):
+            return [infer_json_type(t) for t in data_type]
         elif data_type == "array":
             if "uniqueItems" in property and property["uniqueItems"] == True:
                 return set
@@ -108,21 +114,11 @@ def infer_json_type(property:Dict[str,Any]):
                     if isinstance(property["items"],list):
                         return tuple
                 return list
-        elif data_type == "number":
-            return float
-        elif data_type == "integer":
-            return int
-        elif data_type == "string":
-            return str
-        elif isinstance(data_type,list):
-            return [infer_json_type(t) for t in data_type]
         else:
             raise Exception(f"Unhandled json type '{data_type}'")
     elif "$ref" in property:
         return JsonSchemaClass
-    elif "anyOf" in property:
-        return Union
-    elif "oneOf" in property:
+    elif "anyOf" in property or "oneOf" in property:
         return Union
     elif "allOf" in property:
         return property["allOf"]
@@ -132,18 +128,14 @@ def infer_json_type(property:Dict[str,Any]):
 def infer_json_args(property:Dict[str,Any]):
     if not(isinstance(property,dict)):
         return property
-    if "enum" in property:
-        data_args = [p for p in property["enum"]]
-    elif "prefixItems" in property:
-        data_args = property["prefixItems"]
-    elif "items" in property:
-        data_args = [property["items"]]
-    elif "anyOf" in property:
-        data_args = [p for p in property["anyOf"]]
-    elif "oneOf" in property:
-        data_args = [p for p in property["oneOf"]]
-    elif "allOf" in property:
-        data_args = [p for p in property["allOf"]]
+
+    for keyword in ("enum", "prefixItems", "anyOf", "oneOf"):
+        if keyword in property:
+            return property[keyword]
+    
+    if "items" in property:
+        return [property["items"]]
+
     elif infer_json_type(property) == dict:
         data_args = [{"type":"string"},{"type":"string"}]
         if "propertyNames" in property:

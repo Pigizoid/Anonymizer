@@ -25,7 +25,7 @@ field_attr_map = {
     "multiple_of":["multipleOf"],
 }
 
-def check_generation_constraints(name:str, field:dict) -> Dict[str, Any]:
+def check_generation_constraints(name: str, field: dict) -> Dict[str, Any]:
     """
     Inputs:\n
         field name
@@ -39,56 +39,16 @@ def check_generation_constraints(name:str, field:dict) -> Dict[str, Any]:
         "args",   #through get_args(annotation)
         }
     """
-    cout = False
-    if cout:
-        print("__")
-        print(f"	Name:{name}")
-        print(f"	Field:{field}")
-    constraints = {}
-    if "required" in field:
-        constraints["required"] = field["required"]
-    else:
-        constraints["required"] = True
-    for attr,map_attr in field_attr_map.items():
-        if map_attr != None:
-            for m_attr in map_attr:
-                if m_attr in field:
-                    return_val = field[m_attr]
-                    break
-                else:
-                    return_val = None
-            constraints[attr] = return_val
-        else:
-            constraints[attr] = None
-    data_type = infer_json_type(field)
-    data_Args = infer_json_args(field)
-    annotation = data_type
-    constraints["annotation"] = annotation
-    constraints["origin"] = field
-    constraints["args"] = data_Args
-    if cout:
-        print(f"Constraints:{constraints}")
-
-    '''
-    {
-        'items': {
-            'patternProperties': {
-                '^\\d{3}(-\\d{6})?$': {
-                    'items': {
-                        'pattern': '^\\d{5}(-\\d{4})?$', 
-                        'type': 'string'
-                    }, 
-                    'type': 'array'
-                }
-            }, 
-            'type': 'object'
-        }, 
-        'title': 'Zip Code', 
-        'type': 'array', 
-        'required': True
+    constraints = {
+        attr: next((field[k] for k in keys if k in field), None)
+        for attr, keys in field_attr_map.items()
     }
-    '''
-
+    constraints.update({
+        "required": field.get("required", True),
+        "annotation": infer_json_type(field),
+        "args": infer_json_args(field),
+        "origin": field,
+    })
     return constraints
 
 def make_new_contraints(applied_constraints:Dict[str,Any]) -> Dict[str,Any]:
