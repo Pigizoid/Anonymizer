@@ -27,7 +27,7 @@ def synth_single_func(schema_model,output_file_path,flags):
         synth_flags.method,
         synth_flags.amount,
         output_file_path,
-        cout=synth_flags.cout,
+        stdcout=synth_flags.stdcout,
         seed=seed,
         performance=synth_flags.performance,
     )
@@ -40,7 +40,7 @@ def synth_single_command(
     method: str = None,
     output: str = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
-    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
 ):
     """
@@ -48,7 +48,7 @@ def synth_single_command(
     Inputs:\n
         a method of the methods "mixed","mimesis","faker"
         a filename as str for the output file (.json added by default)
-        cout boolean to toggle verbose printing
+        stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in single mode, amount=1 batch=1\n
     """
     ctx.params["amount"] = 1

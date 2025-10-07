@@ -30,7 +30,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
         batch = amount
     else:
         batch = synth_flags.batch
-    cout = synth_flags.cout
+    stdcout = synth_flags.stdcout
     performance = synth_flags.performance
     batch_index = 0
     for y in range(amount // batch):
@@ -42,7 +42,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
             method,
             batch,
             output_file_path,
-            cout=cout,
+            stdcout=stdcout,
             start_index=batch_index,
             seed=seed,
             performance=performance,
@@ -54,7 +54,7 @@ def synth_batch_func(schema_model,output_file_path,flags):
             method,
             amount - batch_index,
             output_file_path,
-            cout=cout,
+            stdcout=stdcout,
             start_index=batch_index,
             seed=seed,
             performance=performance,
@@ -71,7 +71,7 @@ def synth_batch_command(
     batch: int = None,
     output: str = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
-    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
 ):
     """
@@ -83,7 +83,7 @@ def synth_batch_command(
             generate "amount" total in "batch" sizes
             e.g. amount=100 batch=50 means 2 batches of 50
         a filename as str for the output file (.json added by default)
-        cout boolean to toggle verbose printing
+        stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in batch mode\n
     """
     flags = return_flags(ctx, SynthesiserConfig)

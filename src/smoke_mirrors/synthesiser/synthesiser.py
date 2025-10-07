@@ -92,7 +92,7 @@ string_list = string.ascii_letters + string.digits
 
 
 class JsonSynthesiser():
-    def __init__(self, method="faker",cout=False):
+    def __init__(self, method="faker",stdcout=False):
         self.outputpooling = {}
         self.applied_constraints_cache = {}
         self.schema_keys_cache = {}
@@ -102,7 +102,7 @@ class JsonSynthesiser():
         self.word_tokens = data_set['word_tokens'] # {word: word.split("_") for word in word_list}
         self.word_tokens_set = data_set['word_tokens_set'] # {word: set(word.split("_")) for word in word_list}
         self.resolved_methods = make_resolved_methods(self.word_list, methods_map)
-        self.cout = cout
+        self.stdcout = stdcout
         self.defs = {}
         self.applied_constraints = {}
         self.field_match_pairs = {}
@@ -372,7 +372,7 @@ class JsonSynthesiser():
                         raise Exception(f"No data pool for default:{generate_path}")
 
             elapsed_time = time.time() - start_time  # end timer
-            if self.cout:
+            if self.stdcout:
                 print_path(generate_path, elapsed_time)
 
             self.outputpooling[generate_path] = data_pool
@@ -757,7 +757,7 @@ class JsonSynthesiser():
                     ]
 
                     elapsed_time = time.time() - start_time
-                    if self.cout:
+                    if self.stdcout:
                         print_path(generate_path, elapsed_time)
 
                     self.outputpooling[generate_path] = data_pool
@@ -958,7 +958,7 @@ class JsonSynthesiser():
         return synthesised_data
 
     def synthesise(
-        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",cout=False, performance=False
+        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",stdcout=False, performance=False
     ) -> List[Dict[str,Any]]:
         """
         The main call function of the synthesiser class
@@ -977,8 +977,8 @@ class JsonSynthesiser():
                 raise Exception("JSON schema must have a title")
             schema_model = JsonSchemaClass(schema_model)
         schema_model = load_parse_json_schema(schema_model)
-        if cout:
-            self.cout = cout
+        if stdcout:
+            self.stdcout = stdcout
         if amount == 0:
             return []
         """
@@ -1048,13 +1048,13 @@ class JsonSynthesiser():
                     except:
                         validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
                 dataset.append(synthesised_data)
-                if self.cout:
+                if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                         print(
                             f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
                             end="\r",
                         )
-            if self.cout:
+            if self.stdcout:
                 print(f"Completed: {amount}/{amount}{' ' * 30}")
             return dataset
     # ----- Central called functions -----

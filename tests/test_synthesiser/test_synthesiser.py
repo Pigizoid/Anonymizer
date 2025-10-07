@@ -49,7 +49,7 @@ def test_synthesise_recursive_dict():
 
 
 def test_progress_prints(capsys):
-    synth = JsonSynthesiser(cout=True)
+    synth = JsonSynthesiser(stdcout=True)
     synth.synthesise(User, amount=5)
     captured = capsys.readouterr()
     assert "Completed:" in captured.out

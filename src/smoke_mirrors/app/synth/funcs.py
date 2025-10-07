@@ -11,7 +11,7 @@ def synth_func(
     method:str,
     amount:int,
     output:Path,
-    cout:bool = False,
+    stdcout:bool = False,
     start_index:int = 0,
     seed: Union[int,str,None]="random",
     performance: bool = False
@@ -22,7 +22,7 @@ def synth_func(
         generation method of the methods "mixed","mimesis","faker"
         amount as an int, to generate per schema
         Path the output file (.json added by default)
-        cout boolean toggle for verbose printing
+        stdcout boolean toggle for verbose printing
         optional starting index used in batching to specify what the output index should start at
         optional generation seed
     Loads data from ingest file\n
@@ -31,7 +31,7 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
-    synth = JsonSynthesiser(method=method,cout=cout)
+    synth = JsonSynthesiser(method=method,stdcout=stdcout)
     dataset = synth.synthesise(
         schema_model, method, amount, seed, performance=performance
     )  # returns as [ data, data, ... ]
@@ -40,7 +40,7 @@ def synth_func(
     flush = []
     if str(output).startswith("http"):
         request_entries = []
-    if cout:
+    if stdcout:
         print(f"Writing to file : {output}")
     for index, data in enumerate(dataset):
         if output is not None:

@@ -92,7 +92,7 @@ synth:
   batch: 2                          # Batch size, 0 means no batching
   output: data/synth_output.json    # Output file or directory
   flat_output: true                 # Whether to flatten nested output structures
-  cout: false                       # Print extra output infornation to console
+  stdcout: false                       # Print extra output infornation to console
   performance: false                # Turn on quick validation (after the first 10, validation is skipped)
 
 # Configuration for data anonymization
@@ -102,7 +102,7 @@ anon:
   amount: 1                         # How many anonymized versions to create
   start: 0                          # optional starting row index from data
   output: data/anonymized.json      # Output file or directory
-  cout: false                       # Print extra output infornation to console
+  stdcout: false                       # Print extra output infornation to console
   manual: false                     # If true, requires manual field decisions
   default: mask                     # Default anonymization method for unspecified fields
   key_anon: true                    # Whether to anonymize keys as well

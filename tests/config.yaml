@@ -5,14 +5,14 @@
     amount: 8
     batch:  4
     output: tests\\test_output
-    cout: false
+    stdcout: false
   anonymiser:
     ingest: tests\\data.json
     method: mixed
     amount: 1
     start: 8
     output: tests\\data_out
-    cout: true
+    stdcout: true
     manual: false
     default: "mask"
     key_anon: false

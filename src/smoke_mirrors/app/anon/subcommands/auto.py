@@ -32,7 +32,7 @@ def anon_auto_func(schema_model,output_file_path,ingest,flags):
         anon_flags.amount,
         anon_flags.start,
         ingest,
-        anon_flags.cout,
+        anon_flags.stdcout,
         anon_flags.manual,
         anon_flags.default,
         anon_flags.fields,
@@ -50,7 +50,7 @@ def anon_auto_command(
     method: str = None,
     output: str = None,
     amount: int = None,
-    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     default: str = "mask",
     key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
 ):
@@ -61,7 +61,7 @@ def anon_auto_command(
         a method of the methods "mixed","mimesis","faker"
         a filename as str for the output file (.json added by default)
         an amount to generate per data index as an int
-        cout boolean to toggle verbose printing
+        stdcout boolean to toggle verbose printing
         a default anonymisation method of the methods "mask","synth","perturb"
     Runs the anonymisation tool in auto mode\n
     """

@@ -34,7 +34,7 @@ def anon_manual_func(schema_model,output_file_path,ingest,flags):
         anon_flags.amount,
         anon_flags.start,
         ingest,
-        anon_flags.cout,
+        anon_flags.stdcout,
         True,  # manual
         anon_flags.default,
         anon_flags.fields,
@@ -52,7 +52,7 @@ def anon_manual_command(
     amount: int = None,
     start: int = None,
     output: str = None,
-    cout: Annotated[Optional[bool], typer.Option("--cout/--no-cout")] = None,
+    stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     default: Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
     key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
@@ -65,7 +65,7 @@ def anon_manual_command(
         an amount to generate per data index as an int
         a starting index (to optionally skip data indexes in the ingest)
         a filename as str for the output file (.json added by default)
-        cout boolean to toggle verbose printing
+        stdcout boolean to toggle verbose printing
         a default anonymisation method of the methods "mask","synth","perturb"
         a json string of type dict = {field_name:method} of the methods "default","mask","synth","perturb":
             json string key and value requires double quotes

@@ -43,7 +43,7 @@ class StressUser(BaseModel):
 
 
 def test_stress_volume():
-    json_synth = JsonSynthesiser(method="mixed",cout=True)
+    json_synth = JsonSynthesiser(method="mixed",stdcout=True)
     user_json = StressUser.model_json_schema()
 
     results, duration, mem = generate_and_validate(json_synth, user_json, n=10000)

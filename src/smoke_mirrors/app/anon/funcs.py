@@ -12,7 +12,7 @@ def anon_func(
     amount:int,
     start_index:int,
     ingest:Dict[str,Any],
-    cout:bool,
+    stdcout:bool,
     manual:bool,
     default:str,
     fields:Dict[str,str],
@@ -27,7 +27,7 @@ def anon_func(
         amount as an int, to generate per data index
         starting index (to optionally skip data indexes in the ingest)
         string to the ingest data (either .json or route http)
-        cout boolean toggle for verbose printing
+        stdcout boolean toggle for verbose printing
         manual boolean toggle for automatic/manual processing modes
         default anonymisation method of the methods "mask","perturb","synth"
         dict of fields = {field_name:method} of the methods "default","mask","perturb","synth"
@@ -39,24 +39,24 @@ def anon_func(
     """
     # data comes in as a dict of dicts
     anonymised_data = anonymiser.anonymise(
-        schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, cout=cout
+        schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, stdcout=stdcout
     )
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
 
     flush_output = []
-    if cout:
+    if stdcout:
         print(f"Writing to file : {output}")
     with open(f"{output}.json", "a") as f:
         for index,content in anonymised_data.items():
-            if cout:
+            if stdcout:
                 print("-" * 60)
                 print(f"Input data:\n\t{ingest[index]}")
                 print("Output data:")
             flush_list = []
             for idx, x in enumerate(content):
                 output_data = x
-                if cout:
+                if stdcout:
                     print(
                         f"output {str(idx)}{' ' * (10 - len(str(idx)))}{output_data}"
                     )

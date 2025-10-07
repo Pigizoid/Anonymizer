@@ -255,7 +255,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, cout=False
+    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False
 ) -> Dict[str, List[Any]]:
     """
     Inputs:\n
@@ -277,7 +277,7 @@ def anonymise(
             }
     """
     anonymised_data = {}
-    if cout:
+    if stdcout:
         print(f"fields: {list(fields.values()) if len(fields.values())<5 else f"{list(field.values())[:5]}..."} |Seed: {seed} |Default: {default}")
     # print(data)
     for index, data_entry in data.items():
@@ -309,7 +309,7 @@ def anonymise(
 
             else:
                 field_names = data_entry.keys()
-                if cout:
+                if stdcout:
                     print(
                         f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
                     )

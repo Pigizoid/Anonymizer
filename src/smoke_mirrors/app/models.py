@@ -11,7 +11,7 @@ class SynthesiserConfig(BaseModel):
     batch: int = 0
     output: str = ""
     flat_output: bool = False
-    cout: bool = False
+    stdcout: bool = False
     performance: bool = False
 
 
@@ -21,7 +21,7 @@ class AnonymiserConfig(BaseModel):
     amount: int = 1
     start: int = 0
     output: str = ""
-    cout: bool = False
+    stdcout: bool = False
     manual: bool = False
     default: typing.Literal["mask", "synth", "perturb"] = "mask"
     fields: typing.Dict[str, str] = {}

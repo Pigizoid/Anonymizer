@@ -15,7 +15,7 @@ start_index = 0
 ingest_file = "tests\\data.json"
 with open(ingest_file, 'r') as f:
     ingest = json.load(f)
-cout = False
+stdcout = False
 manuals = [True, False]
 defaults = ["mask", "perturb", "synth"]
 field_defaults = ["default", "mask", "perturb", "synth"]
@@ -48,7 +48,7 @@ for fields in field_tests:
                                 amount,
                                 start_index,
                                 ingest,
-                                cout,
+                                stdcout,
                                 manual,
                                 default,
                                 fields,
@@ -59,7 +59,7 @@ for fields in field_tests:
 
 
 @pytest.mark.parametrize(
-    "schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output, key_anon",
+    "schema_model, seed, method, amount, start_index, ingest, stdcout, manual, default, fields, output, key_anon",
     test_list,
 )
 def test_anon_func(
@@ -69,7 +69,7 @@ def test_anon_func(
     amount,
     start_index,
     ingest,
-    cout,
+    stdcout,
     manual,
     default,
     fields,
@@ -87,7 +87,7 @@ def test_anon_func(
         amount,
         start_index,
         ingest,
-        cout,
+        stdcout,
         manual,
         default,
         fields,
