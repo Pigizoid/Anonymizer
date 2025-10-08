@@ -14,7 +14,6 @@ def make_one_string(pattern):
 
 field_attr_map = {
     "default":["default"],
-    "annotation":["type"],
     "min_length":["minLength","minProperties","minItems"],
     "max_length":["maxLength","maxProperties","maxItems"],
     "pattern":["pattern"],
@@ -35,10 +34,12 @@ def check_generation_constraints(name: str, field: dict) -> Dict[str, Any]:
         {
         *all_constr_attribs,
         "required",
-        "origin", #through get_origin(annotation)
-        "args",   #through get_args(annotation)
+        "origin",
+        "args",
         }
     """
+    if field is None:
+        raise Exception("Field input was None")
     constraints = {
         attr: next((field[k] for k in keys if k in field), None)
         for attr, keys in field_attr_map.items()

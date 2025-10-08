@@ -85,8 +85,6 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
     else:
         raise Exception(f"Unexpected method: {method}")
     methods = list(set(methods))
-    # for method in methods:
-    # print(f"Method: {method}, Map: {methods_map[method]}")
     return (methods, methods_map)
 
 def make_resolved_methods(name_matches:List[str], methods_map:Dict[str,Any]) -> Dict[str, Any]:

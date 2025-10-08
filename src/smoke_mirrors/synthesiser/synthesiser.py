@@ -572,6 +572,7 @@ class JsonSynthesiser():
                             list_generate_path,
                         )
                     )
+            
             elif data_type in [Dict, dict]:
                 new_left_applied_constraints = new_applied_constraints.copy()
                 new_right_applied_constraints = new_applied_constraints.copy()
@@ -1061,3 +1062,4 @@ class JsonSynthesiser():
                 print(f"Completed: {amount}/{amount}{' ' * 30}")
             return dataset
     # ----- Central called functions -----
+    

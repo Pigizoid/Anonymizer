@@ -181,9 +181,9 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
             distances.append([t_word,0])
         else:
             target_letters = set(''.join(target_tokens_set))
-            filtered_word_list = [word for word in word_list if len(set(word) & target_letters) > 1] #needs at least 2 letters
+            filtered_word_list = [word for word in word_list if len(set(word) & target_letters) > 1] # filter match at least 2 letters
             if field_types!= None and field_types[t_word] != None:
-                filtered_word_list = [word for word in word_list if provider_return_types[word] == field_types[t_word]] #needs to return the right type
+                filtered_word_list = [word for word in word_list if provider_return_types[word] == field_types[t_word]] # filter by return type
             for word in filtered_word_list:
                 distance = calc_difference(
                     target_word,
@@ -199,31 +199,9 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
             min_value = sorted_by_distance[0][1]
         else:
             min_value = (len(target_word) // 2 - 0.5) + 1
-        if min_value > (len(target_word) // 2 - 0.5):
-            potential_matches = []
-            for word in word_list:
-                if target_word in word:
-                    distance = levenshtein_distance_fast(
-                        target_word, word, [-0.5, 0.5, -0.5]
-                    )
-                    potential_matches.append([word, distance])
-            sorted_match_by_distance = sorted(
-                potential_matches, key=lambda dist: dist[1]
-            )
-            if sorted_match_by_distance != [] and sorted_match_by_distance[0] != []:
-                min_value = sorted_match_by_distance[0][1]
-            else:
-                min_value = (len(target_word) // 2) + 1
-            if min_value > len(target_word) // 2:
-                closest_matches = [
-                    item
-                    for item in sorted_match_by_distance
-                    if item[1] == min_value
-                ]
-        else:
-            closest_matches = [
-                item for item in sorted_by_distance if item[1] == min_value
-            ]
+        closest_matches = [
+            item for item in sorted_by_distance if item[1] == min_value
+        ]
         if len(closest_matches) == 0:
             field_matches.append("")
         else:
