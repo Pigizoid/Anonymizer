@@ -309,10 +309,8 @@ class JsonSynthesiser():
                                 )
 
                             needed_amount = max(1, pooling_count)
-                            max_start = (int(count)-1)-needed_amount
-                            min_start = random.randint(0,max_start)
                             data_pool = [
-                                first + Decimal(idx+1+min_start) * multiple_of
+                                first + Decimal(idx+1+random.randint(0,int(count)-1)) * multiple_of
                                 for idx in range(pooling_count)
                             ]
                         else:
