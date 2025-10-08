@@ -106,6 +106,8 @@ class JsonSynthesiser():
         self.defs = {}
         self.applied_constraints = {}
         self.field_match_pairs = {}
+        self.yield_schema = None
+        self.yield_schema_data = None
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
@@ -976,6 +978,8 @@ class JsonSynthesiser():
             list of pydantic BaseModel with synthesised data
             [BaseModel]*amount
         """
+        if amount == 0:
+            return []
         if isinstance(schema_model,dict):
             if "title" not in schema_model:
                 raise Exception("JSON schema must have a title")
@@ -983,8 +987,7 @@ class JsonSynthesiser():
         schema_model = load_parse_json_schema(schema_model)
         if stdcout:
             self.stdcout = stdcout
-        if amount == 0:
-            return []
+        self.yield_schema = schema_model
         """
         if seed == "random":
             self.input_seed = "random"
@@ -1062,4 +1065,81 @@ class JsonSynthesiser():
                 print(f"Completed: {amount}/{amount}{' ' * 30}")
             return dataset
     # ----- Central called functions -----
-    
+
+    def register_schema(self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",stdcout=False):
+        if amount == 0:
+            return []
+        if isinstance(schema_model,dict):
+            if "title" not in schema_model:
+                raise Exception("JSON schema must have a title")
+            schema_model = JsonSchemaClass(schema_model)
+        schema_model = load_parse_json_schema(schema_model)
+        if stdcout:
+            self.stdcout = stdcout
+        self.yield_schema = schema_model
+
+        self.defs = schema_model.defs
+        self.outputpooling.clear()
+        self.applied_constraints_cache.clear()
+        self.schema_keys_cache.clear()
+        if method != None:
+            self.method = method
+        else:
+            method = self.method
+        if schema_model.contents["type"] != "object":
+
+            constraints = check_generation_constraints("",schema_model.contents)
+            if "title" in schema_model.contents:
+                field_name = schema_model.contents["title"]
+                self.field_match_pairs = match_fields([field_name],method,{field_name:infer_json_type(schema_model.contents)})
+                match_name = self.field_match_pairs[field_name]
+            else:
+                field_name = ""
+                match_name = ""
+                self.field_match_pairs = {}
+            self.yield_schema_data = {"constraints":constraints,"field_match_pairs":{"name":field_name,"match":match_name}}
+        else:
+            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
+            self.yield_schema_data = {"constraints":self.applied_constraints,"field_match_pairs":self.field_match_pairs}
+
+    def yield_instance(self,amount=1,seed="random",stdcout=False, performance=False):
+        prevcout = self.stdcout
+        # prevseed = self.seed
+        if stdcout:
+            self.stdcout = stdcout
+        schema_model = self.yield_schema
+        yield_schema_data = self.yield_schema_data
+        method = self.method
+        if schema_model.contents["type"] != "object": 
+            field_name = yield_schema_data["field_match_pairs"]["name"]
+            match_name = yield_schema_data["field_match_pairs"]["match"]
+            constraints = yield_schema_data["constraints"]
+            dataset = []
+            for x in range(amount):
+                synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
+                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
+                    try:
+                        validate(instance=synthesised_data, schema=schema_model.contents)
+                    except:
+                        validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+                dataset.append(synthesised_data)
+        else:
+            
+            dataset = []
+            for x in range(amount):
+                synthesised_data = self.synthesise_recursive(
+                    schema_model, method=method, amount=amount
+                )
+                dataset.append(synthesised_data)
+                if self.stdcout:
+                    if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
+                        print(
+                            f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
+                            end="\r",
+                        )
+            if self.stdcout:
+                print(f"Completed: {amount}/{amount}{' ' * 30}")
+        self.stdcout = prevcout
+        # self.seed = prevseed
+        return dataset

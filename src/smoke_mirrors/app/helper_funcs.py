@@ -334,7 +334,7 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
     #2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
-    elif depth == 0:
+    elif output_path_name.resolve().parent.name == "outputs":
         if unique_folder == True:
             output_path_name = get_unique_folder_name(Path(output_path_name))
             os.makedirs(output_path_name)
