@@ -37,7 +37,8 @@ def anon_auto_func(schema_model,output_file_path,ingest,flags):
         default=anon_flags.default,
         fields=anon_flags.fields,
         output=output_file_path,
-        key_anon=anon_flags.key_anon
+        key_anon=anon_flags.key_anon,
+        performance=anon_flags.performance
     )
 
     close_folder(output_file_path)
@@ -53,6 +54,7 @@ def anon_auto_command(
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     default: str = "mask",
     key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
+    performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
 ):
     """
     A subcommand for the anon command\n

@@ -256,7 +256,7 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False
+    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False, performance=False
 ) -> Dict[str, List[Any]]:
     """
     Inputs:\n
@@ -310,18 +310,21 @@ def anonymise(
 
         else:
             field_names = first_data_entry.keys()
-            if stdcout:
+            if schema_model is not None and stdcout:
                 print(
                     f"Schema '{schema_model.__name__}' does not match data, defaulting to data keys"
                 )
         anon_methods = {field_name: default for field_name in field_names}
     result_schema = new_model(first_data_entry, first_data_entry.keys())
     len_Data = len(data)
-    if manual or default != "synth":
-        if schema_match:
-            new_schema_model = subset_model(schema_model, field_names)
-        else:
+    if schema_match:
+        new_schema_model = subset_model(schema_model, field_names)
+    else:
+        if field_names != first_data_entry.keys():
             new_schema_model = new_model(first_data_entry, field_names)
+        else:
+            new_schema_model = result_schema
+    synth.register_schema(new_schema_model)
     for index, data_entry in data.items():
         if manual or default != "synth":
             return_data = [
@@ -335,9 +338,7 @@ def anonymise(
                 for _ in range(amount)
             ]
         else:
-            return_data = synth.synthesise(
-                new_schema_model, method=method, amount=amount, seed=seed
-            )
+            return_data = synth.yield_instance(amount=amount, seed=seed)
         for return_entry in return_data:
             anonymised_data_set = []
             new_fields = deepcopy(data_entry)
@@ -346,10 +347,11 @@ def anonymise(
                     new_fields[field] = return_entry[field]
                 else:
                     new_fields[field] = getattr(return_entry, field)
-            try:
-                validate(instance=new_fields, schema=result_schema.contents)
-            except:
-                validate(instance=new_fields, schema=result_schema.sanitised_contents)
+            if performance == False or index < 10:
+                try:
+                    validate(instance=new_fields, schema=result_schema.contents)
+                except:
+                    validate(instance=new_fields, schema=result_schema.sanitised_contents)
             anonymised_data_set.append(new_fields)
         if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
             print(

@@ -18,7 +18,8 @@ def anon_func(
     default:str,
     fields:Dict[str,str],
     output:Path,
-    key_anon:bool
+    key_anon:bool,
+    performance:bool
 ):
     """
     Inputs:\n
@@ -41,7 +42,7 @@ def anon_func(
     # data comes in as a dict of dicts
     start = time.time()
     anonymised_data = anonymiser.anonymise(
-        schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, stdcout=stdcout
+        schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, stdcout=stdcout, performance=performance
     )
     end = time.time()
     elapsed_time = end-start
@@ -49,8 +50,8 @@ def anon_func(
     # { index: [model, * amount] }
 
     flush_output = []
+    print(f"Anonymisation | Time taken: {elapsed_time:.2f} seconds")
     if stdcout:
-        print(f"Anonymisation | Time taken: {elapsed_time:.2f} seconds")
         print(f"Writing to file : {output}")
         print(f"Showing 1 of {len(anonymised_data)}")
         print(f"Input data :\n\t{ingest[0]}")

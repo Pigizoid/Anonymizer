@@ -105,6 +105,7 @@ anon:
   manual: false                     # If true, requires manual field decisions
   default: mask                     # Default anonymization method for unspecified fields
   key_anon: true                    # Whether to anonymize keys as well
+  performance: false                # Turn on quick validation (after the first 10, validation is skipped)
   fields:                           # Field-specific anonymization strategies
     name: mask
     age: perturb
