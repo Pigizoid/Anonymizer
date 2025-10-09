@@ -126,7 +126,7 @@ class JsonSynthesiser():
 
         # print(f"Name:{field_name}\nFields:{constraints}")
         # print("__")
-
+        data_type = constraints["annotation"]
         if generate_path not in self.outputpooling or (
             generate_path in self.outputpooling
             and self.outputpooling[generate_path] == []
@@ -137,8 +137,6 @@ class JsonSynthesiser():
             for x in pooling_numbers:
                 pooling_count *= x
 
-            # print(f"Path:{generate_path}")
-            # print("count", pooling_count)
             start_time = time.time()
             data_pool = []
 
@@ -252,17 +250,13 @@ class JsonSynthesiser():
                 if data_pool == []:
                     raise Exception(f"No data pool for {constraints['pattern']}")
             else:
-                # print("Generate from annotation",str(constraints["annotation"]))
-                data_type = constraints["annotation"]
                 if data_type is str:
                     temp_string_list = string_list
-                    if constraints["min_length"] is not None:
-                        min_length = constraints["min_length"]
-                    else:
+                    min_length = constraints.get("min_length")
+                    max_length = constraints.get("max_length")
+                    if min_length is None:
                         min_length = 1
-                    if constraints["max_length"] is not None:
-                        max_length = constraints["max_length"]
-                    else:
+                    if max_length is None:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
                     data_pool = [
                         "".join(
@@ -271,33 +265,38 @@ class JsonSynthesiser():
                                 k=(random.randint(min_length, max_length)),
                             )
                         )
-                        for x in range(max(1, pooling_count))
+                        for _ in range(max(1, pooling_count))
                     ]
 
                     if data_pool == []:
                         raise Exception(f"No data pool for str:{generate_path}")
 
-                elif data_type is int or data_type is float or data_type is Decimal:
-                    if constraints["lt"] is not None:
-                        lt = constraints["lt"] - 1
-                    else:
+                elif data_type in (int,float,Decimal):
+                    lt = constraints.get("lt")
+                    le = constraints.get("le")
+                    gt = constraints.get("gt")
+                    ge = constraints.get("ge")
+                    multiple_of = constraints.get("multiple_of")
+                    if constraints["lt"] is None:
                         lt = 10 * max(1, (pooling_count // amount) + 3)
-                    if constraints["le"] is not None:
-                        lt = min(lt, constraints["le"])
-
-                    if constraints["gt"] is not None:
-                        gt = constraints["gt"] + 1
                     else:
+                        lt = lt - 1
+                    if le is not None:
+                        lt = min(lt, le)
+
+                    if gt is None:
                         gt = lt * -1
-                    if constraints["ge"] is not None:
-                        gt = max(gt, constraints["ge"])
+                    else:
+                        gt = gt + 1
+                    if ge is not None:
+                        gt = max(gt, ge)
 
                     if gt > lt:
                         raise Exception(
                             f"Value for gt:{gt} is greater than value for lt:{lt}"
                         )
 
-                    if constraints["multiple_of"]:
+                    if multiple_of is not None:
                         multiple_of = Decimal(str(constraints["multiple_of"]))
                         first = (Decimal(Decimal(gt) + multiple_of) // multiple_of) * multiple_of
 
@@ -308,7 +307,6 @@ class JsonSynthesiser():
                                     f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
                                 )
 
-                            needed_amount = max(1, pooling_count)
                             data_pool = [
                                 first + Decimal(idx+1+random.randint(0,int(count)-1)) * multiple_of
                                 for idx in range(pooling_count)
@@ -350,29 +348,26 @@ class JsonSynthesiser():
                             random.randint(0, min_num + max_num) - min_num,
                             random.randint(0, min_num + max_num) - min_num,
                         )
-                        for x in range(max(1, pooling_count))
+                        for _ in range(max(1, pooling_count))
                     ]
                     if data_pool == []:
                         raise Exception(f"No data pool for complex:{generate_path}")
                 elif data_type is bytes:
-                    if constraints["min_length"] is not None:
-                        min_length = constraints["min_length"]
-                    else:
+                    min_length = constraints.get("min_length")
+                    max_length = constraints.get("max_length")
+                    if min_length is None:
                         min_length = 1
-                    if constraints["max_length"] is not None:
-                        max_length = constraints["max_length"]
-                    else:
+                        
+                    if max_length is None:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
                     data_pool = [
                         random.randbytes(random.randint(min_length, max_length))
-                        for x in range(max(1, pooling_count))
+                        for _ in range(max(1, pooling_count))
                     ]
                     if data_pool == []:
                         raise Exception(f"No data pool for bytes:{generate_path}")
                 else:
-                    data_pool = ["error" for x in range(max(1, pooling_count))]
-                    if data_pool == []:
-                        raise Exception(f"No data pool for default:{generate_path}")
+                    raise Exception(f"No data pool for default:{generate_path}")
 
             elapsed_time = time.time() - start_time  # end timer
             if self.stdcout:
@@ -384,10 +379,10 @@ class JsonSynthesiser():
         if self.outputpooling[generate_path] == []:
             del self.outputpooling[generate_path]
 
-        if constraints["annotation"] is bytes:
-            return_value = constraints["annotation"](str(return_value), "utf-8")
+        if data_type is bytes:
+            return_value = data_type(str(return_value), "utf-8")
         elif constraints["multiple_of"] is None:
-            return_value = constraints["annotation"](return_value)
+            return_value = data_type(return_value)
         # input("wait...")
         # exit()
         return return_value
@@ -412,74 +407,72 @@ class JsonSynthesiser():
         Output:\n
             value with constraints applied to it
         """
-        data_type = constraints["annotation"]
-        if type(return_value) != constraints["annotation"]:
+        data_type = constraints.get("annotation")
+
+        if not isinstance(return_value,data_type):
             try:
-                return_value = constraints["annotation"](return_value)
-            except:
+                return_value = data_type(return_value)
+            except (ValueError, TypeError):
                 return_value = None
         if data_type is str:
-            # print("\tconstraining str")
-            temp_string_list = string_list
-            if constraints["min_length"] is not None:
-                min_length = constraints["min_length"]
-            else:
+            min_length = constraints.get("min_length")
+            max_length = constraints.get("max_length")
+            if min_length is None:
                 min_length = 1
-            if constraints["max_length"] is not None:
-                max_length = constraints["max_length"]
-
             if len(return_value) < min_length:
                 pad_length = min_length - len(return_value)
-                return_value += "".join(random.choices(temp_string_list, k=pad_length))
-            if constraints["max_length"] is not None:
+                return_value += "".join(random.choices(string_list, k=pad_length))
+            if max_length is not None:
                 if len(return_value) > max_length:
                     return_value = return_value[:max_length]
 
-        elif data_type is int or data_type is float:
-            if constraints["lt"] is not None:
-                lt = constraints["lt"] - 1
+        elif data_type in (int,float):
+            if return_value is None:
+                return_value = self.generate_from_constraints(
+                    match_name, constraints, generate_path
+                )
             else:
-                lt = 10 * max(1, (pooling_count // amount) + 3)
-            if constraints["le"] is not None:
-                lt = min(lt, constraints["le"])
-
-            if constraints["gt"] is not None:
-                if data_type is int:
-                    gt = constraints["gt"] + 1
+                lt = constraints.get("lt")
+                le = constraints.get("le")
+                gt = constraints.get("gt")
+                ge = constraints.get("ge")
+                multiple_of = constraints.get("multiple_of")
+                    
+                if lt is None:
+                    lt = 10 * max(1, (pooling_count // amount) + 3)
                 else:
-                    if constraints["multiple_of"] is not None:
-                        gt = constraints["gt"] + constraints["multiple_of"]
+                    lt = lt - 1
+                if le is not None:
+                    lt = min(lt, le)
+
+                if gt is None:
+                    gt = lt * -1
+                else:
+                    if data_type is int:
+                        gt = gt + 1
                     else:
-                        gt = constraints["gt"] + 0.0001
+                        if multiple_of is None:
+                            gt = gt + 0.0001 # because its gt, not ge
+                        else:
+                            gt = gt + multiple_of
+                if ge is not None:
+                    gt = max(gt, ge)
 
-            else:
-                gt = lt * -1
-            if constraints["ge"] is not None:
-                gt = max(gt, constraints["ge"])
+                if gt > lt:
+                    raise Exception(f"Value for gt:{gt} is greater than value for lt:{lt}")
 
-            if gt > lt:
-                raise Exception(f"Value for gt:{gt} is greater than value for lt:{lt}")
+                if multiple_of is not None:
+                    first = ((gt + multiple_of) // multiple_of) * multiple_of
 
-            if constraints["multiple_of"]:
-                multiple_of = constraints["multiple_of"]
-                first = ((gt + multiple_of) // multiple_of) * multiple_of
+                    if data_type is int or data_type is float:
+                        count = (lt - gt) // multiple_of
+                        if count <= 0:
+                            raise Exception(
+                                f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
+                            )
+                        idx = (return_value // multiple_of) % count
 
-                if data_type is int or data_type is float:
-                    count = (lt - gt) // multiple_of
-                    if count <= 0:
-                        raise Exception(
-                            f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
-                        )
-                    idx = (return_value // multiple_of) % count
-
-                    return_value = first + idx * multiple_of
-            else:
-                try:
-                    return_value = int(return_value)
-                except:
-                    return_value = self.generate_from_constraints(
-                        match_name, constraints, generate_path
-                    )
+                        return_value = first + idx * multiple_of
 
         elif data_type is bool:
             try:
@@ -487,25 +480,17 @@ class JsonSynthesiser():
             except:
                 return_value = random.choice([True, False])
 
-        elif data_type is complex:
+        elif data_type in (complex,bytes):
             try:
                 return_value = complex(return_value)
             except:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
-
-        elif data_type is bytes:
-            try:
-                return_value = bytes(return_value)
-            except:
-                return_value = self.generate_from_constraints(
-                    match_name, constraints, generate_path
-                )
-        if constraints["annotation"] is bytes:
-            return_value = constraints["annotation"](str(return_value), "utf-8")
+        if data_type is bytes:
+            return_value = data_type(str(return_value), "utf-8")
         else:
-            return_value = constraints["annotation"](return_value)
+            return_value = data_type(return_value)
         return return_value
     # ----- Constraint based generation -----
 
@@ -550,89 +535,76 @@ class JsonSynthesiser():
                 max_amount = min_amount + 4
 
             new_applied_constraints = make_new_contraints(applied_constraints)
+            if len(data_args) == 0:
+                type_args_list = [{"annotation":str,"origin":{"type":"string"},"args":[]}]
+            else:
+                type_args_list = [{"annotation":infer_json_type(chosen_type),"origin":chosen_type,"args":infer_json_args(chosen_type)} for chosen_type in data_args]
 
             if data_type in [List, list]:
                 output_data = []
-                if len(data_args) == 0:
-                    data_args = [{"type":"string"}]
-                for x in range(random.randint(min_amount, max_amount)):
-                    chosen_index = random.randint(0, len(data_args) - 1)
-                    chosen_type = data_args[chosen_index]
-                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
-                    new_applied_constraints["origin"] = chosen_type
-                    new_applied_constraints["args"] = infer_json_args(chosen_type)
-                    list_generate_path = (
-                        generate_path + f".List({chosen_index})[{max_amount}]"
-                    )
-                    output_data.append(
+                new_applied_constraints.update(type_args_list[0])
+                list_generate_path = (
+                    generate_path + f".List(0)[{max_amount}]"
+                )
+                output_data = [
                         self.generate_synth_data(
                             field_name,
                             match_name,
                             new_applied_constraints,
                             list_generate_path,
                         )
-                    )
+                    for _ in range(random.randint(min_amount, max_amount))
+                ]
             
             elif data_type in [Dict, dict]:
-                new_left_applied_constraints = new_applied_constraints.copy()
-                new_right_applied_constraints = new_applied_constraints.copy()
                 if len(data_args) == 0:
-                    data_args = [{"type":"string"}, {"type":"string"}]
-                chosen_type_left = data_args[0]
-                new_left_applied_constraints["annotation"] = infer_json_type(chosen_type_left)
-                new_left_applied_constraints["origin"] = chosen_type_left
-                new_left_applied_constraints["args"] = infer_json_args(chosen_type_left)
-                chosen_type_right = data_args[1]
-                new_right_applied_constraints["annotation"] = infer_json_type(chosen_type_right)
-                new_right_applied_constraints["origin"] = chosen_type_right
-                new_right_applied_constraints["args"] = infer_json_args(chosen_type_right)
+                    type_args_list.append(type_args_list[0])
+                chosen_type_info_left = type_args_list[0]
+                chosen_type_info_right = type_args_list[1]
+                new_left_applied_constraints = {**new_applied_constraints, **chosen_type_info_left}
+                new_right_applied_constraints = {**new_applied_constraints, **chosen_type_info_right}
+
                 output_data = {}
-                current_amount = 0
                 target_amount = random.randint(min_amount, max_amount)
                 current_tries = 0
                 target_amountx2 = target_amount * 2
                 # for x in range(random.randint(min_amount,max_amount)):
                 dict_keys = set()
-                while current_amount < target_amount:
-                    generate_path_v1 = generate_path + f".Dict(Left)[{max_amount}]"
+                generate_path_left = f"{generate_path}.Dict(L)[{max_amount}]"
+                generate_path_right = f"{generate_path}.Dict(R)[{max_amount}]"
+
+                while len(dict_keys) < target_amount and current_tries < target_amountx2:
                     v1 = self.generate_synth_data(
                         field_name,
                         match_name,
                         new_left_applied_constraints,
-                        generate_path_v1,
+                        generate_path_left,
                     )
-
                     dict_keys.add(v1)
-                    current_amount = len(dict_keys)
                     current_tries += 1
-                    if current_tries > target_amountx2:
-                        if min_amount != 1:
-                            raise Exception(
-                                f"Not enough provider keys for {field_name}, \nkeys: {dict_keys}"
-                            )
-                        else:
-                            break
-                for key in dict_keys:
-                    generate_path_v2 = generate_path + f".Dict(Right)[{max_amount}]"
-                    v2 = self.generate_synth_data(
+
+                if len(dict_keys) < min_amount:
+                    raise Exception(
+                        f"Not enough provider keys for {field_name}, "
+                        f"keys generated: {len(dict_keys)} / {min_amount}"
+                    )
+                output_data = {
+                    key: self.generate_synth_data(
                         field_name,
                         match_name,
                         new_right_applied_constraints,
-                        generate_path_v2,
+                        generate_path_right,
                     )
-                    output_data[key] = v2
+                    for key in dict_keys
+                }
 
             elif data_type in [Tuple, tuple]:
                 output_data = []
                 if len(data_args) == 0:
-                    data_args = [
-                        {"type":"string"} for _ in range(random.randint(min_amount, max_amount))
-                    ]
+                    type_args_list.extend([type_args_list[0] for _ in range(random.randint(min_amount, max_amount))])
                 for x in range(len(data_args)):
-                    chosen_type = data_args[x]
-                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
-                    new_applied_constraints["origin"] = chosen_type
-                    new_applied_constraints["args"] = infer_json_args(chosen_type)
+                    chosen_type_info = type_args_list[x]
+                    new_applied_constraints.update(chosen_type_info)
                     tuple_generate_path = (
                         generate_path + f".Tuple({x})[{max_amount}]"
                     )
@@ -647,24 +619,19 @@ class JsonSynthesiser():
 
             elif data_type in [Set, set, frozenset]:
                 output_data = set()
-                current_amount = 0
                 target_amount = random.randint(min_amount, max_amount)
-                if len(data_args) == 0:
-                    data_args = [{"type":"string"}]
-                chosen_type = data_args[0]
-                new_applied_constraints["annotation"] = infer_json_type(chosen_type)
-                new_applied_constraints["origin"] = chosen_type
-                new_applied_constraints["args"] = infer_json_args(chosen_type)
+                chosen_type_info = type_args_list[0]
+                new_applied_constraints.update(chosen_type_info)
                 current_tries = 0
                 target_amountx2 = target_amount * 2
                 if data_type is frozenset:
                     pathstr = "FrozenSet"
                 else:
                     pathstr = "Set"
-                while current_amount < target_amount:
-                    set_generate_path = (
-                        generate_path + f".{pathstr}({0})[{max_amount}]"
-                    )
+                set_generate_path = (
+                    generate_path + f".{pathstr}(0)[{max_amount}]"
+                )
+                while len(output_data) < target_amount and current_tries < target_amountx2:
                     output_data.add(
                         self.generate_synth_data(
                             field_name,
@@ -673,23 +640,19 @@ class JsonSynthesiser():
                             set_generate_path,
                         )
                     )
-                    current_amount = len(output_data)
                     current_tries += 1
-                    if current_tries > target_amountx2:
-                        if min_amount != 1:
-                            raise Exception(
-                                f"Not enough provider keys for {field_name}"
-                            )
-                        else:
-                            break
+
+                if len(output_data) < min_amount:
+                    raise Exception(
+                        f"Not enough provider keys for {field_name}, "
+                        f"keys generated: {len(output_data)} / {min_amount}"
+                    )
                 output_data = list(output_data)
 
             elif data_type == Union:
-                chosen_index = random.randint(0, len(data_args) - 1)
-                chosen_type = data_args[chosen_index]
-                new_applied_constraints["annotation"] = infer_json_type(chosen_type)
-                new_applied_constraints["origin"] = chosen_type
-                new_applied_constraints["args"] = infer_json_args(chosen_type)
+                chosen_index = random.randint(0, len(type_args_list) - 1)
+                chosen_type_info = type_args_list[chosen_index]
+                new_applied_constraints.update(chosen_type_info)
                 generate_path += f".Union({chosen_index})"
                 output_data = self.generate_synth_data(
                     field_name, match_name, new_applied_constraints, generate_path
@@ -697,15 +660,13 @@ class JsonSynthesiser():
 
             elif data_type == Optional:
                 # should use Union, but still here for fallback
-                data_args.extend({"type":"null"})
-                chosen_index = random.randint(0, len(data_args) - 1)
-                chosen_type = data_args[chosen_index]
-                if chosen_type is None:
+                type_args_list.append(None)
+                chosen_index = random.randint(0, len(type_args_list) - 1)
+                chosen_type_info = type_args_list[chosen_index]
+                if chosen_type_info is None:
                     output_data = None
                 else:
-                    new_applied_constraints["annotation"] = infer_json_type(chosen_type)
-                    new_applied_constraints["origin"] = chosen_type
-                    new_applied_constraints["args"] = infer_json_args(chosen_type)
+                    new_applied_constraints.update(chosen_type_info)
                     generate_path += f".Optional({chosen_index})"
                     output_data = self.generate_synth_data(
                         field_name,
@@ -725,10 +686,7 @@ class JsonSynthesiser():
             if match_name == "":
                 func = None
             else:
-                try:
-                    func = self.resolved_methods[match_name]
-                except:
-                    func = None
+                func = self.resolved_methods[match_name]
             if (applied_constraints["pattern"] is not None) or (match_name == "") or (match_name != "" and provider_return_types[match_name] != applied_constraints["annotation"]):
                 output_data = self.generate_from_constraints(
                     field_name, applied_constraints, generate_path
@@ -748,17 +706,20 @@ class JsonSynthesiser():
                     start_time = time.time()
                     data_temp_pool = [func() for _ in range(pooling_count)]
 
-                    data_pool = [
-                        self.apply_constraints(
-                            func_val,
-                            applied_constraints,
-                            match_name,
-                            generate_path,
-                            pooling_count,
-                            pooling_numbers[0],
-                        )
-                        for func_val in data_temp_pool
-                    ]
+                    if any([applied_constraints.get(constraint) is not None for constraint in ["lt","le","gt","ge","multiple_of","min_length","max_length"]]):
+                        data_pool = [
+                            self.apply_constraints(
+                                func_val,
+                                applied_constraints,
+                                match_name,
+                                generate_path,
+                                pooling_count,
+                                pooling_numbers[0],
+                            )
+                            for func_val in data_temp_pool
+                        ]
+                    else:
+                        data_pool = data_temp_pool
 
                     elapsed_time = time.time() - start_time
                     if self.stdcout:
