@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from src.smoke_mirrors.pre_made_data import all_constr_attribs, default_constr_dict
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
-from smoke_mirrors.synthesiser.constraints import make_one_string, check_generation_constraints, make_new_contraints, get_applied_constraints
+from smoke_mirrors.synthesiser.constraints import make_one_string, check_generation_constraints, get_applied_constraints
 
 from tests.test_synthesiser.models import test_Address, test_Address_2, Constraints, ConstraintsNested, Constraints6
 
@@ -77,16 +77,6 @@ def test_check_generation_constraints_expect_alternate():
 
 
 val_types = [bool, int, float, complex, bytes, str]
-
-
-@pytest.mark.parametrize(
-    "applied_constraints,val_type",
-    [({"annotation": val_type}, val_type) for val_type in val_types],
-)
-def test_make_new_contraints(applied_constraints, val_type):
-    return_data = make_new_contraints(applied_constraints)
-    assert all([x == y for x, y in zip(return_data.keys(), default_constr_dict.keys())])
-    assert return_data["annotation"] == val_type
 
 
 model_tests = [Constraints, ConstraintsNested]

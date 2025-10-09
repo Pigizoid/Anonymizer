@@ -68,22 +68,28 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
     """
     methods = []
     methods_map = {}
-    if method == "faker":
-        methods, methods_map = list_faker_methods(provider_methods["faker"]["word_list"])
-    elif method == "mimesis":
-        methods, methods_map = list_mimesis_methods(provider_methods["mimesis"]["word_list"])
-    elif method == "mixed":
-        methodsF, methods_mapF = list_faker_methods(provider_methods["faker"]["word_list"])
-
-        methodsM, methods_mapM = list_mimesis_methods(provider_methods["mimesis"]["word_list"])
-
-        methods = methodsF
-        methods.extend(methodsM)
-
-        methods_map = methods_mapF
-        methods_map.update(methods_mapM)
-    else:
+    methods_dict = {
+        "faker":["faker"],
+        "mimesis":["mimesis"],
+        "mixed":["faker","mimesis"]
+    }
+    method_funcs_dict = {
+        "faker":list_faker_methods,
+        "mimesis":list_mimesis_methods
+    }
+    if method not in methods_dict:
         raise Exception(f"Unexpected method: {method}")
+    methods_list = methods_dict[method]
+    methods = []
+    methods_map = {}
+
+    for m in methods_list:
+        method_func = method_funcs_dict[m]
+        returned_methods, returned_methods_map = method_func(provider_methods[m]["word_list"])
+
+        methods.extend(returned_methods)
+        methods_map.update(returned_methods_map)
+
     methods = list(set(methods))
     return (methods, methods_map)
 

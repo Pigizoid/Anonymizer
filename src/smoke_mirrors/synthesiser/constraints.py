@@ -52,18 +52,6 @@ def check_generation_constraints(name: str, field: dict) -> Dict[str, Any]:
     })
     return constraints
 
-def make_new_contraints(applied_constraints:Dict[str,Any]) -> Dict[str,Any]:
-    """
-    Inputs:\n
-        applied constraints
-    Outputs:\n
-        copy of defaults, updated with input constraints
-    fast method for code reusage\n
-    """
-    new_applied_constraints = default_constr_dict.copy()
-    new_applied_constraints.update(applied_constraints)
-    return new_applied_constraints
-
 def get_applied_constraints(schema_model:JsonSchemaClass) -> Dict[str, Dict[str, Any]]:
     """
     Inputs:\n
