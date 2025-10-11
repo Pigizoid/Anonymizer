@@ -3,9 +3,10 @@ import inspect
 from faker import Faker
 import mimesis
 from smoke_mirrors.pre_made_data import provider_methods
-
+from smoke_mirrors.synthesiser.custom_provider_methods import CustomProviders
 
 fake = Faker()
+fake.add_provider(CustomProviders)
 generic = mimesis.Generic(mimesis.locales.Locale.EN)
 
 def list_faker_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:

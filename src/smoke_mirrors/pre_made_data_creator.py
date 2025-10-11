@@ -7,6 +7,7 @@ import mimesis
 from mimesis import Generic
 import inspect
 from enum import Enum
+from smoke_mirrors.synthesiser.custom_provider_methods import CustomProviders
 
 
 
@@ -63,6 +64,7 @@ def generate_provider_return_types(provider_names, provider_instances):
 
 
 fake = Faker()
+fake.add_provider(CustomProviders)
 generic = Generic(mimesis.locales.Locale.EN)
 
 
