@@ -195,12 +195,13 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
                 )
                 distances.append([word, distance])
         sorted_by_distance = sorted(distances, key=lambda dist: dist[1])
+        min_value = (len(target_word) // 2 - 0.5) + 1
         if sorted_by_distance != [] and sorted_by_distance[0] != []:
-            min_value = sorted_by_distance[0][1]
-        else:
-            min_value = (len(target_word) // 2 - 0.5) + 1
+            temp_min_value = sorted_by_distance[0][1]
+            if temp_min_value <= min_value:
+                min_value = temp_min_value
         closest_matches = [
-            item for item in sorted_by_distance if item[1] == min_value
+            item for item in sorted_by_distance if item[1] <= min_value
         ]
         if len(closest_matches) == 0:
             field_matches.append("")

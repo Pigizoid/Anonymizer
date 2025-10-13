@@ -5,6 +5,7 @@ from typing import Any, Dict, Union
 from pathlib import Path
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 import time
+from rich import print
 
 def anon_func(
     schema_model:JsonSchemaClass,
@@ -62,7 +63,7 @@ def anon_func(
                 flush_list = content[0]
             else:
                 flush_list = []
-                for idx, output_data in enumerate(content):
+                for output_data in content:
                     flush_list.append(output_data)
             flush_output.append(json.dumps(flush_list, indent=4, default= lambda v: make_json_safe(v)))
         flush_output = ",".join(flush_output)

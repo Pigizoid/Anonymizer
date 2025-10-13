@@ -5,6 +5,7 @@ from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from pathlib import Path
 from typing import Union
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
+from rich import print
 
 def synth_func(
     schema_model:JsonSchemaClass,
@@ -31,7 +32,7 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
-    synth = JsonSynthesiser(method=method,stdcout=stdcout)
+    synth = JsonSynthesiser(method=method,stdcout=stdcout,rich_output=True)
     dataset = synth.synthesise(
         schema_model, method, amount, seed, performance=performance
     )  # returns as [ data, data, ... ]

@@ -58,13 +58,36 @@ def make_json_safe(obj):
     else:
         return obj
 
-def load_folder(output):
-    with open(f"{output}.json", "w") as f:
-        f.write("[")
+file_temp = {}
+output_temp = []
+def load_folder(output:Path):
+    output = output.with_suffix(".json")
+    if output is not None:
+        output_temp.append(str(output))
+        if output.exists():
+            with open(output, "r") as f:
+                file_temp[str(output)] = f.read()
+        with open(output, "w") as f:
+            f.write("[")
+
 def close_folder(file_path):
+    file_path = file_path.with_suffix(".json")
     if file_path is not None:
-        with open(f"{file_path}.json", "a") as f:
+        if file_path in file_temp:
+            del file_temp[str(file_path)]
+        if file_path in output_temp:
+            output_temp.remove(str(file_path))
+        with open(file_path, "a") as f:
             f.write("\n]\n")
+
+def handle_folder_error(passed_exception): #rewrite altered data if an error occurs
+    try:
+        current_file = output_temp[-1]
+        with open(current_file, "w") as f:
+            f.write(file_temp[current_file])
+    except:
+        raise passed_exception
+    raise passed_exception
 
 # ----- recursive file loading -----
 def load_schema_pydantic(schema_path:Path):
@@ -314,7 +337,10 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
             if contents == None:
                 raise Exception(f"Error in file {file_path}")
             schema_model = contents
-            command(schema_model,new_path,flags=flags)
+            try:
+                command(schema_model,new_path,flags=flags)
+            except Exception as e:
+                handle_folder_error(e)
     return None
 
 def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0,unique_folder=True):
@@ -340,7 +366,10 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             ingest = load_ingest_data(contents)
             schema_model = find_matching_schema(schema_models,ingest,file_path)
-            command(schema_model,new_path,ingest,flags=flags)
+            try:
+                command(schema_model,new_path,ingest,flags=flags)
+            except Exception as e:
+                handle_folder_error(e)
     return None
 # ----- recursive handling -----
 

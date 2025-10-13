@@ -36,8 +36,10 @@ def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSch
         for name, field in schema_model.properties.items()
         if name in field_names
     }
-    schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":field_names}
-    return JsonSchemaClass(schema_model)
+    new_schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":field_names}
+    new_schema_model = JsonSchemaClass(new_schema_model)
+    new_schema_model.defs = schema_model.defs
+    return new_schema_model
 
 
 def infer_type(value: Union[str,bool,int,float,list,dict,None]) -> Dict[str, Any]:
@@ -356,7 +358,7 @@ def anonymise(
             anonymised_data_set.append(new_fields)
         if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
             print(
-                f"Completed: {index + 1}/{len_Data}:{round(((index + 1) / len_Data) * 100, 2)}%{' ' * 30}",
+                f"Completed: {index + 1}/{len_Data} | {round(((index + 1) / len_Data) * 100, 2)}%{' ' * 30}",
                 end="\r",
             )
         anonymised_data[index] = anonymised_data_set

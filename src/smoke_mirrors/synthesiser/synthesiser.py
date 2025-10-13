@@ -19,7 +19,7 @@ from collections import deque
 from multiprocessing import Pool
 from functools import partial
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from smoke_mirrors.pre_made_data import (
     default_constr_dict,
     recursive_types,
@@ -27,6 +27,7 @@ from smoke_mirrors.pre_made_data import (
     provider_return_types
 )
 from jsonschema import validate
+from jsonschema.validators import validator_for
 from jsonschema.exceptions import ValidationError
 import re
 import time
@@ -34,9 +35,9 @@ import string
 import random
 import rstr
 import exrex
-import json
+import math
 
-
+from rich import print as richprint
 
 
 """
@@ -70,7 +71,7 @@ Generation path:\n
 """
 
 
-def print_path(generate_path, elapsed_time):
+def print_path(generate_path, elapsed_time,print):
     """
     inputs:
         generate path
@@ -111,8 +112,20 @@ def regex_parallel_worker(args,_):
     return [gen() for _ in range(amount)]
 
 
+def validate_synthesised_data(synthesised_data: Dict, schema_model: List[Dict],instances=None) -> None:
+    if instances is not None:
+        try:
+            instances[0].validate(synthesised_data)
+        except:
+            instances[1].validate(synthesised_data)
+    else:
+        try:
+            validate(instance=synthesised_data, schema=schema_model.contents)
+        except:
+            validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+
 class JsonSynthesiser():
-    def __init__(self, method="faker",stdcout=False):
+    def __init__(self, method="faker",stdcout=False,rich_output=False):
         self.outputpooling = {}
         self.applied_constraints_cache = {}
         self.schema_keys_cache = {}
@@ -129,6 +142,7 @@ class JsonSynthesiser():
         self.yield_schema = None
         self.yield_schema_data = None
         self.PERFORMANCE = False
+        self.print = richprint if rich_output else print
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
@@ -249,7 +263,7 @@ class JsonSynthesiser():
                                     exrex.getone(pattern) for _ in range(max(1, pooling_count))
                                 ]
                             except Exception as e:
-                                print(f"failed reg pool and used fallback: {e}")
+                                self.print(f"failed reg pool and used fallback: {e}")
                                 data_pool = [
                                     rstr.xeger(pattern) for _ in range(max(1, pooling_count))
                                 ]
@@ -282,8 +296,12 @@ class JsonSynthesiser():
                     gt = constraints.get("gt")
                     ge = constraints.get("ge")
                     multiple_of = constraints.get("multiple_of")
-                    if constraints["lt"] is None:
-                        lt = 10 * max(1, (pooling_count // amount) + 3)
+                    
+                    if lt is None:
+                        if gt is None:
+                            lt = 10 * max(1, (pooling_count // amount) + 3)
+                        else:
+                            lt = gt+(10 * max(1, (pooling_count // amount) + 3))
                     else:
                         lt = lt - 1
                     if le is not None:
@@ -292,37 +310,42 @@ class JsonSynthesiser():
                     if gt is None:
                         gt = lt * -1
                     else:
-                        gt = gt + 1
+                        if data_type is int:
+                            gt = gt + 1
+                        else:
+                            if multiple_of is not None:
+                                gt = gt + multiple_of
                     if ge is not None:
                         gt = max(gt, ge)
 
-                    if gt > lt:
-                        raise Exception(
-                            f"Value for gt:{gt} is greater than value for lt:{lt}"
-                        )
+                    if gt >= lt:
+                        raise Exception(f"Value for gt:{gt} is greater than or equal to value for lt:{lt}")
 
                     if multiple_of is not None:
+                        gt = math.nextafter(gt, float('inf'))
+                        lt = math.nextafter(lt, float('-inf'))
                         multiple_of = Decimal(str(constraints["multiple_of"]))
                         first = (Decimal(Decimal(gt) + multiple_of) // multiple_of) * multiple_of
 
-                        if data_type is int or data_type is float:
-                            count = Decimal(lt - gt) // multiple_of
-                            if count <= 0:
-                                raise Exception(
-                                    f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
-                                )
+                        count = Decimal(lt - gt) // multiple_of
+                        if count <= 0:
+                            raise Exception(
+                                f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
+                            )
 
-                            data_pool = [
-                                first + Decimal(idx+1+random.randint(0,int(count)-1)) * multiple_of
-                                for idx in range(pooling_count)
-                            ]
-                        else:
-                            raise Exception(f"A multiple_of constraint was found on an incorrect type -> {data_type}")
+                        data_pool = [
+                            first + Decimal(idx+1+random.randint(0,int(count)-1)) * multiple_of
+                            for idx in range(pooling_count)
+                        ]
+                        random.shuffle(data_pool)
                     else:
-                        r_range = range(gt,lt+1)
-                        data_pool = random.choices(r_range,k=max(1, pooling_count))
-                        
-                    random.shuffle(data_pool)
+                        if data_type == int:
+                            r_range = range(gt,lt+1)
+                            data_pool = random.choices(r_range,k=max(1, pooling_count))
+                        else:
+                            gt = math.nextafter(gt, float('inf'))
+                            lt = math.nextafter(lt, float('-inf'))
+                            data_pool = [random.uniform(gt,lt) for _ in range(1, pooling_count)]
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
 
@@ -374,7 +397,7 @@ class JsonSynthesiser():
 
             elapsed_time = time.time() - start_time  # end timer
             if self.stdcout:
-                print_path(generate_path, elapsed_time)
+                print_path(generate_path, elapsed_time, self.print)
 
             self.outputpooling[generate_path] = data_pool
             # print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
@@ -411,7 +434,6 @@ class JsonSynthesiser():
             value with constraints applied to it
         """
         data_type = constraints.get("annotation")
-
         if not isinstance(return_value,data_type):
             try:
                 return_value = data_type(return_value)
@@ -440,9 +462,12 @@ class JsonSynthesiser():
                 gt = constraints.get("gt")
                 ge = constraints.get("ge")
                 multiple_of = constraints.get("multiple_of")
-                    
+                
                 if lt is None:
-                    lt = 10 * max(1, (pooling_count // amount) + 3)
+                    if gt is None:
+                        lt = 10 * max(1, (pooling_count // amount) + 3)
+                    else:
+                        lt = gt+(10 * max(1, (pooling_count // amount) + 3))
                 else:
                     lt = lt - 1
                 if le is not None:
@@ -454,39 +479,48 @@ class JsonSynthesiser():
                     if data_type is int:
                         gt = gt + 1
                     else:
-                        if multiple_of is None:
-                            gt = gt + 0.0001 # because its gt, not ge
-                        else:
-                            gt = gt + multiple_of
+                        if multiple_of is not None:
+                           gt = gt + multiple_of
                 if ge is not None:
                     gt = max(gt, ge)
 
-                if gt > lt:
-                    raise Exception(f"Value for gt:{gt} is greater than value for lt:{lt}")
+                if gt >= lt:
+                    raise Exception(f"Value for gt:{gt} is greater than or equal to value for lt:{lt}")
 
                 if multiple_of is not None:
                     first = ((gt + multiple_of) // multiple_of) * multiple_of
 
-                    if data_type is int or data_type is float:
-                        count = (lt - gt) // multiple_of
-                        if count <= 0:
-                            raise Exception(
-                                f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
-                            )
-                        idx = (return_value // multiple_of) % count
+                    count = (lt - gt) // multiple_of
+                    if count <= 0:
+                        raise Exception(
+                            f"No multiples of {multiple_of} fit in the range [{gt}, {lt})."
+                        )
+                    idx = (return_value // multiple_of) % count
 
-                        return_value = first + idx * multiple_of
+                    return_value = first + idx * multiple_of
+                else:
+                    if return_value >= lt or return_value <= gt:
+                        return_value = return_value%(lt-gt)+gt
+                        if data_type == int:
+                            if lt-gt <= 1:
+                                raise Exception(f"No whole integers are greater than {gt} and less than {lt}")
+                            return_value = min(lt-1,max(gt+1,return_value))
+                        else:
+                            gt = math.nextafter(gt, float('inf'))
+                            lt = math.nextafter(lt, float('-inf'))
+                            return_value = min(lt,max(gt,return_value))
+
 
         elif data_type is bool:
             try:
                 return_value = bool(return_value)
-            except (ValueError,TypeError):
+            except:
                 return_value = random.choice([True, False])
 
         elif data_type in (complex,bytes):
             try:
                 return_value = complex(return_value)
-            except (ValueError,TypeError):
+            except:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
@@ -721,11 +755,11 @@ class JsonSynthesiser():
                             for func_val in data_temp_pool
                         ]
                     else:
-                        data_pool = data_temp_pool
+                        data_pool = [ data_type(temp_data) for temp_data in data_temp_pool ]
 
                     elapsed_time = time.time() - start_time
                     if self.stdcout:
-                        print_path(generate_path, elapsed_time)
+                        print_path(generate_path, elapsed_time, self.print)
 
                     self.outputpooling[generate_path] = data_pool
                 output_data = self.outputpooling[generate_path].pop()
@@ -765,7 +799,7 @@ class JsonSynthesiser():
         if value != None:
             try:
                 value = field_type(value)
-            except (ValueError,TypeError):
+            except:
                 applied_constraints = default_constr_dict.copy()
                 applied_constraints["annotation"] = field_type
                 value = self.apply_constraints(
@@ -920,12 +954,6 @@ class JsonSynthesiser():
         # print("__")
         return synthesised_data
 
-    def validate_synthesised_data(self,synthesised_data: Dict, schema_model: List[Dict]) -> None:
-        try:
-            validate(instance=synthesised_data, schema=schema_model.contents)
-        except ValidationError:
-            validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
-
 
     def synthesise(
         self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",stdcout=False, performance=False
@@ -999,10 +1027,18 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model)
+                    validate_synthesised_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
             return dataset
         else:
+            schema1 = schema_model.contents
+            klass1 = validator_for(schema1)
+            klass1.check_schema(schema1)
+            instance1 = klass1(schema1)
+            schema2 = schema_model.sanitised_contents
+            klass2 = validator_for(schema2)
+            klass2.check_schema(schema2)
+            instance2 = klass1(schema2)
             self.field_match_pairs = self.recursive_match_fields(schema_model,method)
             self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
             # print(self.applied_constraints)
@@ -1011,18 +1047,28 @@ class JsonSynthesiser():
                 synthesised_data = self.synthesise_recursive(
                     schema_model, method=method, amount=amount
                 )
-                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model)
+                if x < 10:  #validate 10 to confirm, then skip the rest
+                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
                 dataset.append(synthesised_data)
                 if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
-                        print(
-                            f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
+                        self.print(
+                            f"Completed: {x + 1}/{amount} | {round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
                             end="\r",
                         )
+            self.print("\nValidating data")
+            if performance == False:
+                for x,synthesised_data in enumerate(dataset):
+                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
+                    if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
+                        self.print(
+                            f"Completed: {x + 1}/{amount} | {round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
+                            end="\r",
+                        )
+                           
             if self.stdcout:
-                print(f"Completed: {amount}/{amount}{' ' * 30}")
-            #lp.print_stats()
+                self.print(f"Completed: {amount}/{amount}{' ' * 30}")
+            # lp.print_stats()
             return dataset
     # ----- Central called functions -----
 
@@ -1071,6 +1117,7 @@ class JsonSynthesiser():
         schema_model = self.yield_schema
         yield_schema_data = self.yield_schema_data
         method = self.method
+        self.PERFORMANCE = performance
         if schema_model.contents["type"] != "object": 
             field_name = yield_schema_data["field_match_pairs"]["name"]
             match_name = yield_schema_data["field_match_pairs"]["match"]
@@ -1079,7 +1126,7 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model)
+                    validate_synthesised_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
         else:
             
@@ -1091,12 +1138,14 @@ class JsonSynthesiser():
                 dataset.append(synthesised_data)
                 if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
-                        print(
+                        self.print(
                             f"Completed: {x + 1}/{amount}:{round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
                             end="\r",
                         )
             if self.stdcout:
-                print(f"Completed: {amount}/{amount}{' ' * 30}")
+                self.print(f"Completed: {amount}/{amount}{' ' * 30}")
         self.stdcout = prevcout
         # self.seed = prevseed
         return dataset
+
+

@@ -14,33 +14,33 @@ from smoke_mirrors.synthesiser.custom_provider_methods import CustomProviders
 def generate_provider_return_types(provider_names, provider_instances):
     return_types = {}
 
-    for name in provider_names:
+    for name in sorted(provider_names):
         try:
             value = getattr(provider_instances[name], name, None)()
         except:
             continue
         if value is None:
             return_types[name] = type(None)
-
+        
         try:
             int(value)
             return_types[name] = int
+            continue
         except:
             pass
 
         try:
             float(value)
             return_types[name] = float
+            continue
         except:
             pass
 
-        try:
-            if value.lower() in {"true", "false"}:
-                return_types[name] = bool
-        except:
-            pass
 
-        if isinstance(value, bytes):
+        
+        if isinstance(value,str) and value.lower() in {"true", "false"}:
+            return_types[name] = bool
+        elif isinstance(value, bytes):
             return_types[name] = bytes
         elif isinstance(value, tuple):
             return_types[name] = tuple
