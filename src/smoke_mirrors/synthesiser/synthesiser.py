@@ -920,7 +920,7 @@ class JsonSynthesiser():
         # print("__")
         return synthesised_data
 
-    def validate_synthesised_data(synthesised_data: Dict, schema_model: List[Dict]) -> None:
+    def validate_synthesised_data(self,synthesised_data: Dict, schema_model: List[Dict]) -> None:
         try:
             validate(instance=synthesised_data, schema=schema_model.contents)
         except ValidationError:
