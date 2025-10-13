@@ -71,7 +71,6 @@ generic = Generic(mimesis.locales.Locale.EN)
 def list_faker_methods() -> Tuple[list, dict]:
     methods = []
     methods_map = {}
-    fake = Faker()
     for attr in dir(fake):
         try:  # this is used to ensure the providers dont error when called
             if not attr.startswith("_") and callable(getattr(fake, attr)) and attr.lower() == attr:

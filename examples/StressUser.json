@@ -16,7 +16,11 @@
                                 "score": {
                                         "title": "Score",
                                         "type": "integer"
-                                }
+                                },
+				"would_you_rather": {
+					"title": "Would You Rather",
+					"type": "string"
+				}
                         },
                         "required": [
                                 "bio",
