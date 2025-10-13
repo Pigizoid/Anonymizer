@@ -999,7 +999,7 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model,performance=performance,x_val=x)
+                    self.validate_synthesised_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
             return dataset
         else:
@@ -1012,7 +1012,7 @@ class JsonSynthesiser():
                     schema_model, method=method, amount=amount
                 )
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model,performance=performance,x_val=x)
+                    self.validate_synthesised_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
                 if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
@@ -1079,7 +1079,7 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    self.validate_synthesised_data(synthesised_data,schema_model,performance=performance,x_val=x)
+                    self.validate_synthesised_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
         else:
             

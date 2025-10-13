@@ -40,7 +40,7 @@ def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSch
     return JsonSchemaClass(schema_model)
 
 
-def infer_type(value: Any) -> Union[str, Dict[str, Any]]:
+def infer_type(value: Union[str,bool,int,float,list,dict,None]) -> Dict[str, Any]:
     if isinstance(value, str):
         return {"type": "string"}
     elif isinstance(value, bool):
