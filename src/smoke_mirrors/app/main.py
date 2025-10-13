@@ -25,14 +25,13 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
     """
 
     def yaml_settings_source() -> Dict[str, Any]:
-        if config_path is None or not config_path.exists():
-            return {}  # returning {} as empty to allow defaults to parse
-
-        try:
-            raw = yaml.safe_load(config_path.read_text()) or {}
-        except Exception as e:
-            print(f"Yaml doesnt exist: {e}")
+        if config_path is None:
             return {}
+
+        if config_path.exists():
+            raw = yaml.safe_load(config_path.read_text()) or {}
+        else:
+            raise Exception(f"Yaml doesnt exist: {config_path}")
 
         mapping: Dict[str, Any] = {}
         if "schema" in raw:

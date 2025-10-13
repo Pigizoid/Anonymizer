@@ -11,6 +11,7 @@ from pathlib import Path
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
+from jsonschema.exceptions import ValidationError
 from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi
 import re
 
@@ -91,8 +92,8 @@ def load_schema_pydantic(schema_path:Path):
         if filtered == []:
             raise Exception(f"No pydantic schema in schema file {schema_path}")
         schema_models = filtered # automatically ordered alphabetically
-    except:
-        raise Exception(f"Failed to import pydantic schema model on path '{schema_path}'")
+    except Exception as e:
+        raise Exception(f"Failed to import pydantic schema model on path '{schema_path}' with error {e}")
     return schema_models
 
 def load_schema_json(schema_path:Path):
@@ -104,19 +105,15 @@ def load_schema_json(schema_path:Path):
     """
     if not (str(schema_path).endswith(".json")):
         schema_path = Path(str(schema_path)+".json")
-    try:
-        with open(schema_path,"r") as f:
-            file_data = json.load(f)
-            schema_models = []
-            if isinstance(file_data,dict) and "openapi" in file_data:
-                schemas = load_schemas_from_openapi(file_data)
-                for name,schema in schemas.items():
-                    schema_models.append({name:JsonSchemaClass(schema,name=name)})
-            else:
-                schema_models = JsonSchemaClass(file_data)
-    except Exception as e:
-        print(f"Exception: {e}")
-        return None
+    with open(schema_path,"r") as f:
+        file_data = json.load(f)
+        schema_models = []
+        if isinstance(file_data,dict) and "openapi" in file_data:
+            schemas = load_schemas_from_openapi(file_data)
+            for name,schema in schemas.items():
+                schema_models.append({name:JsonSchemaClass(schema,name=name)})
+        else:
+            schema_models = JsonSchemaClass(file_data)
     return schema_models
 
 def load_schema(schema_path:Path):
@@ -209,27 +206,21 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
         data = {start_index, requests.get(ingest, params={"id_num": start_index})}
     elif str(ingest).endswith(".json"):
         with open(ingest) as dt_file:
-            try:
-                data = json.load(dt_file)
+            data = json.load(dt_file)
 
-                if isinstance(data, list):
-                    if not all([isinstance(content, dict) for content in data]):
-                        raise Exception(
-                            "Data is type of list, expected list entries as type dict"
-                        )
-                    data = {x: content for x, content in enumerate(data)}
-                elif isinstance(data, dict):
-                    try:
-                        data = {int(key): content for key, content in data.items()}
-                    except:
-                        raise Exception(
-                            "Data is type of dict, expected data to be indexed by int"
-                        )
-
-            except Exception as e:
-                data = {}
-                raise Exception(f"Error loading ingest data: {e}")
-
+            if isinstance(data, list):
+                if not all([isinstance(content, dict) for content in data]):
+                    raise Exception(
+                        "Data is type of list, expected list entries as type dict"
+                    )
+                data = {x: content for x, content in enumerate(data)}
+            elif isinstance(data, dict):
+                try:
+                    data = {int(key): content for key, content in data.items()}
+                except (ValueError,TypeError):
+                    raise Exception(
+                        "Data is type of dict, expected data to be indexed by int"
+                    )
     else:
         raise Exception("Unsupported ingest type")
     return data
@@ -241,25 +232,22 @@ def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],in
     first_entry = True
     for key,data_entry in ingest.items():
         for schema_model in schema_models:
-            try:
-                if type(schema_model) == JsonSchemaClass:
-                    if schema_model.fields.keys() == data_entry.keys():
-                        try:
-                            validate(instance=data_entry, schema=schema_model.contents)
-                        except:
-                            validate(instance=data_entry, schema=schema_model.sanitised_contents)
-                    else:
-                        continue
+            if type(schema_model) == JsonSchemaClass:
+                if schema_model.fields.keys() == data_entry.keys():
+                    try:
+                        validate(instance=data_entry, schema=schema_model.contents)
+                    except ValidationError:
+                        validate(instance=data_entry, schema=schema_model.sanitised_contents)
                 else:
-                    if get_model_fields(schema_model).keys() == data_entry.keys():
-                        schema_model(**data_entry)
-                    else:
-                        continue
-                if first_entry == True:
-                    matched_schemas.append(schema_model)
-                elif schema_model not in matched_schemas:
-                    raise Exception(f"Data entry '{key}' in path '{ingest_path}' has mismatched schema validation")
-            except:
+                    continue
+            else:
+                if get_model_fields(schema_model).keys() == data_entry.keys():
+                    schema_model(**data_entry)
+                else:
+                    continue
+            if first_entry == True:
+                matched_schemas.append(schema_model)
+            elif schema_model not in matched_schemas:
                 continue
         if first_entry == True:
             first_entry = False

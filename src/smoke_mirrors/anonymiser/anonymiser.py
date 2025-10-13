@@ -6,6 +6,7 @@ import random
 import string
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
+from jsonschema.exceptions import ValidationError
 from copy import deepcopy
 
 type_map = {
@@ -291,7 +292,7 @@ def anonymise(
             try:
                 validate(instance=first_data_entry, schema=schema)
                 break
-            except Exception:
+            except ValidationError:
                 continue
         else:
             schema_match = False
@@ -350,7 +351,7 @@ def anonymise(
             if performance == False or index < 10:
                 try:
                     validate(instance=new_fields, schema=result_schema.contents)
-                except:
+                except ValidationError:
                     validate(instance=new_fields, schema=result_schema.sanitised_contents)
             anonymised_data_set.append(new_fields)
         if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
