@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any,Dict
+from typing import Any,Dict,List
 import copy
 from decimal import Decimal
 
@@ -40,7 +40,7 @@ class JsonSchemaClass:
             defs = {}
             for name,content in self.contents["$defs"].items():
                 defs[name] = JsonSchemaClass(content,name=name)
-            defs[self.__name__] = self.contents
+            defs[self.__name__] = self
             self.defs = defs
         else:
             self.defs = {}
@@ -52,4 +52,17 @@ class JsonSchemaClass:
                     self.fields[name]["required"] = True
                 else:
                     self.fields[name]["required"] = False
+    
+    def new_subset_model(self,fields:List[str],name:str,):
+        new_model = copy.deepcopy(self)
+        new_model.__name__ = name
+        properties = {field_name:field for field_name,field in new_model.contents["properties"].items() if field_name in fields}
+        required = {field_name for field_name in new_model.required if field_name in fields}
+        new_fields = {field_name:field for field_name,field in new_model.fields.items() if field_name in fields}
+        new_model.contents["properties"] = properties
+        new_model.required = required
+        new_model.fields = new_fields
+
+        return new_model
+
 

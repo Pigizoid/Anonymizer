@@ -29,16 +29,7 @@ def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSch
         schema model with name "new_schema_model" that contanins only field names in the list of field names
         inferences output data types from the input schema
     """
-    rval = schema_model.properties
-    print(rval)
-    fields = {
-        name: field
-        for name, field in schema_model.properties.items()
-        if name in field_names
-    }
-    new_schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":field_names}
-    new_schema_model = JsonSchemaClass(new_schema_model)
-    new_schema_model.defs = schema_model.defs
+    new_schema_model = schema_model.new_subset_model(field_names,"new_subset_model")
     return new_schema_model
 
 
@@ -342,8 +333,8 @@ def anonymise(
             ]
         else:
             return_data = synth.yield_instance(amount=amount, seed=seed)
+        anonymised_data_set = []
         for return_entry in return_data:
-            anonymised_data_set = []
             new_fields = deepcopy(data_entry)
             for field in field_names:
                 if isinstance(return_entry, dict):
