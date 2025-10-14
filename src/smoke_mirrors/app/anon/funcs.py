@@ -56,6 +56,7 @@ def anon_func(
         print(f"Showing 1 of {len(anonymised_data)}")
         print(f"Input data :\n\t{ingest[0]}")
         print(f"Output data :\n\t{list(anonymised_data.values())[0]}")
+    output = Path(output)
     stem = output.stem
     stem+="_(temp)"
     output = output.with_stem(stem)

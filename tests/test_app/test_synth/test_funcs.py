@@ -39,9 +39,9 @@ for amount in amounts:
 )
 def test_synth_func(schema_model, method, amount, output, stdcout, start_index, seed):
     print("CWD:", os.getcwd())
-    print("Looking for:", os.path.abspath(f"{output}.json"))
-    with open(f"{output}.json", "w") as f:  # clear output
+    print("Looking for:", os.path.abspath(f"{output}_(temp).json"))
+    with open(f"{output}_(temp).json", "w") as f:  # clear output
         f.write("")
     synth_func(schema_model, method, amount, output, stdcout=stdcout, start_index=start_index, seed=seed)
-    with open(f"{output}.json", "r") as f:
+    with open(f"{output}_(temp).json", "r") as f:
         assert len(f.readlines()) != 0

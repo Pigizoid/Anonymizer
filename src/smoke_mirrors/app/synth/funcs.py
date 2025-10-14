@@ -60,6 +60,7 @@ def synth_func(
             send_batch_to_API(schema_model, output, request_entries)
         else:
             flush_out = ",".join(flush)
+            output = Path(output)
             stem = output.stem
             stem+="_(temp)"
             output = output.with_stem(stem)

@@ -54,7 +54,7 @@ def synth_single_command(
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
-    print(f"Args: {flags.dict(exclude={"synth","anon"})}")
+    print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.synth)
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
     if schema_models == None:

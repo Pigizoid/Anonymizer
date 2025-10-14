@@ -117,11 +117,11 @@ def test_match_fields():
 )
 def test_match_fields_alternate_methods(method, expected):
     return_value = match_fields(field_names_2, method)
+    print(return_value)
     assert all(
         [
             (return_value[field_names_2[x]] != "") == expected[x]
             for x in range(len(field_names_2))
         ]
     )
-
 

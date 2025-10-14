@@ -84,7 +84,7 @@ def anon_manual_command(
         ctx.params["fields"] = None
 
     flags = return_flags(ctx, AnonymiserConfig)
-    print(f"Args: {flags.dict(exclude={"synth","anon"})}")
+    print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.anon)
     if flags.schema_path is None:
         schema_models = None

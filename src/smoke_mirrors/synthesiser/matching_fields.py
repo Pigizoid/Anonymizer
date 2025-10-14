@@ -35,6 +35,7 @@ def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
             )
     return distance_point[len_word1][len_word2]
 
+VOWELS = {ord(ch) for ch in set("aeiouAEIOU")}
 def levenshtein_distance_fast(word1: str, word2: str, modifiers=(0,0,0), max_dist=None) -> float:
     #trim prefixes
     while word1 and word2 and word1[0] == word2[0]:
@@ -62,7 +63,7 @@ def levenshtein_distance_fast(word1: str, word2: str, modifiers=(0,0,0), max_dis
         for prev1,prev2,word2ord1,j in zip(prev[1:len_word2+1],prev[0:len_word2],word2_ords[0:len_word2],range(1,len_word2+1)):
             deletion = prev1 + 1 + del_cost
             insertion = curr[j-1] + 1 + ins_cost
-            substitution = prev2 + (word1_ch_ord != word2ord1) + sub_mod
+            substitution = (prev2 + (word1_ch_ord != word2ord1) + sub_mod)*(1+(word1_ch_ord not in VOWELS or word2ord1 not in VOWELS)*0.5)
             v = deletion if deletion < insertion else insertion
             if substitution < v:
                 v = substitution
