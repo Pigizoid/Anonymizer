@@ -1,10 +1,10 @@
 import pytest
-import pathlib
+from pathlib import Path
 import os
 import json
 from src.smoke_mirrors.app.synth.funcs import synth_func
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-with open("tests\\schema.json","r") as f:
+with open(Path("tests\\schema.json"),"r") as f:
     schema_model=JsonSchemaClass(json.load(f))
 
 seed = "random"
