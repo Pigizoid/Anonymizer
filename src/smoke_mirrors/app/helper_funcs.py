@@ -14,6 +14,7 @@ from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi
 import re
+import shutil
 
 
 def send_to_API(schema_model, output, data):
@@ -58,36 +59,34 @@ def make_json_safe(obj):
     else:
         return obj
 
-file_temp = {}
-output_temp = []
-def load_folder(output:Path):
+def load_folder(output: Path):
+    stem = output.stem
+    stem+="_(temp)"
+    output = output.with_stem(stem)
     output = output.with_suffix(".json")
     if output is not None:
-        output_temp.append(str(output))
-        if output.exists():
-            with open(output, "r") as f:
-                file_temp[str(output)] = f.read()
         with open(output, "w") as f:
             f.write("[")
 
-def close_folder(file_path):
+def close_folder(file_path: Path):
+    original = file_path.with_suffix(".json")
+    stem = file_path.stem
+    stem+="_(temp)"
+    file_path = file_path.with_stem(stem)
     file_path = file_path.with_suffix(".json")
     if file_path is not None:
-        if file_path in file_temp:
-            del file_temp[str(file_path)]
-        if file_path in output_temp:
-            output_temp.remove(str(file_path))
         with open(file_path, "a") as f:
             f.write("\n]\n")
+    if original.exists():
+        shutil.copyfile(file_path,original)
+        if file_path.exists():
+            os.remove(file_path)
+        else:
+            print(f"The file '{file_path}' does not exist")
+    else:
+        os.rename(file_path,original)
+    
 
-def handle_folder_error(passed_exception): #rewrite altered data if an error occurs
-    try:
-        current_file = output_temp[-1]
-        with open(current_file, "w") as f:
-            f.write(file_temp[current_file])
-    except:
-        raise passed_exception
-    raise passed_exception
 
 # ----- recursive file loading -----
 def load_schema_pydantic(schema_path:Path):
@@ -337,10 +336,7 @@ def recursive_folder_schema_handler(schema_models,command,flags,output_path_name
             if contents == None:
                 raise Exception(f"Error in file {file_path}")
             schema_model = contents
-            try:
-                command(schema_model,new_path,flags=flags)
-            except Exception as e:
-                handle_folder_error(e)
+            command(schema_model,new_path,flags=flags)
     return None
 
 def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0,unique_folder=True):
@@ -366,10 +362,7 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
             print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
             ingest = load_ingest_data(contents)
             schema_model = find_matching_schema(schema_models,ingest,file_path)
-            try:
-                command(schema_model,new_path,ingest,flags=flags)
-            except Exception as e:
-                handle_folder_error(e)
+            command(schema_model,new_path,ingest,flags=flags)
     return None
 # ----- recursive handling -----
 

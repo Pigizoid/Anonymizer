@@ -43,13 +43,13 @@ def synth_func(
         request_entries = []
     if stdcout:
         print(f"Writing to file : {output}")
-    for index, data in enumerate(dataset):
+    for index,data in enumerate(dataset):
         if output is not None:
-            if (index + 1 + start_index) != 1:
-                front_string = ",\n	"
+            if (index == 0 and start_index != 0):
+                front_string = ","
             else:
                 front_string = ""
-            json_str = json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
+            json_str = front_string+json.dumps(data, indent=4, default=lambda v: make_json_safe(v))
             flush.append(json_str)
             if str(output).startswith("http"):
                 request_entries.append(data)
@@ -60,7 +60,11 @@ def synth_func(
             send_batch_to_API(schema_model, output, request_entries)
         else:
             flush_out = ",".join(flush)
-            with open(f"{output}.json", "a") as f:
+            stem = output.stem
+            stem+="_(temp)"
+            output = output.with_stem(stem)
+            output = output.with_suffix(".json")
+            with open(output, "a") as f:
                 f.write(flush_out)
     else:
         flush_out = ",".join(flush)

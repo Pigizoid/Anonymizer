@@ -49,7 +49,6 @@ def anon_func(
     elapsed_time = end-start
     # data returns as a dict of lists of dicts
     # { index: [model, * amount] }
-
     flush_output = []
     print(f"Anonymisation | Time taken: {elapsed_time:.2f} seconds")
     if stdcout:
@@ -57,8 +56,12 @@ def anon_func(
         print(f"Showing 1 of {len(anonymised_data)}")
         print(f"Input data :\n\t{ingest[0]}")
         print(f"Output data :\n\t{list(anonymised_data.values())[0]}")
-    with open(f"{output}.json", "a") as f:
-        for _,content in anonymised_data.items():
+    stem = output.stem
+    stem+="_(temp)"
+    output = output.with_stem(stem)
+    output = output.with_suffix(".json")
+    with open(output, "a") as f:
+        for content in anonymised_data.values():
             if len(content) == 1:
                 flush_list = content[0]
             else:
