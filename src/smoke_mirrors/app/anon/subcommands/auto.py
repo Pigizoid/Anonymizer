@@ -71,7 +71,7 @@ def anon_auto_command(
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     ctx.params["fields"] = {}
     flags = return_flags(ctx, AnonymiserConfig)
-    print(f"Args: {flags.dict(exclude={"synth","anon"})}")
+    print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.anon)
     if flags.schema_path is None:
         schema_models = None

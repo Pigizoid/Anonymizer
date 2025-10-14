@@ -250,15 +250,12 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[JsonSchemaClass,None], data:Dict[str,Any], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False, performance=False
+    schema_model:Union[JsonSchemaClass,None], data:Union[Dict[str,Dict],List[Dict]], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False, performance=False
 ) -> Dict[str, List[Any]]:
     """
     Inputs:\n
         schema model
-        data as a dict of dicts
-            {index:  #index as integer
-                {json data}
-            }
+        data as a list of dicts
         method of the methods"mixed","mimesis","faker"
         "manual" boolean, to flag automatic or manual anonymisation
         default anonymisation method of the methods "mask","synth","perturb"
@@ -271,6 +268,8 @@ def anonymise(
                 [{Dict}] * amount
             }
     """
+    if isinstance(data,list):
+        data = {index:data_entry for index,data_entry in enumerate(data)}
     anonymised_data = {}
     if stdcout:
         print(f"fields: {list(fields.keys()) if len(fields.values())<5 else f"{list(field.values())[:5]}..."} |Seed: {seed} |Default: {default}")
@@ -278,6 +277,9 @@ def anonymise(
     synth = JsonSynthesiser(method=method)
     schema_match = True
     first_data_entry = list(data.values())[0]
+    for field_name in fields.keys():
+        if field_name not in first_data_entry:
+            raise Exception(f"Input data does not contain the field {field_name}")
     if schema_model is not None:
         schemas = [schema_model.contents, schema_model.sanitised_contents]
         schema_match = True
@@ -319,7 +321,7 @@ def anonymise(
         else:
             new_schema_model = result_schema
     synth.register_schema(new_schema_model)
-    for index, data_entry in data.items():
+    for index, data_entry in enumerate(data.values()):
         if manual or default != "synth":
             return_data = [
                 anonymise_data(

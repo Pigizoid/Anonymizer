@@ -345,7 +345,7 @@ class JsonSynthesiser():
                         else:
                             gt = math.nextafter(gt, float('inf'))
                             lt = math.nextafter(lt, float('-inf'))
-                            data_pool = [random.uniform(gt,lt) for _ in range(1, pooling_count)]
+                            data_pool = [random.uniform(gt,lt) for _ in range(pooling_count)]
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
 

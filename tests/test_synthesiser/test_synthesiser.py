@@ -194,7 +194,7 @@ test_generate_synth_data()
 def test_print_path_simple(capsys):
     path = "[0]"
     elapsed_time = 1.2345
-    print_path(path, elapsed_time)
+    print_path(path, elapsed_time,print)
 
     captured = capsys.readouterr()
     output = captured.out.strip()
@@ -205,7 +205,7 @@ def test_print_path_simple(capsys):
 def test_print_path_deeper_path(capsys):
     path = "[0][1][2]"
     elapsed_time = 12.5
-    print_path(path, elapsed_time)
+    print_path(path, elapsed_time,print)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -223,7 +223,7 @@ def test_print_path_deeper_path(capsys):
     ],
 )
 def test_print_path_parametrized(path, elapsed, expected, capsys):
-    print_path(path, elapsed)
+    print_path(path, elapsed,print)
     captured = capsys.readouterr()
     output = captured.out
 
