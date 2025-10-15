@@ -5,6 +5,7 @@ from smoke_mirrors.app.synth.main import synth_app
 from smoke_mirrors.app.anon.main import anon_app
 from smoke_mirrors.app.extras.main import json_app
 from smoke_mirrors.app.models import SynthesiserConfig, AnonymiserConfig, Settings
+from smoke_mirrors.app.helper_funcs import windows_path_to_pathlib
 from collections.abc import Mapping
 import typer
 import yaml
@@ -143,12 +144,10 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
 def main(
     ctx: typer.Context,
     config: Optional[Path] = typer.Option(
-        None,
-        exists=True,
+        None
     ),
     schema_path: Optional[Path] = typer.Option(
-        None,
-        exists=True,
+        None
     ),
     schema_type: Optional[str] = typer.Option(
         None
@@ -157,7 +156,6 @@ def main(
         False
     ),
 ):
-    print("config file:",config)
     """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
     examples:
@@ -166,7 +164,20 @@ def main(
         sm --config config.yaml synth single
         sm --config config.yaml synth batch
     """
-    Settings = make_settings_class(config)
+    if config is not None:
+        config_path = windows_path_to_pathlib(config)
+        if not config_path.exists():
+            raise FileExistsError(f"File {config_path} does not exist")
+    else:
+        config_path = None
+    if schema_path is not None:
+        schema_path = windows_path_to_pathlib(schema_path)
+        if not schema_path.exists():
+            raise FileExistsError(f"File {schema_path} does not exist")
+    else:
+        schema_path = None
+    print("config file:",config_path)
+    Settings = make_settings_class(config_path)
     ctx.obj = {"settings": Settings, "schema_path": schema_path, "schema_type": schema_type, "seed": seed}
     #fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
     #additionally check if loading json breaks anything before passing to the synth_func

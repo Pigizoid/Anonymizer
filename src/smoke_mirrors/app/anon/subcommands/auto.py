@@ -10,7 +10,8 @@ from smoke_mirrors.app.helper_funcs import  (
     close_folder, 
     recursive_ingest_json_handler, 
     flatten_loaded_schemas,
-    load_output_path_flag
+    load_output_path_flag,
+    windows_path_to_pathlib
 )
 from smoke_mirrors.app.models import AnonymiserConfig
 from pathlib import Path
@@ -47,9 +48,9 @@ def anon_auto_func(schema_model,output_file_path,ingest,flags):
 @anon_auto_subcommand.command(name="auto")
 def anon_auto_command(
     ctx: typer.Context,  # contains ctx.config
-    ingest: str = None,
+    ingest: Path = None,
     method: str = None,
-    output: str = None,
+    output: Path = None,
     amount: int = None,
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     default: str = "mask",
@@ -67,6 +68,12 @@ def anon_auto_command(
         a default anonymisation method of the methods "mask","synth","perturb"
     Runs the anonymisation tool in auto mode\n
     """
+    if ingest is not None:
+        ingest = windows_path_to_pathlib(ingest)
+        ctx.params["ingest"] = ingest
+    if output is not None:
+        output = windows_path_to_pathlib(output)
+        ctx.params["output"] = output
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     ctx.params["fields"] = {}

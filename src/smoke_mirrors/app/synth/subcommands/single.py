@@ -9,7 +9,8 @@ from smoke_mirrors.app.helper_funcs import (
     close_folder, 
     recursive_folder_schema_handler, 
     load_output_path_flag,
-    flatten_loaded_schemas
+    flatten_loaded_schemas,
+    windows_path_to_pathlib
 )
 from smoke_mirrors.app.models import SynthesiserConfig
 from pathlib import Path
@@ -38,7 +39,7 @@ def synth_single_func(schema_model,output_file_path,flags):
 def synth_single_command(
     ctx: typer.Context,  # contains ctx.config
     method: str = None,
-    output: str = None,
+    output: Path = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
@@ -51,6 +52,9 @@ def synth_single_command(
         stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in single mode, amount=1 batch=1\n
     """
+    if output is not None:
+        output = windows_path_to_pathlib(output)
+        ctx.params["output"] = output
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)

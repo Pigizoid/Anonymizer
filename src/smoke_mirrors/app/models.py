@@ -9,17 +9,17 @@ class SynthesiserConfig(BaseModel):
     method: str = "mixed"
     amount: int = 1
     batch: int = 0
-    output: str = ""
+    output: Path = ""
     flat_output: bool = False
     stdcout: bool = False
     performance: bool = False
 
 
 class AnonymiserConfig(BaseModel):
-    ingest: str = ""
+    ingest: Path = ""
     method: str = "mixed"
     amount: int = 1
-    output: str = ""
+    output: Path = ""
     stdcout: bool = False
     manual: bool = False
     default: typing.Literal["mask", "synth", "perturb"] = "mask"

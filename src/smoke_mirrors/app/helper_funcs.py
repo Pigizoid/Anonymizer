@@ -99,7 +99,7 @@ def load_schema_pydantic(schema_path:Path):
         pydantic schema BaseModel
     """
     if not (str(schema_path).endswith(".py")):
-        schema_path = Path(str(schema_path)+".py")
+        schema_path = schema_path.with_suffix(".py")
     try:
         spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
         module = importlib.util.module_from_spec(spec)
@@ -126,7 +126,7 @@ def load_schema_json(schema_path:Path):
         JsonSchemaClass (json schema stored in a class with __name__)
     """
     if not (str(schema_path).endswith(".json")):
-        schema_path = Path(str(schema_path)+".json")
+        schema_path = schema_path.with_suffix(".json")
     with open(schema_path,"r") as f:
         file_data = json.load(f)
         schema_models = []
@@ -287,10 +287,10 @@ def get_unique_folder_name(base_path: Path) -> Path:
     parent = base_path.parent
     stem = base_path.name
     counter = 1
-    new_path = parent / f"{stem}_(copy)"
+    new_path = parent / (stem+"_(copy)")
     while new_path.exists():
         counter += 1
-        new_path = parent / f"{stem}_(copy {counter})"
+        new_path = parent / (stem+f"_(copy {counter})")
     return new_path
 
 def get_latest_folder_name(base_path: Path) -> Path:
@@ -405,3 +405,17 @@ def return_flags(ctx, config_schema:BaseModel):
     else:
         raise Exception(f"Input config schema '{config_schema.__name__}', not in ['SynthesiserConfig','AnonymiserConfig']")
     return flags
+
+
+def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
+    if isinstance(path_str,Path):
+        return path_str
+    parts = path_str.split("\\")
+    return_path = Path(*parts)
+    return return_path
+
+
+
+
+
+

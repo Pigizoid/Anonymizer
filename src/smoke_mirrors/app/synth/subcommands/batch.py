@@ -9,7 +9,8 @@ from smoke_mirrors.app.helper_funcs import (
     close_folder, 
     recursive_folder_schema_handler, 
     load_output_path_flag,
-    flatten_loaded_schemas
+    flatten_loaded_schemas,
+    windows_path_to_pathlib
 )
 from smoke_mirrors.app.models import SynthesiserConfig
 from pathlib import Path
@@ -74,7 +75,7 @@ def synth_batch_command(
     method: str = None,
     amount: int = None,
     batch: int = None,
-    output: str = None,
+    output: Path = None,
     flat_output: Annotated[Optional[bool], typer.Option("--flat-output/--no-flat-output")] = None,
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
@@ -91,6 +92,9 @@ def synth_batch_command(
         stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in batch mode\n
     """
+    if output is not None:
+        output = windows_path_to_pathlib(output)
+        ctx.params["output"] = output
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.synth)

@@ -6,14 +6,16 @@ import json
 from src.smoke_mirrors.app.anon.funcs import anon_func
 from src.smoke_mirrors.app.helper_funcs import load_ingest_data
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-with open(Path("tests\\schema.json"),"r") as f:
+from pathlib import Path
+test_schema = Path("tests") / "schema.json"
+with open(test_schema,"r") as f:
     schema_model=JsonSchemaClass(json.load(f))
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest_file = "tests\\data.json"
+ingest_file = Path("tests") / "data.json"
 ingest = load_ingest_data(ingest_file)
 
 stdcout = False
@@ -22,7 +24,7 @@ defaults = ["mask", "perturb", "synth"]
 field_defaults = ["default", "mask", "perturb", "synth"]
 fields_list = ["name", "age", "email"]
 
-output = "tests\\outputs\\test_synth_out"
+output = Path("tests") / "outputs" / "test_anon_out"
 
 field_tests = [
     {"name": "default"},
@@ -97,13 +99,16 @@ def test_anon_func(
     manual,
     default,
     fields,
-    output,
+    output:Path,
     key_anon,
     performance
 ):
     print("CWD:", os.getcwd())
-    print("Looking for:", os.path.abspath(f"{output}_(temp).json"))
-    with open(f"{output}_(temp).json", "w") as f:  # clear output
+    stem = output.stem
+    file_output = output.with_stem(stem+"_(temp)")
+    file_output = file_output.with_suffix(".json")
+    print("Looking for:", os.path.abspath(file_output))
+    with open(file_output, "w") as f:  # clear output
         f.write("")
     anon_func(
         schema_model,
@@ -120,5 +125,5 @@ def test_anon_func(
         key_anon,
         performance
     )
-    with open(f"{output}_(temp).json", "r") as f:
+    with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

@@ -4,27 +4,19 @@ import os
 import json
 from src.smoke_mirrors.app.synth.funcs import synth_func
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-with open(Path("tests\\schema.json"),"r") as f:
+from pathlib import Path
+test_schema = Path("tests") / "schema.json"
+with open(test_schema,"r") as f:
     schema_model=JsonSchemaClass(json.load(f))
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest = "tests\\data.json"
 stdcout = False
 
 #CWD is Smoke-and-Mirrors
-output = "tests\\outputs\\test_synth_out"
-
-field_tests = [
-    {"name": "default"},
-    {"age": "default"},
-    {"email": "default"},
-    {"name": "mask"},
-    {"name": "perturb"},
-    {"name": "synth"},
-]
+output = Path("tests") / "outputs" / "test_synth_out"
 
 test_list = []
 for amount in amounts:
@@ -39,9 +31,12 @@ for amount in amounts:
 )
 def test_synth_func(schema_model, method, amount, output, stdcout, start_index, seed):
     print("CWD:", os.getcwd())
-    print("Looking for:", os.path.abspath(f"{output}_(temp).json"))
-    with open(f"{output}_(temp).json", "w") as f:  # clear output
+    stem = output.stem
+    file_output = output.with_stem(stem+"_(temp)")
+    file_output = file_output.with_suffix(".json")
+    print("Looking for:", os.path.abspath(file_output))
+    with open(file_output, "w") as f:  # clear output
         f.write("")
     synth_func(schema_model, method, amount, output, stdcout=stdcout, start_index=start_index, seed=seed)
-    with open(f"{output}_(temp).json", "r") as f:
+    with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

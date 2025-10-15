@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 from smoke_mirrors.pre_made_data import provider_methods, provider_return_types
 
 
@@ -36,53 +36,80 @@ def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
     return distance_point[len_word1][len_word2]
 
 VOWELS = {ord(ch) for ch in set("aeiouAEIOU")}
-def levenshtein_distance_fast(word1: str, word2: str, modifiers=(0,0,0), max_dist=None) -> float:
-    #trim prefixes
+def levenshtein_distance_fast(
+    word1: str,
+    word2: str,
+    modifiers: Tuple[float, float, float] = None,
+    max_dist: float = None,
+    vowel_flag: bool = False,
+    allow_transpositions: bool = True
+) -> float:
+    
     while word1 and word2 and word1[0] == word2[0]:
         word1, word2 = word1[1:], word2[1:]
     while word1 and word2 and word1[-1] == word2[-1]:
         word1, word2 = word1[:-1], word2[:-1]
-    #trim prefixes
-
+    
     if modifiers is None:
-        modifiers = (0,0,0)
+        modifiers = (0, 0, 0)
     del_cost, ins_cost, sub_mod = modifiers
-    len_word1, len_word2 = len(word1), len(word2)
-    if len_word2 == 0:
-        return len_word1
-    if len_word1 < len_word2 and del_cost == ins_cost:
+
+    len1, len2 = len(word1), len(word2)
+    if len2 == 0:
+        return len1 * (min(del_cost, ins_cost) + 1)
+    if len1 < len2 and del_cost == ins_cost:
         word1, word2 = word2, word1
-        len_word1, len_word2 = len_word2, len_word1
-    prev = list(range(len_word2 + 1))
-    curr = [0] * (len_word2 + 1)
+        len1, len2 = len2, len1
+
+    word1_ords = [ord(c) for c in word1]
     word2_ords = [ord(c) for c in word2]
-    for i in range(1, len_word1 + 1):
+
+    prev_prev = [0] * (len2 + 1)
+    prev = list(range(len2 + 1))
+    curr = prev_prev.copy()
+    
+    for i in range(1, len1 + 1):
         curr[0] = i
-        word1_ch_ord = ord(word1[i - 1])
-        row_min = curr[0]
-        for prev1,prev2,word2ord1,j in zip(prev[1:len_word2+1],prev[0:len_word2],word2_ords[0:len_word2],range(1,len_word2+1)):
-            deletion = prev1 + 1 + del_cost
-            insertion = curr[j-1] + 1 + ins_cost
-            substitution = (prev2 + (word1_ch_ord != word2ord1) + sub_mod)*(1+(word1_ch_ord not in VOWELS or word2ord1 not in VOWELS)*0.5)
-            v = deletion if deletion < insertion else insertion
-            if substitution < v:
-                v = substitution
+        row_min = i
+        w1c = word1_ords[i - 1]
+
+        for j in range(1, len2 + 1):
+            w2c = word2_ords[j - 1]
+            deletion = prev[j] + 1 + del_cost
+            insertion = curr[j - 1] + 1 + ins_cost
+            substitution = prev[j - 1] + (w1c != w2c) + sub_mod
+            if vowel_flag:
+                substitution += 0.1 * (w1c not in VOWELS) + 0.1 * (w2c not in VOWELS)
+
+            v = min(deletion, insertion, substitution)
+            
+            if (
+                allow_transpositions
+                and i > 1
+                and j > 1
+                and w1c == word2_ords[j - 2]
+                and word1_ords[i - 2] == w2c
+            ):
+                v = min(v, prev_prev[j - 2] + 1)
+
             curr[j] = v
             if v < row_min:
                 row_min = v
         if max_dist is not None and row_min > max_dist:
-            return float('inf')
-        prev, curr = curr, prev
-    return prev[len_word2]
+            return float("inf")
+
+        prev_prev, prev, curr = prev, curr, prev_prev
+    
+    return prev[len2]
 
 
 def calc_difference(
     target_word:str,
     word:str,
-    word_tokens:Dict[str,List[str]],
-    word_tokens_set:Dict[str,Set[str]],
-    target_tokens:Dict[str,List[str]],
-    target_tokens_set:Dict[str,Set[str]],
+    word_tokens:Dict[str,List[str]]=None,
+    word_tokens_set:Dict[str,Set[str]]=None,
+    target_tokens:Dict[str,List[str]]=None,
+    target_tokens_set:Dict[str,Set[str]]=None,
 ) -> float:
     """
     algorithm for calculating difference of two strings\n
@@ -102,6 +129,19 @@ def calc_difference(
     Outputs:\n
         float
     """
+    if word_tokens is None:
+        word_tokens = word.split("_")
+    
+    if word_tokens_set is None:
+        word_tokens_set = set(word_tokens)
+        
+    if target_tokens is None:
+        target_tokens = target_word.split("_")
+
+    if target_tokens_set is None:
+        target_tokens_set = set(target_tokens)
+
+
     if target_tokens_set == word_tokens_set:  # name_first -> first_name
         return 0
 
