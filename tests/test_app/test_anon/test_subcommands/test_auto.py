@@ -14,4 +14,5 @@ def test_anon_auto_command():
         app,
         ["anon", "auto", "--ingest", "tests\\data.json", "--default", "synth"],
     )
+    print(result.output)
     assert result.exit_code == 0
