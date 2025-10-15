@@ -98,7 +98,7 @@ def load_schema_pydantic(schema_path:Path):
     Outputs:\n
         pydantic schema BaseModel
     """
-    if not (str(schema_path).endswith(".py")):
+    if not (schema_path.suffix == ".py"):
         schema_path = schema_path.with_suffix(".py")
     try:
         spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
@@ -125,7 +125,7 @@ def load_schema_json(schema_path:Path):
     Outputs:\n
         JsonSchemaClass (json schema stored in a class with __name__)
     """
-    if not (str(schema_path).endswith(".json")):
+    if not (schema_path.suffix == ".json"):
         schema_path = schema_path.with_suffix(".json")
     with open(schema_path,"r") as f:
         file_data = json.load(f)
@@ -139,9 +139,9 @@ def load_schema_json(schema_path:Path):
     return schema_models
 
 def load_schema(schema_path:Path):
-    if str(schema_path).endswith(".py"):
+    if schema_path.suffix == ".py":
         schema_models = load_schema_pydantic(schema_path)
-    elif str(schema_path).endswith(".json"):
+    elif schema_path.suffix == ".json":
         schema_models = load_schema_json(schema_path)
     else:
         return None
@@ -224,9 +224,7 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
     Outputs:\n
         file data Dict[str,Any]
     """
-    if str(ingest).startswith("http"):
-        data = {start_index, requests.get(ingest, params={"id_num": start_index})}
-    elif str(ingest).endswith(".json"):
+    if ingest.suffix == ".json":
         with open(ingest) as dt_file:
             data = json.load(dt_file)
 
@@ -367,11 +365,10 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
 # ----- recursive handling -----
 
 def load_file_path(output):
-    if str(output).startswith("http"):
-        load_folder("_temp_db_output")
+    if output is not None:
+        load_folder(output)
     else:
-        if output is not None:
-            load_folder(output)
+        return None
 
 def load_output_path_flag(file_path):
     pathobj = Path(file_path)
@@ -408,7 +405,7 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    pure_path = PureWindowsPath(str(path_str))
+    pure_path = PureWindowsPath(path_str)
     print(pure_path)
     return_path = Path(PurePath(*pure_path.parts))
     print(return_path)
