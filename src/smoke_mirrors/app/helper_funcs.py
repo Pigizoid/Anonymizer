@@ -7,7 +7,7 @@ import requests
 import time
 import json
 from typing import Dict, Any, List, Union
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePath
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
@@ -408,12 +408,11 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    if isinstance(path_str,type(Path("nothing"))):
-        print(f"putting in a path {str(path_str)}")
+    if isinstance(path_str,Path):
         return path_str
-    win_path = PureWindowsPath(str(path_str))
-    print(PureWindowsPath)
-    return_path = Path(*win_path.parts)
+    pure_path = PurePath(str(path_str))
+    print(pure_path)
+    return_path = Path(*pure_path.parts)
     print(return_path)
     return return_path
 
