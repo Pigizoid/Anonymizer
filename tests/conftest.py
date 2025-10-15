@@ -1,6 +1,7 @@
 import os
 import shutil
 import pytest
+from pathlib import Path
 
 def clear_folder(folder: str):
     if os.path.exists(folder):
@@ -21,4 +22,5 @@ def clear_folder(folder: str):
 
 def pytest_sessionstart(session):
     print("\n>>> Starting tests and clearing outputs folder")
-    clear_folder("tests\\outputs")
+    test_output = Path("tests") / "outputs"
+    clear_folder(test_output)
