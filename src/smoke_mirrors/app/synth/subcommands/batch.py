@@ -92,13 +92,7 @@ def synth_batch_command(
         stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in batch mode\n
     """
-    print("BEFORE:",output)
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
-        print("INTER:",output)
     flags = return_flags(ctx, SynthesiserConfig)
-    print("AFTER:",output,flags.synth.output)
     print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.synth)
     schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)

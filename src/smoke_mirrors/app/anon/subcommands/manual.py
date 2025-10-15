@@ -74,12 +74,6 @@ def anon_manual_command(
             example:  sm --config config.yaml anon manual --fields '{"name":"mask"}'
     Runs the anonymisation tool in manual mode\n
     """
-    if ingest is not None:
-        ingest = windows_path_to_pathlib(ingest)
-        ctx.params["ingest"] = ingest
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     if fields:

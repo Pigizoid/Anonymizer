@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 from pydantic import BaseModel
 from src.smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
@@ -173,4 +173,4 @@ def test_new_model():
     field_names = ["bar", "zar"]
     return_model = new_model(data, field_names)
     names = [name for name in get_json_model_fields(return_model).keys()]
-    assert names == field_names'''
+    assert names == field_names

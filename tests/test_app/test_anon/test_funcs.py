@@ -1,4 +1,4 @@
-'''import pytest
+import pytest
 from pathlib import Path
 import os
 import json
@@ -127,4 +127,3 @@ def test_anon_func(
     )
     with open(file_output, "r") as f:
         assert len(f.readlines()) != 0
-'''

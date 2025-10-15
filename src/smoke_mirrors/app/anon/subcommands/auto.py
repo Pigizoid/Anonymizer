@@ -68,12 +68,6 @@ def anon_auto_command(
         a default anonymisation method of the methods "mask","synth","perturb"
     Runs the anonymisation tool in auto mode\n
     """
-    if ingest is not None:
-        ingest = windows_path_to_pathlib(ingest)
-        ctx.params["ingest"] = ingest
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     ctx.params["fields"] = {}

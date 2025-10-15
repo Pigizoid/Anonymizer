@@ -9,6 +9,7 @@ from smoke_mirrors.app.helper_funcs import windows_path_to_pathlib
 from collections.abc import Mapping
 import typer
 import yaml
+import os
 
 app = typer.Typer()
 
@@ -29,7 +30,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         if config_path is None:
             return {}
 
-        if config_path.exists():
+        if os.path.exists(config_path):
             raw = yaml.safe_load(config_path.read_text()) or {}
         else:
             raise Exception(f"Yaml doesnt exist: {config_path}")
@@ -167,13 +168,13 @@ def main(
     if config is not None:
         config_path = windows_path_to_pathlib(config)
         print(config_path,type(config_path))
-        if not config_path.exists():
+        if not os.path.exists(config_path):
             raise FileExistsError(f"File config '{config_path}' does not exist")
     else:
         config_path = None
     if schema_path is not None:
         schema_path = windows_path_to_pathlib(schema_path)
-        if not schema_path.exists():
+        if not os.path.exists(schema_path):
             raise FileExistsError(f"File schema '{schema_path}' does not exist")
     else:
         schema_path = None

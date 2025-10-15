@@ -52,9 +52,6 @@ def synth_single_command(
         stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in single mode, amount=1 batch=1\n
     """
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
