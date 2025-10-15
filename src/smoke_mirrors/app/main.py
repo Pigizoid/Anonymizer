@@ -40,6 +40,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["schema_path"] = raw["schema"]
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
+        mapping["schema_path"] = windows_path_to_pathlib(mapping["schema_path"])
         
         if "schema_type" in raw:
             mapping["schema_type"] = raw["schema_type"]
@@ -48,6 +49,8 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["synth"] = raw["synthesiser"]
         elif "synth" in raw:
             mapping["synth"] = raw["synth"]
+        if "output" in mapping["synth"]:
+            mapping["synth"]["output"] = windows_path_to_pathlib(mapping["schema_path"])
 
         if "anonymiser" in raw:
             mapping["anon"] = raw["anonymiser"]
@@ -55,6 +58,10 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["anon"] = raw["anonymizer"]
         elif "anon" in raw:
             mapping["anon"] = raw["anon"]
+        if "output" in mapping["synth"]:
+            mapping["synth"]["output"] = windows_path_to_pathlib(mapping["schema_path"])
+        if "ingest" in mapping["synth"]:
+            mapping["synth"]["output"] = windows_path_to_pathlib(mapping["schema_path"])
 
         return mapping
 

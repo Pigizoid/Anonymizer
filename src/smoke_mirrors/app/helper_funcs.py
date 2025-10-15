@@ -423,7 +423,7 @@ def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
         print(return_path)
         return return_path
     else:
-        return os.path(path_str)
+        return path_str
 
 
 
