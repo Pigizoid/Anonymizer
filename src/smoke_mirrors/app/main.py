@@ -167,13 +167,13 @@ def main(
     if config is not None:
         config_path = windows_path_to_pathlib(config)
         if not config_path.exists():
-            raise FileExistsError(f"File {config_path} does not exist")
+            raise FileExistsError(f"File config '{config_path}' does not exist")
     else:
         config_path = None
     if schema_path is not None:
         schema_path = windows_path_to_pathlib(schema_path)
         if not schema_path.exists():
-            raise FileExistsError(f"File {schema_path} does not exist")
+            raise FileExistsError(f"File schema '{schema_path}' does not exist")
     else:
         schema_path = None
     print("config file:",config_path)
