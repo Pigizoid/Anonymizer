@@ -13,4 +13,5 @@ def test_anon_manual_command():
         app,
         ["--config", "tests\\config.yaml", "anon", "manual"],
     )
+    print(result.output)
     assert result.exit_code == 0

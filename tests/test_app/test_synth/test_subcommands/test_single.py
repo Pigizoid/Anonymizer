@@ -12,4 +12,5 @@ def test_synth_single_command():
         app,
         ["--config", "tests\\config.yaml", "synth", "single"],
     )
+    print(result.output)
     assert result.exit_code == 0

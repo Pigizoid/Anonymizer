@@ -52,15 +52,12 @@ def synth_single_command(
         stdcout boolean to toggle verbose printing
     Runs the synthesiser tool in single mode, amount=1 batch=1\n
     """
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
     ctx.params["amount"] = 1
     ctx.params["batch"] = 1
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.synth)
-    schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+    schema_models = load_recursed_path(flags.schema_path,flags.schema_type,load_schema)
     if schema_models == None:
         raise Exception("No schemas loaded from input")
     if flat_output:

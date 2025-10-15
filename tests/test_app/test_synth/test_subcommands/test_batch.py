@@ -20,4 +20,5 @@ def test_synth_batch_command():
             "100",
         ],
     )
+    print(result.output)
     assert result.exit_code == 0

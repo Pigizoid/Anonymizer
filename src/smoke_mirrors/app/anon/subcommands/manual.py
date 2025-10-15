@@ -74,12 +74,6 @@ def anon_manual_command(
             example:  sm --config config.yaml anon manual --fields '{"name":"mask"}'
     Runs the anonymisation tool in manual mode\n
     """
-    if ingest is not None:
-        ingest = windows_path_to_pathlib(ingest)
-        ctx.params["ingest"] = ingest
-    if output is not None:
-        output = windows_path_to_pathlib(output)
-        ctx.params["output"] = output
     if default not in ["mask", "synth", "perturb"]:
         raise ValueError(f"Default:'{default}' not in {['mask', 'synth', 'perturb']}")
     if fields:
@@ -96,8 +90,8 @@ def anon_manual_command(
     if flags.schema_path is None:
         schema_models = None
     else:
-        schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+        schema_models = load_recursed_path(flags.schema_path,flags.schema_type,load_schema)
         schema_models = flatten_loaded_schemas(schema_models)
-    ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
+    ingests = load_recursed_path(flags.anon.ingest,".json",load_ingest)
     output_path_name = load_output_path_flag(flags.anon.output)
     recursive_ingest_json_handler(ingests,anon_manual_func,flags,output_path_name,schema_models)

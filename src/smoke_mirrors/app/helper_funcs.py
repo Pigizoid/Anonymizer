@@ -7,7 +7,7 @@ import requests
 import time
 import json
 from typing import Dict, Any, List, Union
-from pathlib import Path
+from pathlib import Path, PurePath, PureWindowsPath
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
@@ -98,7 +98,7 @@ def load_schema_pydantic(schema_path:Path):
     Outputs:\n
         pydantic schema BaseModel
     """
-    if not (str(schema_path).endswith(".py")):
+    if not (schema_path.suffix == ".py"):
         schema_path = schema_path.with_suffix(".py")
     try:
         spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
@@ -125,7 +125,7 @@ def load_schema_json(schema_path:Path):
     Outputs:\n
         JsonSchemaClass (json schema stored in a class with __name__)
     """
-    if not (str(schema_path).endswith(".json")):
+    if not (schema_path.suffix == ".json"):
         schema_path = schema_path.with_suffix(".json")
     with open(schema_path,"r") as f:
         file_data = json.load(f)
@@ -139,9 +139,9 @@ def load_schema_json(schema_path:Path):
     return schema_models
 
 def load_schema(schema_path:Path):
-    if str(schema_path).endswith(".py"):
+    if schema_path.suffix == ".py":
         schema_models = load_schema_pydantic(schema_path)
-    elif str(schema_path).endswith(".json"):
+    elif schema_path.suffix == ".json":
         schema_models = load_schema_json(schema_path)
     else:
         return None
@@ -224,9 +224,7 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
     Outputs:\n
         file data Dict[str,Any]
     """
-    if str(ingest).startswith("http"):
-        data = {start_index, requests.get(ingest, params={"id_num": start_index})}
-    elif str(ingest).endswith(".json"):
+    if ingest.suffix == ".json":
         with open(ingest) as dt_file:
             data = json.load(dt_file)
 
@@ -367,11 +365,10 @@ def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,sc
 # ----- recursive handling -----
 
 def load_file_path(output):
-    if str(output).startswith("http"):
-        load_folder("_temp_db_output")
+    if output is not None:
+        load_folder(output)
     else:
-        if output is not None:
-            load_folder(output)
+        return None
 
 def load_output_path_flag(file_path):
     pathobj = Path(file_path)
@@ -398,6 +395,11 @@ def return_flags(ctx, config_schema:BaseModel):
     schema_path = ctx.obj["schema_path"]
     schema_type = ctx.obj["schema_type"]
     params = {key: param for key, param in ctx.params.items() if param is not None}
+    if "ingest" in params:
+        params["ingest"] = windows_path_to_pathlib(params["ingest"])
+    if "output" in params:
+        params["output"] = windows_path_to_pathlib(params["output"])
+    schema_path = windows_path_to_pathlib(schema_path)
     if config_schema == SynthesiserConfig:
         flags = settings(schema_path=schema_path, schema_type=schema_type, synth=params)
     elif config_schema == AnonymiserConfig:
@@ -408,11 +410,14 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    if isinstance(path_str,Path):
+    if path_str is None:
+        return None
+    if not os.path.exists(path_str):
+        pure_path = PureWindowsPath(path_str)
+        return_path = Path(PurePath(*pure_path.parts))
+        return return_path
+    else:
         return path_str
-    parts = path_str.split("\\")
-    return_path = Path(*parts)
-    return return_path
 
 
 

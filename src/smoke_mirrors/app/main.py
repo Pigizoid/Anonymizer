@@ -9,6 +9,7 @@ from smoke_mirrors.app.helper_funcs import windows_path_to_pathlib
 from collections.abc import Mapping
 import typer
 import yaml
+import os
 
 app = typer.Typer()
 
@@ -29,7 +30,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         if config_path is None:
             return {}
 
-        if config_path.exists():
+        if os.path.exists(config_path):
             raw = yaml.safe_load(config_path.read_text()) or {}
         else:
             raise Exception(f"Yaml doesnt exist: {config_path}")
@@ -39,6 +40,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["schema_path"] = raw["schema"]
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
+        mapping["schema_path"] = windows_path_to_pathlib(mapping["schema_path"])
         
         if "schema_type" in raw:
             mapping["schema_type"] = raw["schema_type"]
@@ -47,6 +49,8 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["synth"] = raw["synthesiser"]
         elif "synth" in raw:
             mapping["synth"] = raw["synth"]
+        if "output" in mapping["synth"]:
+            mapping["synth"]["output"] = windows_path_to_pathlib(mapping["synth"]["output"])
 
         if "anonymiser" in raw:
             mapping["anon"] = raw["anonymiser"]
@@ -54,6 +58,10 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
             mapping["anon"] = raw["anonymizer"]
         elif "anon" in raw:
             mapping["anon"] = raw["anon"]
+        if "output" in mapping["anon"]:
+            mapping["anon"]["output"] = windows_path_to_pathlib(mapping["anon"]["output"])
+        if "ingest" in mapping["anon"]:
+            mapping["anon"]["ingest"] = windows_path_to_pathlib(mapping["anon"]["ingest"])
 
         return mapping
 
@@ -166,14 +174,14 @@ def main(
     """
     if config is not None:
         config_path = windows_path_to_pathlib(config)
-        if not config_path.exists():
-            raise FileExistsError(f"File {config_path} does not exist")
+        if not os.path.exists(config_path):
+            raise FileExistsError(f"File config '{config_path}' does not exist")
     else:
         config_path = None
     if schema_path is not None:
         schema_path = windows_path_to_pathlib(schema_path)
-        if not schema_path.exists():
-            raise FileExistsError(f"File {schema_path} does not exist")
+        if not os.path.exists(schema_path):
+            raise FileExistsError(f"File schema '{schema_path}' does not exist")
     else:
         schema_path = None
     print("config file:",config_path)
