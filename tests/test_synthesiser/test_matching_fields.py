@@ -110,9 +110,9 @@ def test_match_fields():
 @pytest.mark.parametrize(
     "method,expected",
     [
-        ("faker", [True, True, True, False]),
-        ("mimesis", [True, True, False, True]),
-        ("mixed", [True, True, True, True]),
+        ("faker", ["street_name", "city", "ssn", (False,"continent")]),
+        ("mimesis", ["street_name", "city", (False,"ssn"), "continent"]),
+        ("mixed", ["street_name", "city", "ssn", "continent"]),
     ],
 )
 def test_match_fields_alternate_methods(method, expected):
@@ -120,7 +120,7 @@ def test_match_fields_alternate_methods(method, expected):
     print(return_value)
     assert all(
         [
-            (return_value[field_names_2[x]] != "") == expected[x]
+            (return_value[field_names_2[x]] == expected[x] or (return_value[field_names_2[x]] == expected[x][1]) == expected[x][0])
             for x in range(len(field_names_2))
         ]
     )

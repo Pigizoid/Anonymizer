@@ -143,13 +143,11 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    config_path: Optional[Path] = typer.Option(
-        None,
-        exists=True,
+    config: Optional[Path] = typer.Option(
+        None
     ),
     schema_path: Optional[Path] = typer.Option(
-        None,
-        exists=True,
+        None
     ),
     schema_type: Optional[str] = typer.Option(
         None
@@ -166,10 +164,18 @@ def main(
         sm --config config.yaml synth single
         sm --config config.yaml synth batch
     """
-    if config_path is not None:
-        config_path = windows_path_to_pathlib(config_path)
+    if config is not None:
+        config_path = windows_path_to_pathlib(config)
+        if not config_path.exists():
+            raise FileExistsError(f"File {config_path} does not exist")
+    else:
+        config_path = None
     if schema_path is not None:
         schema_path = windows_path_to_pathlib(schema_path)
+        if not schema_path.exists():
+            raise FileExistsError(f"File {schema_path} does not exist")
+    else:
+        schema_path = None
     print("config file:",config_path)
     Settings = make_settings_class(config_path)
     ctx.obj = {"settings": Settings, "schema_path": schema_path, "schema_type": schema_type, "seed": seed}

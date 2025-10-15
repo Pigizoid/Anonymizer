@@ -10,7 +10,7 @@ def convert_folder_to_JSON(folder_path:Path):
     schema_models = load_recursed_path(folder_path,".py",load_schema)
     print(schema_models)
     stem = folder_path.stem
-    folder_path.with_stem(stem+"_(json)")
+    folder_path = folder_path.with_stem(stem+"_(json)")
     schema_models = {folder_path:schema_models[folder_path.stem]}
     print(schema_models)
     new_path = folder_path.resolve().parent

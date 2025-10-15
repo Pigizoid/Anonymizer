@@ -105,10 +105,10 @@ def test_anon_func(
 ):
     print("CWD:", os.getcwd())
     stem = output.stem
-    output.with_stem(stem+"_(temp)")
-    output.with_suffix(".json")
-    print("Looking for:", os.path.abspath(output))
-    with open(output, "w") as f:  # clear output
+    file_output = output.with_stem(stem+"_(temp)")
+    file_output = file_output.with_suffix(".json")
+    print("Looking for:", os.path.abspath(file_output))
+    with open(file_output, "w") as f:  # clear output
         f.write("")
     anon_func(
         schema_model,
@@ -125,5 +125,5 @@ def test_anon_func(
         key_anon,
         performance
     )
-    with open(output, "r") as f:
+    with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

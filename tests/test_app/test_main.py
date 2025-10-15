@@ -17,4 +17,5 @@ def test_main(c, subc):
         app,
         ["--config", "tests\\config.yaml", f"{c}", f"{subc}"],
     )
+    print(result.output)
     assert result.exit_code == 0
