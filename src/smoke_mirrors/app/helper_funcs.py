@@ -405,11 +405,12 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    pure_path = PureWindowsPath(path_str)
-    print(pure_path)
-    return_path = Path(PurePath(*pure_path.parts))
-    print(return_path)
-    return return_path
+    if not os.path.exists(path_str):
+        pure_path = PureWindowsPath(path_str)
+        print(pure_path)
+        return_path = Path(PurePath(*pure_path.parts))
+        print(return_path)
+        return return_path
 
 
 
