@@ -40,10 +40,10 @@ def test_bruh():
     b = windows_path_to_pathlib(windows_test)
     c = windows_path_to_pathlib(posix_test)
 
-    print(a==b==c)
+    assert(a==b==c)
 
     a = windows_path_to_pathlib(a)
     b = windows_path_to_pathlib(b)
     c = windows_path_to_pathlib(c)
 
-    print(a==b==c)
+    assert(a==b==c)
