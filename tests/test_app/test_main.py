@@ -21,6 +21,8 @@ def test_main(c, subc):
     assert result.exit_code == 0
 
 
+
+from pathlib import *
 def windows_path_to_pathlib(path_str) -> Path:
     pure_path = PurePath(str(path_str))
     print(pure_path)
@@ -29,7 +31,6 @@ def windows_path_to_pathlib(path_str) -> Path:
     return return_path
 
 
-from pathlib import *
 def test_bruh():
     string_test = "tests\\schema.py"
     windows_test = PureWindowsPath(string_test)
