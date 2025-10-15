@@ -95,7 +95,7 @@ def synth_batch_command(
     flags = return_flags(ctx, SynthesiserConfig)
     print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
     print(flags.synth)
-    schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+    schema_models = load_recursed_path(flags.schema_path,flags.schema_type,load_schema)
     if schema_models == None:
         raise Exception("No schemas loaded from input")
     if flat_output:

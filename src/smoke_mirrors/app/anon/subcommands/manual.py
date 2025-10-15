@@ -90,8 +90,8 @@ def anon_manual_command(
     if flags.schema_path is None:
         schema_models = None
     else:
-        schema_models = load_recursed_path(Path(flags.schema_path),flags.schema_type,load_schema)
+        schema_models = load_recursed_path(flags.schema_path,flags.schema_type,load_schema)
         schema_models = flatten_loaded_schemas(schema_models)
-    ingests = load_recursed_path(Path(flags.anon.ingest),".json",load_ingest)
+    ingests = load_recursed_path(flags.anon.ingest,".json",load_ingest)
     output_path_name = load_output_path_flag(flags.anon.output)
     recursive_ingest_json_handler(ingests,anon_manual_func,flags,output_path_name,schema_models)
