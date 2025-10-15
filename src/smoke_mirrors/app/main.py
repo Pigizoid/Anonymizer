@@ -61,7 +61,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         if "output" in mapping["anon"]:
             mapping["anon"]["output"] = windows_path_to_pathlib(mapping["anon"]["output"])
         if "ingest" in mapping["anon"]:
-            mapping["anon"]["output"] = windows_path_to_pathlib(mapping["anon"]["output"])
+            mapping["anon"]["ingest"] = windows_path_to_pathlib(mapping["anon"]["ingest"])
 
         return mapping
 
@@ -174,7 +174,6 @@ def main(
     """
     if config is not None:
         config_path = windows_path_to_pathlib(config)
-        print(config_path,type(config_path))
         if not os.path.exists(config_path):
             raise FileExistsError(f"File config '{config_path}' does not exist")
     else:

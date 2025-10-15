@@ -395,15 +395,11 @@ def return_flags(ctx, config_schema:BaseModel):
     schema_path = ctx.obj["schema_path"]
     schema_type = ctx.obj["schema_type"]
     params = {key: param for key, param in ctx.params.items() if param is not None}
-    print("PARAMS:",params)
     if "ingest" in params:
         params["ingest"] = windows_path_to_pathlib(params["ingest"])
     if "output" in params:
         params["output"] = windows_path_to_pathlib(params["output"])
-    print("PARAMS:",params)
-    print("BEFORE:",schema_path)
     schema_path = windows_path_to_pathlib(schema_path)
-    print("AFTER:",schema_path)
     if config_schema == SynthesiserConfig:
         flags = settings(schema_path=schema_path, schema_type=schema_type, synth=params)
     elif config_schema == AnonymiserConfig:
@@ -418,9 +414,7 @@ def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
         return None
     if not os.path.exists(path_str):
         pure_path = PureWindowsPath(path_str)
-        print(pure_path)
         return_path = Path(PurePath(*pure_path.parts))
-        print(return_path)
         return return_path
     else:
         return path_str
