@@ -408,7 +408,7 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    if isinstance(path_str,Path):
+    if not isinstance(path_str,str):
         return path_str
     pure_path = PurePath(str(path_str))
     print(pure_path)

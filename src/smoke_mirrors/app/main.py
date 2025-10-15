@@ -166,6 +166,7 @@ def main(
     """
     if config is not None:
         config_path = windows_path_to_pathlib(config)
+        print(config_path,type(config_path))
         if not config_path.exists():
             raise FileExistsError(f"File config '{config_path}' does not exist")
     else:
