@@ -408,7 +408,7 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    if isinstance(path_str,Path):
+    if isinstance(path_str,type(Path("nothing"))):
         print(f"putting in a path {str(path_str)}")
         return path_str
     win_path = PureWindowsPath(str(path_str))
