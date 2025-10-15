@@ -408,8 +408,11 @@ def return_flags(ctx, config_schema:BaseModel):
 
 
 def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
-    win_path = PureWindowsPath(path_str)
-    return Path(*win_path.parts)
+    win_path = PureWindowsPath(str(path_str))
+    print(PureWindowsPath)
+    return_path = Path(*win_path.parts)
+    print(return_path)
+    return return_path
 
 
 
