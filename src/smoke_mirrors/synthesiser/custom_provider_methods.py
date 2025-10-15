@@ -687,12 +687,32 @@ class CustomProviders(BaseProvider):
         return random.choice([
             "Apple corer","Apple cutter","Baster","Beanpot","Biscuit press","Blow torch","Boil over preventer","Bottle opener","Bowl","Bread knife","Browning tray","Butter curler","Cake and pie server","Cheese cutter","Cheese knife","Cheese slicer","Cheesecloth","Chef's knife","Cherry pitter","Chinois","Chopsticks","Clay pot","Cleaver","Colander","Cookie cutter","Corkscrew","Crab cracker","Cutting board","Dough scraper","Edible tableware","Egg piercer","Egg poacher","Egg separator","Egg slicer","Egg timer","Fat separator","Fillet knife","Fish scaler","Fish slice","Flour sifter","Food mill","Fork","Funnel","Garlic press","Grapefruit knife","Grater","Gravy strainer","Honey dipper","Knife","Ladle","Lame","Lélé","Lemon reamer","Lemon squeezer","Lobster pick","Mandoline","Mated colander pot","Measuring cup: DRY","Measuring cup: LIQUID","Measuring spoon","Meat grinder","Meat tenderiser","Meat thermometer","Melon baller","Mezzaluna","Microplane","Milk frother","Mortar and pestle","Nutcracker","Nutmeg grater","Oven glove","Pastry bag","Pastry blender","Pastry brush","Pastry wheel","Peel","Peeler","Vegetable peeler","Pepper mill","Pie bird","Pizza cutter","Potato masher","Potato ricer","Pot-holder","Poultry shears","Roller docker","Rolling pin","Salt shaker","Scales","Scissors","Scoop","Sieve","Slotted spoon","Spider","Spoon","Spoon rest","Sugar thermometer","Tamis","Tin opener","Tomato knife","Tongs","Trussing needle","Twine","Whisk","Wooden spoon","Zester"
         ])
+    
+    def description(self) -> str:
+        end_words = []
+        for _ in range(random.randint(1,3)):
+            bs_words = fake.bs().split(" ")
+            end_words.extend(bs_words)
+        title_words = [fake.word() for _ in range(random.randint(5,20))]
+        end_words.extend(title_words)
+        for _ in range(random.randint(1,3)):
+            phrase_words = fake.catch_phrase().split(" ")
+            end_words.extend(phrase_words)
+        random.shuffle(end_words)
+        choices = range(0,len(end_words)-1)
+        samples = random.sample(choices,k=random.randint(0,3))
+        for x in samples:
+            end_words[x] += ","
+        end_words[0] = end_words[0][0].upper() + end_words[0][1:]
+        end_words[-1] += "."
+        return " ".join(end_words)
+
 
     
 if __name__ == "__main__":
     fake.add_provider(CustomProviders)
     for x in range(100):
-        print(fake.would_you_rather())
+        print(fake.description())
 
     for x in dir(CustomProviders):
         try:
