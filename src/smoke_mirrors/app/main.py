@@ -41,7 +41,6 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
         mapping["schema_path"] = windows_path_to_pathlib(mapping["schema_path"])
-
         if "schema_type" in raw:
             mapping["schema_type"] = raw["schema_type"]
 
