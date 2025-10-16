@@ -1,11 +1,12 @@
 from typing import Dict, List, Tuple, Set, Any, Union
-from smoke_mirrors.tools.model_funcs import get_json_model_data
+from smoke_mirrors.tools.model_funcs import get_json_model_data, validate_instance_data
 from smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from smoke_mirrors.pre_made_data import recursive_types
 import random
 import string
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
+from jsonschema.validators import validator_for
 from jsonschema.exceptions import ValidationError
 from copy import deepcopy
 
@@ -321,6 +322,14 @@ def anonymise(
         else:
             new_schema_model = result_schema
     synth.register_schema(new_schema_model)
+    schema1 = schema_model.contents
+    klass1 = validator_for(schema1)
+    klass1.check_schema(schema1)
+    instance1 = klass1(schema1)
+    schema2 = schema_model.sanitised_contents
+    klass2 = validator_for(schema2)
+    klass2.check_schema(schema2)
+    instance2 = klass1(schema2)
     for index, data_entry in enumerate(data.values()):
         if manual or default != "synth":
             return_data = [
@@ -344,10 +353,7 @@ def anonymise(
                 else:
                     new_fields[field] = getattr(return_entry, field)
             if performance == False or index < 10:
-                try:
-                    validate(instance=new_fields, schema=result_schema.contents)
-                except ValidationError:
-                    validate(instance=new_fields, schema=result_schema.sanitised_contents)
+                validate_instance_data(instance=new_fields, schema=result_schema, schema_instances=(instance1,instance2))
             anonymised_data_set.append(new_fields)
         if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
             print(

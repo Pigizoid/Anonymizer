@@ -5,6 +5,7 @@ from typing import Union, Type, Dict, Tuple, List, Set, Any, Literal, Generator,
 import inspect
 import re
 from copy import deepcopy
+from jsonschema import validate
 
 ModelLike = Union[Type[BaseModel], BaseModel]
 
@@ -403,5 +404,18 @@ def load_schemas_from_openapi(schema_model:Dict[str,Any]):
     
     return return_schemas
 
+
+
+def validate_instance_data(instance: Dict, schema: List[Dict],schema_instances=None) -> None:
+    if schema_instances is not None:
+        try:
+            schema_instances[0].validate(instance)
+        except:
+            schema_instances[1].validate(instance)
+    else:
+        try:
+            validate(instance=instance, schema=schema.contents)
+        except:
+            validate(instance=instance, schema=schema.sanitised_contents)
 
 

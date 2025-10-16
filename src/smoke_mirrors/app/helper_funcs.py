@@ -7,12 +7,13 @@ import requests
 import time
 import json
 from typing import Dict, Any, List, Union
-from pathlib import Path, PurePath, PureWindowsPath
+from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from jsonschema import validate
+from jsonschema.validators import validator_for
 from jsonschema.exceptions import ValidationError
-from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi
+from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi, validate_instance_data
 import re
 import shutil
 
@@ -248,16 +249,29 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
 def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],ingest,ingest_path):
     if schema_models is None:
         return None
+    schema_instances = []
+    for schema_model in schema_models:
+        if type(schema_model) == JsonSchemaClass:
+            schema1 = schema_model.contents
+            klass1 = validator_for(schema1)
+            klass1.check_schema(schema1)
+            instance1 = klass1(schema1)
+            schema2 = schema_model.sanitised_contents
+            klass2 = validator_for(schema2)
+            klass2.check_schema(schema2)
+            instance2 = klass1(schema2)
+            schema_instances.append((instance1,instance2))
+        else:
+            schema_instances.append(())
     matched_schemas = []
     first_entry = True
+    start = time.time()
+    print("Validating and matching schema to data")
     for key,data_entry in ingest.items():
-        for schema_model in schema_models:
+        for schema_model,schema_instance in zip(schema_models,schema_instances):
             if type(schema_model) == JsonSchemaClass:
                 if schema_model.fields.keys() == data_entry.keys():
-                    try:
-                        validate(instance=data_entry, schema=schema_model.contents)
-                    except ValidationError:
-                        validate(instance=data_entry, schema=schema_model.sanitised_contents)
+                    validate_instance_data(instance=data_entry, schema=schema_model, schema_instances=schema_instance)
                 else:
                     continue
             else:
@@ -269,8 +283,10 @@ def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],in
                 matched_schemas.append(schema_model)
             elif schema_model not in matched_schemas:
                 continue
-        if first_entry == True:
-            first_entry = False
+        first_entry = False
+    end = time.time()
+    elapsed = end-start
+    print(f"Finished matching data to schemas, time : {elapsed:2f} seconds")
     if len(matched_schemas) == 0:
         print(f"Data entry '{key}' in path '{ingest_path}' has no matched schema")
         return schema_models[0]
@@ -415,12 +431,15 @@ def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
     if not os.path.exists(path_str):
         pure_path = PureWindowsPath(path_str)
         return_path = Path(PurePath(*pure_path.parts))
+        if not os.path.exists(return_path):
+            pure_path = PurePosixPath(path_str)
+            return_path = Path(PurePath(*pure_path.parts))
         return return_path
     else:
-        return path_str
-
-
-
+        if isinstance(path_str,Path):
+            return path_str
+        else:
+            return Path(path_str)
 
 
 

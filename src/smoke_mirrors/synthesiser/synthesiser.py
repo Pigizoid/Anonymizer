@@ -12,7 +12,16 @@ from typing import (
 from smoke_mirrors.synthesiser.constraints import make_one_string, get_applied_constraints, check_generation_constraints
 from smoke_mirrors.synthesiser.matching_fields import match_fields
 from smoke_mirrors.synthesiser.provider_methods import list_match_methods, make_resolved_methods
-from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types, load_parse_json_schema
+from smoke_mirrors.tools.model_funcs import (
+    get_json_model_fields, 
+    infer_json_type, 
+    get_json_model_data, 
+    infer_json_args, 
+    is_json_model, 
+    flatten_json_types, 
+    load_parse_json_schema, 
+    validate_instance_data
+)
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder
 from collections import deque
@@ -111,18 +120,6 @@ def regex_parallel_worker(args,_):
     gen = env["gen"]
     return [gen() for _ in range(amount)]
 
-
-def validate_synthesised_data(synthesised_data: Dict, schema_model: List[Dict],instances=None) -> None:
-    if instances is not None:
-        try:
-            instances[0].validate(synthesised_data)
-        except:
-            instances[1].validate(synthesised_data)
-    else:
-        try:
-            validate(instance=synthesised_data, schema=schema_model.contents)
-        except:
-            validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
 
 class JsonSynthesiser():
     def __init__(self, method="faker",stdcout=False,rich_output=False):
@@ -1027,7 +1024,7 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    validate_synthesised_data(synthesised_data,schema_model)
+                    validate_instance_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
             return dataset
         else:
@@ -1048,7 +1045,7 @@ class JsonSynthesiser():
                     schema_model, method=method, amount=amount
                 )
                 if x < 10:  #validate 10 to confirm, then skip the rest
-                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
+                    validate_instance_data(synthesised_data,schema_model,schema_instances=(instance1,instance2))
                 dataset.append(synthesised_data)
                 if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
@@ -1059,7 +1056,7 @@ class JsonSynthesiser():
             self.print("\nValidating data")
             if performance == False:
                 for x,synthesised_data in enumerate(dataset):
-                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
+                    validate_instance_data(synthesised_data,schema_model,schema_instances=(instance1,instance2))
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                         self.print(
                             f"Completed: {x + 1}/{amount} | {round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
@@ -1126,7 +1123,7 @@ class JsonSynthesiser():
             for x in range(amount):
                 synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
                 if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    validate_synthesised_data(synthesised_data,schema_model)
+                    validate_instance_data(synthesised_data,schema_model)
                 dataset.append(synthesised_data)
         else:
             

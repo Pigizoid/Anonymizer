@@ -41,6 +41,7 @@ def anon_func(
         data to the output file and optionally prints output to the screen
     """
     # data comes in as a dict of dicts
+    print("Started Anonymiser")
     start = time.time()
     anonymised_data = anonymiser.anonymise(
         schema_model, ingest, method, manual, default, fields, amount, seed=seed, key_anon=key_anon, stdcout=stdcout, performance=performance
