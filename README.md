@@ -1,13 +1,15 @@
 # Smoke and Mirrors
 
 ## Purpose
-Ingest any data from a schema and anonymize it or create synthetic data
-
-## Scope
-TODO
+Ingest schemas and synthesise fake data or anonymised ingest data according to the schema
 
 ## Features
-TODO
+Synthesise fake data according to jsonschema or pydantic schema constraints
+Anonymise data according to schema
+CLI app tool for calling functions with
+Importable as a package
+Built in openapi object handling
+Built in regex string generator
 
 ## Environment and Installation
 Python v3.12+ <br/>
@@ -39,7 +41,7 @@ jsonschema - 4.25.1
 mimesis - 18.0.0
 pydantic - 2.11.7
 pydantic-settings - 2.10.1
-pyyam - l6.0.2
+pyyaml - 6.0.2
 requests - 2.32.5
 rstr - 3.2.2
 typer - 0.16.0
@@ -51,6 +53,8 @@ typer - 0.16.0
 
 ### Folder Structure
 Open selected directory in the terminal
+
+Example folder structure
 
 |folder
 |  \
@@ -66,6 +70,7 @@ Usage: sm [OPTIONS] COMMAND [ARGS]
 │ --schema-path
 │ --schema-type
 │ --seed
+│ --dev
 
 ╭─ Commands
 │ synth
