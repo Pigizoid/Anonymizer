@@ -195,7 +195,7 @@ def test_generate_synth_data():
         )
     try:
         validate(instance=synthesised_data, schema=schema_model.contents)
-    except Exception:
+    except:
         validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
 
 
@@ -232,11 +232,7 @@ def test_print_path_deeper_path(capsys):
 
 @pytest.mark.parametrize(
     "path,elapsed,expected",
-    [
-        ("[3]", 0.0, "Time taken: 0.00 seconds"),
-        ("[1][2]", 2.718, "Time taken: 2.72 seconds"),
-        ("[9][9][9][9]", 100.1234, "Time taken: 100.12 seconds"),
-    ],
+    [("[3]", 0.0, "Time taken: 0.00 seconds"),("[1][2]", 2.718, "Time taken: 2.72 seconds"),("[9][9][9][9]", 100.1234, "Time taken: 100.12 seconds"),],
 )
 def test_print_path_parametrized(path, elapsed, expected, capsys):
     print_path(path, elapsed, print)
