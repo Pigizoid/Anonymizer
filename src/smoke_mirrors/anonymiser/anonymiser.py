@@ -322,11 +322,11 @@ def anonymise(
         else:
             new_schema_model = result_schema
     synth.register_schema(new_schema_model)
-    schema1 = schema_model.contents
+    schema1 = new_schema_model.contents
     klass1 = validator_for(schema1)
     klass1.check_schema(schema1)
     instance1 = klass1(schema1)
-    schema2 = schema_model.sanitised_contents
+    schema2 = new_schema_model.sanitised_contents
     klass2 = validator_for(schema2)
     klass2.check_schema(schema2)
     instance2 = klass1(schema2)
