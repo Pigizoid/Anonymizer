@@ -1,0 +1,32 @@
+{
+        "$defs": {
+                "USER": {
+                        "properties": {
+                                "name": {
+                                        "title": "Name",
+                                        "type": "string"
+                                }
+                        },
+                        "required": [
+                                "name"
+                        ],
+                        "title": "USER",
+                        "type": "object"
+                }
+        },
+        "properties": {
+                "user": {
+                        "$ref": "#/$defs/USER"
+                },
+                "street": {
+                        "title": "Street",
+                        "type": "string"
+                }
+        },
+        "required": [
+                "user",
+                "street"
+        ],
+        "title": "New_Address4",
+        "type": "object"
+}

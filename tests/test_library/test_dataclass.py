@@ -1,11 +1,11 @@
-
-from src.sm.library.dataclass import AnonField,SynthField
-from src.sm.tools.model_funcs import get_model_fields
+"""
+from src.smoke_mirrors.library.dataclass import AnonField,SynthField
+from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 from tests.schema import test_user
 import pytest
 
 
-fields = get_model_fields(test_user)
+fields = get_json_model_fields(test_user)
 
 
 amounts = [1,5,10]
@@ -51,9 +51,10 @@ def test_MixedField(amount):
 
 def test_Field_comprehension():
     data = {
-        field_name : SynthField(field_name,amount,"faker",field_data) 
+        field_name : SynthField(field_name,amount,"faker",field_data)
         for field_name,field_data in fields.items()
     }
     assert all([len(x.vals) == amount for x in data.values()])
     assert all([x.method == "faker" for x in data.values()])
 
+"""

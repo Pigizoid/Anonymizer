@@ -1,22 +1,30 @@
 import pytest
-import pathlib
 import os
+import json
 
-from tests.schema import test_user as schema_model
-from src.sm.app.anon.funcs import anon_func
+from src.smoke_mirrors.app.anon.funcs import anon_func
+from src.smoke_mirrors.app.helper_funcs import load_ingest_data
+from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
+from pathlib import Path
+
+test_schema = Path("tests") / "schema.json"
+with open(test_schema, "r") as f:
+    schema_model = JsonSchemaClass(json.load(f))
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]
 amounts = [1, 2]
 start_index = 0
-ingest = "tests\\data.json"
-cout = False
+ingest_file = Path("tests") / "data.json"
+ingest = load_ingest_data(ingest_file)
+
+stdcout = False
 manuals = [True, False]
 defaults = ["mask", "perturb", "synth"]
 field_defaults = ["default", "mask", "perturb", "synth"]
 fields_list = ["name", "age", "email"]
 
-output = "tests\\outputs\\test_synth_out"
+output = Path("tests") / "outputs" / "test_anon_out"
 
 field_tests = [
     {"name": "default"},
@@ -26,32 +34,61 @@ field_tests = [
     {"name": "perturb"},
     {"name": "synth"},
 ]
+key_anons = [True, False]
+performances = [True, False]
+realistics = [True, False]
 
 test_list = []
-for fields in field_tests:
-    for default in defaults:
-        for manual in manuals:
-            for amount in amounts:
-                for method in methods:
-                    test_list.append(
-                        (
-                            schema_model,
-                            seed,
-                            method,
-                            amount,
-                            start_index,
-                            ingest,
-                            cout,
-                            manual,
-                            default,
-                            fields,
-                            output,
-                        )
-                    )
+
+for default in defaults:
+    for amount in amounts:
+        for method in methods:
+            for key_anon in key_anons:
+                for manual in manuals:
+                    for realistic in realistics:
+                        if manual:
+                            for fields in field_tests:
+                                test_list.append(
+                                    (
+                                        schema_model,
+                                        seed,
+                                        method,
+                                        amount,
+                                        start_index,
+                                        ingest,
+                                        stdcout,
+                                        manual,
+                                        default,
+                                        fields,
+                                        output,
+                                        key_anon,
+                                        True,
+                                        realistic,
+                                    )
+                                )
+                        else:
+                            test_list.append(
+                                (
+                                    schema_model,
+                                    seed,
+                                    method,
+                                    amount,
+                                    start_index,
+                                    ingest,
+                                    stdcout,
+                                    manual,
+                                    default,
+                                    {},
+                                    output,
+                                    key_anon,
+                                    True,
+                                    realistic,
+                                )
+                            )
 
 
 @pytest.mark.parametrize(
-    "schema_model, seed, method, amount, start_index, ingest, cout, manual, default, fields, output",
+    "schema_model, seed, method, amount, start_index, ingest, stdcout, manual, default, fields, output, key_anon, performance, realistic",
     test_list,
 )
 def test_anon_func(
@@ -61,15 +98,21 @@ def test_anon_func(
     amount,
     start_index,
     ingest,
-    cout,
+    stdcout,
     manual,
     default,
     fields,
-    output,
+    output: Path,
+    key_anon,
+    performance,
+    realistic,
 ):
     print("CWD:", os.getcwd())
-    print("Looking for:", os.path.abspath(f"{output}.json"))
-    with open(f"{output}.json", "w") as f:  # clear output
+    stem = output.stem
+    file_output = output.with_stem(stem + "_(temp)")
+    file_output = file_output.with_suffix(".json")
+    print("Looking for:", os.path.abspath(file_output))
+    with open(file_output, "w") as f:  # clear output
         f.write("")
     anon_func(
         schema_model,
@@ -78,11 +121,14 @@ def test_anon_func(
         amount,
         start_index,
         ingest,
-        cout,
+        stdcout,
         manual,
         default,
         fields,
         output,
+        key_anon,
+        performance,
+        realistic,
     )
-    with open(f"{output}.json", "r") as f:
+    with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

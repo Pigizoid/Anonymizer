@@ -1,7 +1,7 @@
 # test_main.py
 
 '''
-from src.sm.main import app
+from src.smoke_mirrors.main import app
 
 
 from typer.testing import CliRunner
@@ -95,19 +95,19 @@ def test_synth_single_output():
     assert "output='output_file'" in result.stdout
 
 
-def test_synth_single_cout():
+def test_synth_single_stdcout():
     os.chdir(test_dir)
     print(os.getcwd())
     result = runner.invoke(
         app,
         [
             "synth",
-            "--cout",
+            "--stdcout",
         ],
     )
     assert result.exit_code == 0
     assert "Args:" in result.stdout
-    assert "cout=True)" in result.stdout
+    assert "stdcout=True)" in result.stdout
 
 
 def test_synth_batch():
@@ -146,7 +146,7 @@ def test_anonymise():
             "5",
             "--output",
             "test_out",
-            "--cout",
+            "--stdcout",
         ],
     )
     assert result.exit_code == 0

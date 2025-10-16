@@ -1,0 +1,25 @@
+{
+        "properties": {
+                "bio": {
+                        "anyOf": [
+                                {
+                                        "type": "string"
+                                },
+                                {
+                                        "type": "null"
+                                }
+                        ],
+                        "title": "Bio"
+                },
+                "score": {
+                        "title": "Score",
+                        "type": "integer"
+                }
+        },
+        "required": [
+                "bio",
+                "score"
+        ],
+        "title": "StressProfile",
+        "type": "object"
+}

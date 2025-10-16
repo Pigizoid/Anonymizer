@@ -1,11 +1,11 @@
 import pytest
-import pathlib
 import os
-from src.sm.app.main import app
+from src.smoke_mirrors.app.main import app
 
 from typer.testing import CliRunner
 
 runner = CliRunner()
+
 
 @pytest.mark.parametrize(
     "c,subc",
@@ -17,4 +17,5 @@ def test_main(c, subc):
         app,
         ["--config", "tests\\config.yaml", f"{c}", f"{subc}"],
     )
+    print(result.output)
     assert result.exit_code == 0

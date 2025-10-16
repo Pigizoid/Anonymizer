@@ -1,0 +1,55 @@
+{
+        "properties": {
+                "username": {
+                        "maxLength": 20,
+                        "minLength": 3,
+                        "pattern": "^[a-zA-Z0-9_]+$",
+                        "title": "Username",
+                        "type": "string"
+                },
+                "email": {
+                        "anyOf": [
+                                {
+                                        "type": "string"
+                                },
+                                {
+                                        "type": "null"
+                                }
+                        ],
+                        "title": "Email"
+                },
+                "age": {
+                        "exclusiveMaximum": 100,
+                        "exclusiveMinimum": 12,
+                        "title": "Age",
+                        "type": "integer"
+                },
+                "bio": {
+                        "anyOf": [
+                                {
+                                        "maxLength": 250,
+                                        "type": "string"
+                                },
+                                {
+                                        "type": "null"
+                                }
+                        ],
+                        "default": null,
+                        "title": "Bio"
+                },
+                "interests": {
+                        "items": {
+                                "type": "string"
+                        },
+                        "title": "Interests",
+                        "type": "array"
+                }
+        },
+        "required": [
+                "username",
+                "email",
+                "age"
+        ],
+        "title": "New_Address3",
+        "type": "object"
+}

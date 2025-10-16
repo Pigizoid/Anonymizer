@@ -1,0 +1,49 @@
+{
+        "$defs": {
+                "StressProfile": {
+                        "properties": {
+                                "bio": {
+                                        "anyOf": [
+                                                {
+                                                        "type": "string"
+                                                },
+                                                {
+                                                        "type": "null"
+                                                }
+                                        ],
+                                        "title": "Bio"
+                                },
+                                "score": {
+                                        "title": "Score",
+                                        "type": "integer"
+                                }
+                        },
+                        "required": [
+                                "bio",
+                                "score"
+                        ],
+                        "title": "StressProfile",
+                        "type": "object"
+                }
+        },
+        "properties": {
+                "id": {
+                        "title": "Id",
+                        "type": "integer"
+                },
+                "name": {
+                        "title": "Name",
+                        "type": "string"
+                },
+                "profile": {
+                        "$ref": "#/$defs/StressProfile"
+                }
+        },
+        "required": [
+                "id",
+                "name",
+                "profile"
+        ],
+        "title": "StressUser",
+        "type": "object"
+}

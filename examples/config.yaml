@@ -1,0 +1,12 @@
+---
+  seed: false
+  anonymiser:
+    method: mixed
+    amount: 1
+    output: data_out
+    stdcout: true
+    manual: false
+    default: "mask"
+    fields:
+      name: default
+  

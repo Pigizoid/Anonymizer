@@ -1,0 +1,33 @@
+{ 
+    "0":{
+        "street":"Oreilly",
+	"city":"Van Buren",
+	"zip_code":"92071",
+	"country":"Austria",
+	"social_security_number": "652-88-2388",
+	"continent": "Antarctica",
+	"phone_number" : {
+		"0" : {
+			"0" : "012345",
+			"1" : "023456"
+		},
+		"1" : "23456"
+	}
+    },
+    "1":{
+        "street":"gybghnbh",
+	"city":"Van Buren",
+	"zip_code":"92071",
+	"country":"Austria",
+	"social_security_number": "652-88-2388",
+	"continent": "Antarctica",
+	"phone_number" : {
+		"0" : {
+			"0" : "012345",
+			"1" : "023456"
+		},
+		"1" : "23456"
+	}
+    }
+
+}
