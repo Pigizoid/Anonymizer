@@ -13,42 +13,67 @@ def generate_provider_return_types(provider_names, provider_instances):
 
     for name in sorted(provider_names):
         try:
-            value = getattr(provider_instances[name], name, None)()
+            values = [
+                getattr(provider_instances[name], name, None)() for _ in range(31)
+            ]
         except Exception:
             continue
-        if value is None:
-            return_types[name] = type(None)
+        types_list = []
+        for value in values:
+            if value is None:
+                types_list.append(type(None))
+                continue
+            try:
+                int(value)
+                types_list.append(int)
+                continue
+            except (TypeError, ValueError):
+                pass
 
-        try:
-            int(value)
-            return_types[name] = int
-            continue
-        except (TypeError, ValueError):
-            pass
+            try:
+                float(value)
+                types_list.append(float)
+                continue
+            except (TypeError, ValueError):
+                pass
 
-        try:
-            float(value)
-            return_types[name] = float
-            continue
-        except (TypeError, ValueError):
-            pass
+            if isinstance(value, str) and value.lower() in {"true", "false"}:
+                return_type = bool
+            elif isinstance(value, bytes):
+                return_type = bytes
+            elif isinstance(value, tuple):
+                return_type = tuple
+            elif isinstance(value, list):
+                return_type = list
+            elif isinstance(value, set):
+                return_type = set
+            elif isinstance(value, frozenset):
+                return_type = frozenset
+            elif isinstance(value, dict):
+                return_type = dict
+            else:
+                return_type = str
 
-        if isinstance(value, str) and value.lower() in {"true", "false"}:
-            return_types[name] = bool
-        elif isinstance(value, bytes):
-            return_types[name] = bytes
-        elif isinstance(value, tuple):
-            return_types[name] = tuple
-        elif isinstance(value, list):
-            return_types[name] = list
-        elif isinstance(value, set):
-            return_types[name] = set
-        elif isinstance(value, frozenset):
-            return_types[name] = frozenset
-        elif isinstance(value, dict):
-            return_types[name] = dict
-        else:
-            return_types[name] = str
+            types_list.append(return_type)
+
+        available_types = [
+            type(None),
+            int,
+            float,
+            bool,
+            bytes,
+            tuple,
+            list,
+            set,
+            frozenset,
+            dict,
+            str,
+        ]
+        for selected_type in reversed(available_types):
+            if selected_type in types_list:
+                maximal_type = selected_type
+                break
+        return_types[name] = maximal_type
 
     return dict(sorted(return_types.items()))
 
@@ -145,7 +170,10 @@ import inspect
         names, instances = list_match_methods("mixed")
         p_types = generate_provider_return_types(names, instances)
         for name, v in p_types.items():
-            f.write(f"    '{name}' : {v.__name__},\n")
+            if v.__name__ == "NoneType":
+                f.write(f"    '{name}' : None,\n")
+            else:
+                f.write(f"    '{name}' : {v.__name__},\n")
         f.write("}\n")
 
         methods = ["faker", "mimesis", "mixed"]
