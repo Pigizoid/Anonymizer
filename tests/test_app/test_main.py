@@ -1,11 +1,11 @@
 import pytest
-import pathlib
 import os
 from src.smoke_mirrors.app.main import app
 
 from typer.testing import CliRunner
 
 runner = CliRunner()
+
 
 @pytest.mark.parametrize(
     "c,subc",

@@ -1,5 +1,4 @@
 import os
-import pathlib
 from src.smoke_mirrors.app.main import app
 
 from typer.testing import CliRunner

@@ -106,7 +106,10 @@ def enumerate_sequences_for_subpattern(sub, max_repeat, alphabet):
                 else:
                     chars = set(alphabet)
                 sequences = [seq + [chars] for seq in sequences]
-            elif tok in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, inner = arg
                 if hi == regex_sre_constants.MAXREPEAT or hi is None:
                     hi_eff = lo + max_repeat
@@ -148,7 +151,9 @@ def enumerate_sequences_for_subpattern(sub, max_repeat, alphabet):
                 for branch in branches:
                     bseqs = walk(branch)
                     branch_sequences.extend(bseqs)
-                sequences = [seq + bseq for seq in sequences for bseq in branch_sequences]
+                sequences = [
+                    seq + bseq for seq in sequences for bseq in branch_sequences
+                ]
             elif tok in (regex_sre_constants.AT,):
                 continue
             else:
@@ -202,7 +207,10 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
                 else:
                     choices = list(alphabet)
                 reqs.append((mult, choices))
-            elif tok in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, inner = arg
                 inner_mult = mult * max(1, lo)
                 walk(inner, inner_mult)
@@ -222,6 +230,7 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
     walk(subp, repeat_multiplier)
     combined = []
     from collections import defaultdict
+
     agg = defaultdict(int)
     choice_map = {}
     for cnt, choices in reqs:
@@ -229,7 +238,7 @@ def _collect_atomic_requirements(subp, flags, alphabet, repeat_multiplier=1):
         agg[key] += cnt
         choice_map[key] = choices
     for k, cnt in agg.items():
-        combined.append({'count': cnt, 'choices': choice_map[k]})
+        combined.append({"count": cnt, "choices": choice_map[k]})
     return combined
 
 
@@ -241,9 +250,17 @@ def extract_negative_lookarounds(parsed):
             if tok == regex_sre_constants.ASSERT_NOT:
                 dirn, sub = arg
                 results.append(sub)
-            elif tok in (regex_sre_constants.SUBPATTERN, regex_sre_constants.BRANCH,
-                         regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
-                if tok in (regex_sre_constants.SUBPATTERN, regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.SUBPATTERN,
+                regex_sre_constants.BRANCH,
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
+                if tok in (
+                    regex_sre_constants.SUBPATTERN,
+                    regex_sre_constants.MAX_REPEAT,
+                    regex_sre_constants.MIN_REPEAT,
+                ):
                     if isinstance(arg, tuple):
                         sub = arg[-1]
                     else:
@@ -255,6 +272,7 @@ def extract_negative_lookarounds(parsed):
                         walk(branch)
             elif tok == regex_sre_constants.IN:
                 walk(arg)
+
     walk(parsed)
     return results
 
@@ -273,7 +291,9 @@ def extract_positive_lookahead_literals(parsed, max_repeat, alphabet):
             if tok == regex_sre_constants.ASSERT:
                 dirn, sub = arg
                 if dirn > 0:
-                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(sub, min(max_repeat, 6), alphabet)
+                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(
+                        sub, min(max_repeat, 6), alphabet
+                    )
                     for seq in seqs:
                         i = 0
                         while i < len(seq):
@@ -283,13 +303,17 @@ def extract_positive_lookahead_literals(parsed, max_repeat, alphabet):
                                 while j < len(seq) and len(seq[j]) == 1:
                                     s_chars.append(next(iter(seq[j])))
                                     j += 1
-                                s_str = ''.join(s_chars)
+                                s_str = "".join(s_chars)
                                 if s_str:
                                     found.append(s_str)
                                 i = j
                             else:
                                 i += 1
-            elif tok in (regex_sre_constants.SUBPATTERN, regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.SUBPATTERN,
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 if isinstance(arg, tuple):
                     sub = arg[-1]
                 else:
@@ -312,6 +336,7 @@ def compute_min_max_length(parsed, max_repeat, alphabet):
     Compute approximate min and max length of the entire pattern (conservative).
     Uses max_repeat to bound open-ended repeats.
     """
+
     def walk(pat):
         total_min = 0
         total_max = 0
@@ -325,7 +350,10 @@ def compute_min_max_length(parsed, max_repeat, alphabet):
             elif tok == regex_sre_constants.CATEGORY:
                 total_min += 1
                 total_max += 1
-            elif tok in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif tok in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, inner = arg
                 if hi == regex_sre_constants.MAXREPEAT or hi is None:
                     hi_eff = lo + max_repeat
@@ -372,7 +400,9 @@ def subpattern_is_anchored_to_whole(sub):
     try:
         first_tok = sub[0][0]
         last_tok = sub[-1][0]
-        return (first_tok == regex_sre_constants.AT) and (last_tok == regex_sre_constants.AT)
+        return (first_tok == regex_sre_constants.AT) and (
+            last_tok == regex_sre_constants.AT
+        )
     except Exception:
         return False
 
@@ -387,7 +417,9 @@ def is_pattern_anchored(parsed):
     try:
         first_tok = parsed[0][0]
         last_tok = parsed[-1][0]
-        return (first_tok == regex_sre_constants.AT) and (last_tok == regex_sre_constants.AT)
+        return (first_tok == regex_sre_constants.AT) and (
+            last_tok == regex_sre_constants.AT
+        )
     except Exception:
         return False
 
@@ -415,6 +447,7 @@ def compile_regex_to_function_source(
         if first_tok is regex_sre_constants.ASSERT:
             dirn, sub = first_arg
             if dirn < 0:
+
                 def fixed_width(subpat):
                     width = 0
                     for tok, arg in subpat:
@@ -436,6 +469,7 @@ def compile_regex_to_function_source(
                         else:
                             return None
                     return width
+
                 w = fixed_width(sub)
                 if w is not None and w > 0:
                     raise ValueError(
@@ -445,9 +479,13 @@ def compile_regex_to_function_source(
                         "context is part of the matched text."
                     )
 
-    required_substrings = extract_positive_lookahead_literals(parsed, min(max_repeat, 6), alphabet)
+    required_substrings = extract_positive_lookahead_literals(
+        parsed, min(max_repeat, 6), alphabet
+    )
 
-    min_len_approx, max_len_approx = compute_min_max_length(parsed, min(max_repeat, 6), alphabet)
+    min_len_approx, max_len_approx = compute_min_max_length(
+        parsed, min(max_repeat, 6), alphabet
+    )
     if max_len_approx > 10**6:
         max_len_approx = None
 
@@ -520,22 +558,30 @@ def compile_regex_to_function_source(
             if token is regex_sre_constants.LITERAL:
                 ch = chr(arg)
                 cname = get_choice_name_for([ch])
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token is regex_sre_constants.NOT_LITERAL:
                 forbidden = chr(arg)
                 choices = [c for c in alphabet if c != forbidden]
                 if not choices:
                     choices = list(alphabet)
                 cname = get_choice_name_for(choices)
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token is regex_sre_constants.ANY:
                 choices = [c for c in alphabet if c != "\n"]
                 cname = get_choice_name_for(choices)
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token is regex_sre_constants.IN:
                 choices = _expand_in_child_static(arg, flags, alphabet)
                 cname = get_choice_name_for(choices)
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token is regex_sre_constants.CATEGORY:
                 if arg in CATEGORY_TO_EXPR:
                     if arg == regex_sre_constants.CATEGORY_DIGIT:
@@ -557,7 +603,9 @@ def compile_regex_to_function_source(
                     else:
                         choices = list(alphabet)
                 cname = get_choice_name_for(choices)
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token is regex_sre_constants.BRANCH:
                 _, branches = arg
                 n = len(branches)
@@ -582,16 +630,23 @@ def compile_regex_to_function_source(
                     sub = arg
                 sub_bid = build_block_for_subpattern(sub)
                 if groupnum and groupnum > 0:
-                    lines.append(f"        start_idx = len(out)")
+                    lines.append("        start_idx = len(out)")
                     lines.append(f"        lg = _b{sub_bid}(out)")
                     lines.append("        local_groups.update(lg)")
                     lines.append("        groups.update(lg)")
-                    lines.append(f"        local_groups[{groupnum}] = ''.join(out[start_idx:])")
-                    lines.append(f"        groups[{groupnum}] = local_groups[{groupnum}]")
+                    lines.append(
+                        f"        local_groups[{groupnum}] = ''.join(out[start_idx:])"
+                    )
+                    lines.append(
+                        f"        groups[{groupnum}] = local_groups[{groupnum}]"
+                    )
                 else:
                     lines.append(f"        lg = _b{sub_bid}(out)")
                     lines.append("        local_groups.update(lg)")
-            elif token in (regex_sre_constants.MAX_REPEAT, regex_sre_constants.MIN_REPEAT):
+            elif token in (
+                regex_sre_constants.MAX_REPEAT,
+                regex_sre_constants.MIN_REPEAT,
+            ):
                 lo, hi, sub = arg
                 sub_bid = build_block_for_subpattern(sub)
                 if hi == regex_sre_constants.MAXREPEAT or hi is None:
@@ -599,11 +654,15 @@ def compile_regex_to_function_source(
                 else:
                     hi_eff = min(hi, lo + max_repeat)
                 if hi_eff < lo:
-                    raise ValueError(f"Maximum value {hi_eff} is smaller than minimum value {lo}")
+                    raise ValueError(
+                        f"Maximum value {hi_eff} is smaller than minimum value {lo}"
+                    )
                 choices, cname = _is_atomic_single_char(sub)
                 if choices is not None:
                     lines.append(f"        count = random.randint({lo}, {hi_eff})")
-                    lines.append("        if lookahead_stack or pending_requirements or forbidden_literals:")
+                    lines.append(
+                        "        if lookahead_stack or pending_requirements or forbidden_literals:"
+                    )
                     lines.append("            for _ in range(count):")
                     lines.append(f"                lg = _b{sub_bid}(out)")
                     lines.append("                local_groups.update(lg)")
@@ -611,10 +670,14 @@ def compile_regex_to_function_source(
                     if len(choices) == 1:
                         ch = choices[0]
                         lines.append("            if count:")
-                        lines.append(f"                out.extend([{repr(ch)}] * count)")
+                        lines.append(
+                            f"                out.extend([{repr(ch)}] * count)"
+                        )
                     else:
                         lines.append("            if count:")
-                        lines.append(f"                picks = random.choices(_CHOICES['{cname}'], k=count)")
+                        lines.append(
+                            f"                picks = random.choices(_CHOICES['{cname}'], k=count)"
+                        )
                         lines.append("                out.extend(picks)")
                 else:
                     lines.append(f"        count = random.randint({lo}, {hi_eff})")
@@ -633,25 +696,35 @@ def compile_regex_to_function_source(
                 a, b = arg
                 choices = [chr(c) for c in range(a, b + 1)]
                 cname = get_choice_name_for(choices)
-                lines.append(f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))")
+                lines.append(
+                    f"        out.append(_choose_from_list(_CHOICES['{cname}'], out))"
+                )
             elif token in (regex_sre_constants.ASSERT, regex_sre_constants.ASSERT_NOT):
                 dirn, sub = arg
                 if token is regex_sre_constants.ASSERT and dirn > 0:
                     reqs = _collect_atomic_requirements(sub, flags, alphabet)
                     if reqs:
                         is_positional = all(
-                            isinstance(r, dict) and int(r.get('count', 1)) == 1 and len(tuple(r.get('choices', ()))) == 1
+                            isinstance(r, dict)
+                            and int(r.get("count", 1)) == 1
+                            and len(tuple(r.get("choices", ()))) == 1
                             for r in reqs
                         )
                         if is_positional:
-                            forced_seq = [tuple(r['choices'])[0] for r in reqs]
+                            forced_seq = [tuple(r["choices"])[0] for r in reqs]
                             lines.append("        if %d > 0:" % (dirn))
-                            lines.append(f"            lookahead_stack.append({{'forced': list({repr(forced_seq)}), 'pos': 0, 'start_pos': len(out)}})")
+                            lines.append(
+                                f"            lookahead_stack.append({{'forced': list({repr(forced_seq)}), 'pos': 0, 'start_pos': len(out)}})"
+                            )
                         else:
-                            lines.append(f"        _register_requirements({repr(reqs)})")
+                            lines.append(
+                                f"        _register_requirements({repr(reqs)})"
+                            )
                     else:
                         sub_bid = build_block_for_subpattern(sub)
-                        lines.append("        # fallback: couldn't collect atomic requirements; use generated assertion string")
+                        lines.append(
+                            "        # fallback: couldn't collect atomic requirements; use generated assertion string"
+                        )
                         lines.append("        old_stack = list(lookahead_stack)")
                         lines.append("        lookahead_stack.clear()")
                         lines.append("        tmp_out = []")
@@ -659,17 +732,29 @@ def compile_regex_to_function_source(
                         lines.append("        t_assert = ''.join(tmp_out)")
                         lines.append("        lookahead_stack[:] = old_stack")
                         lines.append("        if %d > 0:" % (dirn))
-                        lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})")
+                        lines.append(
+                            "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})"
+                        )
                         lines.append("        else:")
                         lines.append("            total = ''.join(out)")
                         lines.append("            if len(total) < len(t_assert):")
                         lines.append("                if not t_assert.endswith(total):")
-                        lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
-                        lines.append("                missing = len(t_assert) - len(total)")
-                        lines.append("                out[0:0] = list(t_assert[:missing])")
+                        lines.append(
+                            "                    raise AssertionError('lookbehind failed - mismatch')"
+                        )
+                        lines.append(
+                            "                missing = len(t_assert) - len(total)"
+                        )
+                        lines.append(
+                            "                out[0:0] = list(t_assert[:missing])"
+                        )
                         lines.append("            else:")
-                        lines.append("                if total[-len(t_assert):] != t_assert:")
-                        lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                        lines.append(
+                            "                if total[-len(t_assert):] != t_assert:"
+                        )
+                        lines.append(
+                            "                    raise AssertionError('lookbehind assertion failed')"
+                        )
                 elif token is regex_sre_constants.ASSERT and dirn < 0:
                     sub_bid = build_block_for_subpattern(sub)
                     lines.append("        # ASSERT (lookbehind) - fallback")
@@ -680,27 +765,41 @@ def compile_regex_to_function_source(
                     lines.append("        t_assert = ''.join(tmp_out)")
                     lines.append("        lookahead_stack[:] = old_stack")
                     lines.append("        if %d > 0:" % (dirn))
-                    lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})")
+                    lines.append(
+                        "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})"
+                    )
                     lines.append("        else:")
                     lines.append("            total = ''.join(out)")
                     lines.append("            if len(total) < len(t_assert):")
                     lines.append("                if not t_assert.endswith(total):")
-                    lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
+                    lines.append(
+                        "                    raise AssertionError('lookbehind failed - mismatch')"
+                    )
                     lines.append("                missing = len(t_assert) - len(total)")
                     lines.append("                out[0:0] = list(t_assert[:missing])")
                     lines.append("            else:")
-                    lines.append("                if total[-len(t_assert):] != t_assert:")
-                    lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                    lines.append(
+                        "                if total[-len(t_assert):] != t_assert:"
+                    )
+                    lines.append(
+                        "                    raise AssertionError('lookbehind assertion failed')"
+                    )
                 elif token is regex_sre_constants.ASSERT_NOT:
                     _local_default_cap = DEFAULT_LOOKAROUND_CAP
                     if max_len_approx is not None:
-                        local_enum_bound = min(max_repeat, max_len_approx, _local_default_cap)
+                        local_enum_bound = min(
+                            max_repeat, max_len_approx, _local_default_cap
+                        )
                     else:
                         local_enum_bound = min(max_repeat, _local_default_cap)
 
-                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(sub, local_enum_bound, alphabet)
+                    seqs, min_len, max_len = enumerate_sequences_for_subpattern(
+                        sub, local_enum_bound, alphabet
+                    )
 
-                    merged, epsilon = merged_forbidden_from_sequences(seqs, max_len, alphabet)
+                    merged, epsilon = merged_forbidden_from_sequences(
+                        seqs, max_len, alphabet
+                    )
                     seqs_as_lists = [[tuple(sorted(s)) for s in seq] for seq in seqs]
                     merged_as_lists = [tuple(sorted(s)) for s in merged]
                     epsilon_as_list = list(epsilon)
@@ -712,20 +811,24 @@ def compile_regex_to_function_source(
                             neg_len_cap = _local_default_cap
                     else:
                         if max_len_approx is not None:
-                            neg_len_cap = min(max_len, max_len_approx, _local_default_cap)
+                            neg_len_cap = min(
+                                max_len, max_len_approx, _local_default_cap
+                            )
                         else:
                             neg_len_cap = min(max_len, _local_default_cap)
 
                     lines.append("        # ASSERT_NOT (negative lookahead)")
                     lines.append(f"        for x in range({neg_len_cap}):")
-                    lines.append(f"            _NEG_LOOKS.append({{")
-                    lines.append(f"                'start_pos': len(out),")
+                    lines.append("            _NEG_LOOKS.append({{")
+                    lines.append("                'start_pos': len(out),")
                     lines.append(f"                'seqs': {repr(seqs_as_lists)},")
                     lines.append(f"                'merged': {repr(merged_as_lists)},")
                     lines.append(f"                'epsilon': {repr(epsilon_as_list)},")
                     lines.append(f"                'min_len': {min_len},")
-                    lines.append(f"                'max_len': x,")
-                    lines.append(f"                'anchored_to_whole': {repr(bool(anchored_whole))}")
+                    lines.append("                'max_len': x,")
+                    lines.append(
+                        f"                'anchored_to_whole': {repr(bool(anchored_whole))}"
+                    )
                     lines.append("            })")
                 else:
                     sub_bid = build_block_for_subpattern(sub)
@@ -737,19 +840,29 @@ def compile_regex_to_function_source(
                     lines.append("        t_assert = ''.join(tmp_out)")
                     lines.append("        lookahead_stack[:] = old_stack")
                     lines.append("        if %d > 0:" % (dirn))
-                    lines.append("            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})")
+                    lines.append(
+                        "            lookahead_stack.append({'forced': list(t_assert), 'pos': 0, 'start_pos': len(out)})"
+                    )
                     lines.append("        else:")
                     lines.append("            total = ''.join(out)")
                     lines.append("            if len(total) < len(t_assert):")
                     lines.append("                if not t_assert.endswith(total):")
-                    lines.append("                    raise AssertionError('lookbehind failed - mismatch')")
+                    lines.append(
+                        "                    raise AssertionError('lookbehind failed - mismatch')"
+                    )
                     lines.append("                missing = len(t_assert) - len(total)")
                     lines.append("                out[0:0] = list(t_assert[:missing])")
                     lines.append("            else:")
-                    lines.append("                if total[-len(t_assert):] != t_assert:")
-                    lines.append("                    raise AssertionError('lookbehind assertion failed')")
+                    lines.append(
+                        "                if total[-len(t_assert):] != t_assert:"
+                    )
+                    lines.append(
+                        "                    raise AssertionError('lookbehind assertion failed')"
+                    )
             else:
-                raise NotImplementedError(f"Token not implemented in compiler: {token} ({arg})")
+                raise NotImplementedError(
+                    f"Token not implemented in compiler: {token} ({arg})"
+                )
         lines.append("        return local_groups")
         block_src = "\n".join(lines)
         blocks_src.append(block_src)
@@ -774,7 +887,9 @@ def compile_regex_to_function_source(
     func_lines.append("    def _register_requirements(reqs):")
     func_lines.append("        for r in reqs:")
     func_lines.append("            tpl = tuple(r['choices'])")
-    func_lines.append("            pending_requirements.append({'count': int(r['count']), 'choices': tpl})")
+    func_lines.append(
+        "            pending_requirements.append({'count': int(r['count']), 'choices': tpl})"
+    )
     func_lines.append("")
     func_lines.append("    def _register_forbidden_literal(seq):")
     func_lines.append("        forbidden_literals.add(seq)")
@@ -794,24 +909,32 @@ def compile_regex_to_function_source(
     func_lines.append("                pass")
     func_lines.append("            else:")
     func_lines.append("                pos = len(out) - start_pos")
-    func_lines.append("                if 'forced' in top and top['forced'] is not None and 0 <= pos < len(top['forced']):")
+    func_lines.append(
+        "                if 'forced' in top and top['forced'] is not None and 0 <= pos < len(top['forced']):"
+    )
     func_lines.append("                    required = top['forced'][pos]")
     func_lines.append("                    if required not in choices_tpl:")
-    func_lines.append("                        raise AssertionError('lookahead forced char not available')")
+    func_lines.append(
+        "                        raise AssertionError('lookahead forced char not available')"
+    )
     func_lines.append("                    ch = required")
     func_lines.append("                    top['pos'] = pos + 1")
     func_lines.append("                    if top['pos'] >= len(top['forced']):")
     func_lines.append("                        lookahead_stack.pop()")
     func_lines.append("                    for _ in range(len(pending_requirements)):")
     func_lines.append("                        r = pending_requirements[0]")
-    func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
+    func_lines.append(
+        "                        if r['count'] > 0 and ch in r['choices']:"
+    )
     func_lines.append("                            r['count'] -= 1")
     func_lines.append("                            if r['count'] <= 0:")
     func_lines.append("                                pending_requirements.popleft()")
     func_lines.append("                            break")
     func_lines.append("                    return ch")
 
-    func_lines.append("                if 'forbidden' in top and top['forbidden'] is not None and 0 <= pos < len(top['forbidden']):")
+    func_lines.append(
+        "                if 'forbidden' in top and top['forbidden'] is not None and 0 <= pos < len(top['forbidden']):"
+    )
     func_lines.append("                    forb = top['forbidden'][pos]")
     func_lines.append("                    attempts_inner = 3")
     func_lines.append("                    while attempts_inner > 0:")
@@ -819,14 +942,20 @@ def compile_regex_to_function_source(
     func_lines.append("                        if ch != forb:")
     func_lines.append("                            break")
     func_lines.append("                        attempts_inner -= 1")
-    func_lines.append("                    if attempts_inner <= 0 and len(choices_tpl) == 1 and choices_tpl[0] == forb:")
-    func_lines.append("                        raise AssertionError('lookahead forbidden removed all choices')")
+    func_lines.append(
+        "                    if attempts_inner <= 0 and len(choices_tpl) == 1 and choices_tpl[0] == forb:"
+    )
+    func_lines.append(
+        "                        raise AssertionError('lookahead forbidden removed all choices')"
+    )
     func_lines.append("                    top['pos'] = pos + 1")
     func_lines.append("                    if top['pos'] >= len(top['forbidden']):")
     func_lines.append("                        lookahead_stack.pop()")
     func_lines.append("                    for _ in range(len(pending_requirements)):")
     func_lines.append("                        r = pending_requirements[0]")
-    func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
+    func_lines.append(
+        "                        if r['count'] > 0 and ch in r['choices']:"
+    )
     func_lines.append("                            r['count'] -= 1")
     func_lines.append("                            if r['count'] <= 0:")
     func_lines.append("                                pending_requirements.popleft()")
@@ -844,14 +973,18 @@ def compile_regex_to_function_source(
     func_lines.append("                    if forb_tuple and o < len(forb_tuple):")
     func_lines.append("                        forb = set(forb_tuple[o])")
     func_lines.append("                        if forb:")
-    func_lines.append("                            filtered = [c for c in filtered if c not in forb]")
+    func_lines.append(
+        "                            filtered = [c for c in filtered if c not in forb]"
+    )
     func_lines.append("")
     func_lines.append("        if pending_requirements and filtered:")
     func_lines.append("            req_choices_union = set()")
     func_lines.append("            for r in pending_requirements:")
     func_lines.append("                if r['count'] > 0:")
     func_lines.append("                    req_choices_union.update(r['choices'])")
-    func_lines.append("            valid_candidates = [c for c in filtered if c in req_choices_union]")
+    func_lines.append(
+        "            valid_candidates = [c for c in filtered if c in req_choices_union]"
+    )
     func_lines.append("            if valid_candidates:")
     func_lines.append("                ch = random.choice(valid_candidates)")
     func_lines.append("            else:")
@@ -868,12 +1001,16 @@ def compile_regex_to_function_source(
     func_lines.append("")
     func_lines.append("        if not filtered:")
     func_lines.append("            temp_ch = _rand_choice(_CHOICES['__alphabet__'])")
-    func_lines.append("            flagged_positions.append({'idx': len(out), 'temp': temp_ch, 'token_choices': tuple(choices_tpl), 'causes': None})")
+    func_lines.append(
+        "            flagged_positions.append({'idx': len(out), 'temp': temp_ch, 'token_choices': tuple(choices_tpl), 'causes': None})"
+    )
     func_lines.append("            return temp_ch")
     func_lines.append("")
     func_lines.append("        if forbidden_literals and LFORB_MAX > 0:")
     func_lines.append("            tail_len = LFORB_MAX - 1")
-    func_lines.append("            tail = ''.join(out[-tail_len:]) if tail_len > 0 else ''")
+    func_lines.append(
+        "            tail = ''.join(out[-tail_len:]) if tail_len > 0 else ''"
+    )
     func_lines.append("            attempts_inner = 5")
     func_lines.append("            while attempts_inner > 0:")
     func_lines.append("                ch = _rand_choice(tuple(filtered))")
@@ -886,7 +1023,9 @@ def compile_regex_to_function_source(
     func_lines.append("                if not bad:")
     func_lines.append("                    for _ in range(len(pending_requirements)):")
     func_lines.append("                        r = pending_requirements[0]")
-    func_lines.append("                        if r['count'] > 0 and ch in r['choices']:")
+    func_lines.append(
+        "                        if r['count'] > 0 and ch in r['choices']:"
+    )
     func_lines.append("                            r['count'] -= 1")
     func_lines.append("                            if r['count'] <= 0:")
     func_lines.append("                                pending_requirements.popleft()")
@@ -918,7 +1057,9 @@ def compile_regex_to_function_source(
     func_lines.append("        if nl.get('seqs'):")
     func_lines.append("            for seq in nl['seqs']:")
     func_lines.append("                seq_len = len(seq)")
-    func_lines.append("                if anchored_whole and (start + seq_len != len(s)):")
+    func_lines.append(
+        "                if anchored_whole and (start + seq_len != len(s)):"
+    )
     func_lines.append("                    continue")
     func_lines.append("                if start + seq_len > len(s):")
     func_lines.append("                    continue")
@@ -960,7 +1101,9 @@ def compile_regex_to_function_source(
     func_lines.append("        return False")
     func_lines.append("")
 
-    func_lines.append("    def _try_fix_flagged_positions(out, flagged_positions, _NEG_LOOKS, max_attempts_per_flag=20, alphabet_tuple=None):")
+    func_lines.append(
+        "    def _try_fix_flagged_positions(out, flagged_positions, _NEG_LOOKS, max_attempts_per_flag=20, alphabet_tuple=None):"
+    )
     func_lines.append("        if alphabet_tuple is None:")
     func_lines.append("            alphabet_tuple = tuple(_CHOICES['__alphabet__'])")
     func_lines.append("        flags = list(flagged_positions)")
@@ -971,11 +1114,15 @@ def compile_regex_to_function_source(
     func_lines.append("            for f in flags[:]:")
     func_lines.append("                idx = f['idx']")
     func_lines.append("                token_choices = f.get('token_choices')")
-    func_lines.append("                pool = list(token_choices) if token_choices else list(alphabet_tuple)")
+    func_lines.append(
+        "                pool = list(token_choices) if token_choices else list(alphabet_tuple)"
+    )
     func_lines.append("                random.shuffle(pool)")
     func_lines.append("                tried = set()")
     func_lines.append("                attempts = 0")
-    func_lines.append("                while attempts < max_attempts_per_flag and pool:")
+    func_lines.append(
+        "                while attempts < max_attempts_per_flag and pool:"
+    )
     func_lines.append("                    ch = pool.pop()")
     func_lines.append("                    if ch in tried:")
     func_lines.append("                        continue")
@@ -990,7 +1137,9 @@ def compile_regex_to_function_source(
     func_lines.append("                    s = ''.join(out)")
     func_lines.append("                    ok = True")
     func_lines.append("                    for ai in affected:")
-    func_lines.append("                        if _neg_match_on_string(_NEG_LOOKS[ai], s):")
+    func_lines.append(
+        "                        if _neg_match_on_string(_NEG_LOOKS[ai], s):"
+    )
     func_lines.append("                            ok = False")
     func_lines.append("                            break")
     func_lines.append("                    if ok:")
@@ -1010,7 +1159,9 @@ def compile_regex_to_function_source(
     func_lines.append("        return True")
     func_lines.append("")
 
-    func_lines.append("    def _enforce_required_substrings(out, required_list, max_attempts_overall=50, max_positions_try=50):")
+    func_lines.append(
+        "    def _enforce_required_substrings(out, required_list, max_attempts_overall=50, max_positions_try=50):"
+    )
     func_lines.append("        s0 = ''.join(out)")
     func_lines.append("        reqs = [r for r in required_list if r]")
     func_lines.append("        if not reqs:")
@@ -1029,13 +1180,17 @@ def compile_regex_to_function_source(
     func_lines.append("                placed = True")
     func_lines.append("                break")
     func_lines.append("            if not placed:")
-    func_lines.append("                # fallback: append at end (truncate if too long)")
+    func_lines.append(
+        "                # fallback: append at end (truncate if too long)"
+    )
     func_lines.append("                pos = max(0, L - len(sub))")
     func_lines.append("                base[pos:pos + len(sub)] = list(sub)")
     func_lines.append("        assembled = ''.join(base)")
     func_lines.append("        if _MAX_LEN is not None and len(assembled) > _MAX_LEN:")
     func_lines.append("            assembled = assembled[:_MAX_LEN]")
-    func_lines.append("        if any(_neg_match_on_string(nl, assembled) for nl in _NEG_LOOKS):")
+    func_lines.append(
+        "        if any(_neg_match_on_string(nl, assembled) for nl in _NEG_LOOKS):"
+    )
     func_lines.append("            return False")
     func_lines.append("        out[:] = list(assembled)")
     func_lines.append("        return True")
@@ -1059,7 +1214,9 @@ def compile_regex_to_function_source(
     func_lines.append("            while pending_requirements:")
     func_lines.append("                r = pending_requirements.popleft()")
     func_lines.append("                needed = r['count']")
-    func_lines.append("                satisfied = sum(1 for choice in r['choices'] if choice in s_current)")
+    func_lines.append(
+        "                satisfied = sum(1 for choice in r['choices'] if choice in s_current)"
+    )
     func_lines.append("                still_needed = max(0, needed - satisfied)")
     func_lines.append("                for _ in range(still_needed):")
     func_lines.append("                    missing.append(_rand_choice(r['choices']))")
@@ -1070,7 +1227,9 @@ def compile_regex_to_function_source(
     func_lines.append("                    attempts_inner = 5")
     func_lines.append("                    while attempts_inner > 0:")
     func_lines.append("                        tail_len = LFORB_MAX - 1")
-    func_lines.append("                        tail = ''.join(out[-tail_len:]) if tail_len > 0 else ''")
+    func_lines.append(
+        "                        tail = ''.join(out[-tail_len:]) if tail_len > 0 else ''"
+    )
     func_lines.append("                        would = tail + ch")
     func_lines.append("                        bad = False")
     func_lines.append("                        for forb in forbidden_literals:")
@@ -1083,19 +1242,31 @@ def compile_regex_to_function_source(
     func_lines.append("                            break")
     func_lines.append("                        attempts_inner -= 1")
     func_lines.append("                    if not safe:")
-    func_lines.append("                        raise AssertionError('forbidden literal produced during missing append')")
+    func_lines.append(
+        "                        raise AssertionError('forbidden literal produced during missing append')"
+    )
     func_lines.append("            s = ''.join(out)")
     func_lines.append("            for forb in list(forbidden_literals):")
     func_lines.append("                if forb and forb in s:")
-    func_lines.append("                    raise AssertionError('forbidden literal produced')")
+    func_lines.append(
+        "                    raise AssertionError('forbidden literal produced')"
+    )
     func_lines.append("")
-    func_lines.append("            reqs_to_insert = tuple(r for r in _REQUIRED_SUBSTRINGS if r not in ''.join(out))")                       
+    func_lines.append(
+        "            reqs_to_insert = tuple(r for r in _REQUIRED_SUBSTRINGS if r not in ''.join(out))"
+    )
     func_lines.append("            if flagged_positions:")
-    func_lines.append("                ok = _try_fix_flagged_positions(out, flagged_positions, _NEG_LOOKS)")
+    func_lines.append(
+        "                ok = _try_fix_flagged_positions(out, flagged_positions, _NEG_LOOKS)"
+    )
     func_lines.append("                if ok:")
     func_lines.append("                    if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
-    func_lines.append("                        if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
-    func_lines.append("                            raise AssertionError('required substrings insertion failed after flag repair')")
+    func_lines.append(
+        "                        if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):"
+    )
+    func_lines.append(
+        "                            raise AssertionError('required substrings insertion failed after flag repair')"
+    )
     func_lines.append("                    return ''.join(out)")
     func_lines.append("                else:")
     func_lines.append("                    final_s = ''.join(out)")
@@ -1105,11 +1276,19 @@ def compile_regex_to_function_source(
     func_lines.append("                            any_neg_match = True")
     func_lines.append("                            break")
     func_lines.append("                    if any_neg_match:")
-    func_lines.append("                        raise AssertionError('negative lookahead produced after repairs')")
+    func_lines.append(
+        "                        raise AssertionError('negative lookahead produced after repairs')"
+    )
     func_lines.append("                    else:")
-    func_lines.append("                        if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
-    func_lines.append("                            if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
-    func_lines.append("                                raise AssertionError('required substrings insertion failed after unsuccessful flag repair')")
+    func_lines.append(
+        "                        if _REQUIRED_SUBSTRINGS and reqs_to_insert:"
+    )
+    func_lines.append(
+        "                            if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):"
+    )
+    func_lines.append(
+        "                                raise AssertionError('required substrings insertion failed after unsuccessful flag repair')"
+    )
     func_lines.append("                        return ''.join(out)")
     func_lines.append("            else:")
     func_lines.append("                final_s = ''.join(out)")
@@ -1119,15 +1298,23 @@ def compile_regex_to_function_source(
     func_lines.append("                        any_neg_match = True")
     func_lines.append("                        break")
     func_lines.append("                if any_neg_match:")
-    func_lines.append("                    raise AssertionError('negative lookahead produced')")
+    func_lines.append(
+        "                    raise AssertionError('negative lookahead produced')"
+    )
     func_lines.append("                if _REQUIRED_SUBSTRINGS and reqs_to_insert:")
-    func_lines.append("                    if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):")
-    func_lines.append("                        raise AssertionError('required substrings insertion failed (no flags)')")
+    func_lines.append(
+        "                    if not _enforce_required_substrings(out, _REQUIRED_SUBSTRINGS):"
+    )
+    func_lines.append(
+        "                        raise AssertionError('required substrings insertion failed (no flags)')"
+    )
     func_lines.append("                return ''.join(out)")
     func_lines.append("        except AssertionError as e:")
     func_lines.append("            attempts -= 1")
     func_lines.append("            if attempts <= 0:")
-    func_lines.append("                raise RuntimeError('Failed to generate matching string: ' + str(e))")
+    func_lines.append(
+        "                raise RuntimeError('Failed to generate matching string: ' + str(e))"
+    )
     func_lines.append("            # else retry by looping back")
     func_lines.append("")
 
@@ -1138,7 +1325,6 @@ if __name__ == "__main__":
     patterns = [
         r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12,}$",
         r"^[a-zA-Z0-9_]{3,20}$",
-        
         r"^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#\$%\^&\*]).{12,20}$",
         r"^(a|b|c)\1{3,}$",
         r"^(?=.*foo)(?=.*bar)(?=.*baz).{10,50}$",
@@ -1161,7 +1347,6 @@ if __name__ == "__main__":
         r"[a-z0-9!#$%&'*+/=?^_{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
         r"^\d{5}(-\d{4})?$",
         r"^(?=(?:.*[A-Z]){2})(?=(?:.*[a-z]){2})(?=.*\d).{5,15}$",
-        
         r"foo(?=bar)bar",
         r"pre(?<=pre)mid",
         r"start(?!bad)good",
@@ -1202,8 +1387,6 @@ if __name__ == "__main__":
         r"^[A-F0-9]{8}$",
         r"^[ -~]{50}$",
         r"^[a-z]{1000}$",
-        
-        
         r"^abc$",
         r"^[A-Za-z]+$",
         r"^[a-z]{3,10}$",
@@ -1308,9 +1491,7 @@ if __name__ == "__main__":
         r"^[a-z]{5}[0-9]{3}[a-z]{2}$",
         r"^[A-Za-z]{3,}\d{1,2}[A-Za-z]{3,}$",
         r"^[a-z]{1,4}[0-9]{1,4}[a-z]{1,4}$",
-        
         r"^(a|b|c){1000}$",
-        
         r"(?=\d{4}$)\d+$",
         r"(?!abc).+$",
         r"(?=.*[A-Z]).+$",
@@ -1321,7 +1502,7 @@ if __name__ == "__main__":
         r"(?=.*@).+$",
         r"(?=.*\bword\b).+$",
         r"(?:(?!bad).)*$",
-        r"(?=.*foo)(?=.*bar).+$",  #note, works when + is changed to {6,}
+        r"(?=.*foo)(?=.*bar).+$",  # note, works when + is changed to {6,}
         r"(?<!abc)def$",
         r"(?!.*([A-Za-z0-9])\1).+$",
         r"(?!.*(.).*\1).+$",
@@ -1334,7 +1515,7 @@ if __name__ == "__main__":
         r"(?=.*\d)(?!.*\s).{5,10}$",
         r"(?!.*password).+$",
         r"(?=.*[!@#$%^&*]).{8,}$",
-        r"(?=.*apple)(?=.*orange)(?!.*banana).+$", #note, works when + is changed to {11,}
+        r"(?=.*apple)(?=.*orange)(?!.*banana).+$",  # note, works when + is changed to {11,}
         r"(?<!\bfoo\b)\bbar\b$",
         r"(?<!#)\b\w+\b$",
         r"(?![A-Z]{3}$)[A-Z]+$",
@@ -1342,7 +1523,7 @@ if __name__ == "__main__":
         r"(?<!\d{2})[A-Z]{2,4}$",
         r"(?!.*00).*$",
         r"(?<!abc)[A-Za-z]{3,5}(?!xyz)$",
-        r"(?=.*dog)(?=.*cat)(?!.*mouse).+$", #note, works when + is changed to {6,}
+        r"(?=.*dog)(?=.*cat)(?!.*mouse).+$",  # note, works when + is changed to {6,}
         r"(?<!_)[A-Za-z0-9_]+$",
         r"(?!.*@example\.com).+$",
         r"(?!.*(\b\w+\b).*\1).+$",
@@ -1365,23 +1546,47 @@ if __name__ == "__main__":
     for pat in patterns:
         print("=== pattern:", pat, "=== amount:", amount)
         if pat.startswith("^(?<="):
-            print("FAILED: pattern", pat, "is an impossible pattern (positive lookbehind after a ^ chr)\n")
+            print(
+                "FAILED: pattern",
+                pat,
+                "is an impossible pattern (positive lookbehind after a ^ chr)\n",
+            )
             continue
         import time
         import re
+
         start = time.time()
         max_repeat = 20
         try:
             parsed_local = list(regex_sre_parse.parse(pat))
             anchored = is_pattern_anchored(parsed_local)
-            src = compile_regex_to_function_source(pat, flags=0, max_repeat=max_repeat, func_name="gen", max_attempts=500)
+            src = compile_regex_to_function_source(
+                pat, flags=0, max_repeat=max_repeat, func_name="gen", max_attempts=500
+            )
             safe_builtins = {
-                "len": len, "range": range, "min": min, "max": max, "sum":sum, "sorted":sorted, "any":any,
-                "list": list, "tuple": tuple, "chr": chr, "ord": ord,
-                "set": set, "map": map, "int": int, "AssertionError": AssertionError,
-                "enumerate": enumerate, "reversed": reversed,
-                "str": str, "RuntimeError": RuntimeError, "ValueError": ValueError,
-                "TypeError": TypeError, "print": print, "bool": bool,
+                "len": len,
+                "range": range,
+                "min": min,
+                "max": max,
+                "sum": sum,
+                "sorted": sorted,
+                "any": any,
+                "list": list,
+                "tuple": tuple,
+                "chr": chr,
+                "ord": ord,
+                "set": set,
+                "map": map,
+                "int": int,
+                "AssertionError": AssertionError,
+                "enumerate": enumerate,
+                "reversed": reversed,
+                "str": str,
+                "RuntimeError": RuntimeError,
+                "ValueError": ValueError,
+                "TypeError": TypeError,
+                "print": print,
+                "bool": bool,
             }
             env = {
                 "__builtins__": safe_builtins,
@@ -1410,4 +1615,4 @@ if __name__ == "__main__":
                 print("SEARCHED: pattern", pat, "string", repr(searchflag))
         except Exception as e:
             print("ERROR generating for pattern:", pat, " ->", e)
-        print("") #\n at end
+        print("")  # \n at end

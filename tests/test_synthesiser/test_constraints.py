@@ -1,17 +1,22 @@
 import pytest
 
-from decimal import Decimal
-
-from src.smoke_mirrors.pre_made_data import all_constr_attribs, default_constr_dict
+from src.smoke_mirrors.pre_made_data import all_constr_attribs
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
-from smoke_mirrors.synthesiser.constraints import make_one_string, check_generation_constraints, get_applied_constraints
+from smoke_mirrors.synthesiser.constraints import (
+    make_one_string,
+    check_generation_constraints,
+    get_applied_constraints,
+)
 
-from tests.test_synthesiser.models import test_Address, test_Address_2, Constraints, ConstraintsNested, Constraints6
+from tests.test_synthesiser.models import (
+    test_Address,
+    test_Address_2,
+    Constraints,
+    ConstraintsNested,
+    Constraints6,
+)
 
 import re
-
-
-
 
 
 def test_make_one_string_basic():
@@ -19,9 +24,6 @@ def test_make_one_string_basic():
     result = make_one_string(pattern)
     assert isinstance(result, str)
     assert re.fullmatch(pattern, result)
-
-
-
 
 
 test_check_generation_constraints_pass_schemas = [test_Address, test_Address_2]
@@ -74,12 +76,11 @@ def test_check_generation_constraints_expect_alternate():
     assert return_value["constr_required"]["required"]
 
 
-
-
 val_types = [bool, int, float, complex, bytes, str]
 
 
 model_tests = [Constraints, ConstraintsNested]
+
 
 @pytest.mark.parametrize(
     "schema_model", [(schema_model) for schema_model in model_tests]
@@ -91,5 +92,3 @@ def test_get_applied_constraints(schema_model):
     assert all(
         [z in x.keys() for x in return_data.values() for z in all_constr_attribs]
     )
-
-

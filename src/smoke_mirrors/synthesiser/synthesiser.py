@@ -9,10 +9,26 @@ from typing import (
     Any,
     Type,
 )
-from smoke_mirrors.synthesiser.constraints import make_one_string, get_applied_constraints, check_generation_constraints
+from smoke_mirrors.synthesiser.constraints import (
+    make_one_string,
+    get_applied_constraints,
+    check_generation_constraints,
+)
 from smoke_mirrors.synthesiser.matching_fields import match_fields
-from smoke_mirrors.synthesiser.provider_methods import list_match_methods, make_resolved_methods
-from smoke_mirrors.tools.model_funcs import get_json_model_fields, infer_json_type, get_json_model_data, infer_json_args, is_json_model, flatten_json_types, load_parse_json_schema
+from smoke_mirrors.synthesiser.provider_methods import (
+    list_match_methods,
+    make_resolved_methods,
+)
+from smoke_mirrors.tools.model_funcs import (
+    get_json_model_fields,
+    infer_json_type,
+    get_json_model_data,
+    infer_json_args,
+    is_json_model,
+    flatten_json_types,
+    load_parse_json_schema,
+    validate_instance_data,
+)
 from smoke_mirrors.pre_made_data import provider_methods
 from smoke_mirrors.tools.regex_generator import regex_builder
 from collections import deque
@@ -24,11 +40,9 @@ from smoke_mirrors.pre_made_data import (
     default_constr_dict,
     recursive_types,
     python_builtin_types,
-    provider_return_types
+    provider_return_types,
 )
-from jsonschema import validate
 from jsonschema.validators import validator_for
-from jsonschema.exceptions import ValidationError
 import re
 import time
 import string
@@ -71,7 +85,7 @@ Generation path:\n
 """
 
 
-def print_path(generate_path, elapsed_time,print):
+def print_path(generate_path, elapsed_time, print):
     """
     inputs:
         generate path
@@ -92,12 +106,29 @@ def print_path(generate_path, elapsed_time,print):
 string_list = string.ascii_letters + string.digits
 
 safe_builtins = {
-    "len": len, "range": range, "min": min, "max": max, "sum":sum, "sorted":sorted, "any":any,
-    "list": list, "tuple": tuple, "chr": chr, "ord": ord,
-    "set": set, "map": map, "int": int, "AssertionError": AssertionError,
-    "enumerate": enumerate, "reversed": reversed,
-    "str": str, "RuntimeError": RuntimeError, "ValueError": ValueError,
-    "TypeError": TypeError, "print": print, "bool": bool,
+    "len": len,
+    "range": range,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "sorted": sorted,
+    "any": any,
+    "list": list,
+    "tuple": tuple,
+    "chr": chr,
+    "ord": ord,
+    "set": set,
+    "map": map,
+    "int": int,
+    "AssertionError": AssertionError,
+    "enumerate": enumerate,
+    "reversed": reversed,
+    "str": str,
+    "RuntimeError": RuntimeError,
+    "ValueError": ValueError,
+    "TypeError": TypeError,
+    "print": print,
+    "bool": bool,
 }
 env = {
     "__builtins__": safe_builtins,
@@ -105,35 +136,29 @@ env = {
     "string": string,
     "deque": deque,
 }
-def regex_parallel_worker(args,_):
+
+
+def regex_parallel_worker(args, _):
     src, amount = args
     exec(src, env)
     gen = env["gen"]
     return [gen() for _ in range(amount)]
 
 
-def validate_synthesised_data(synthesised_data: Dict, schema_model: List[Dict],instances=None) -> None:
-    if instances is not None:
-        try:
-            instances[0].validate(synthesised_data)
-        except:
-            instances[1].validate(synthesised_data)
-    else:
-        try:
-            validate(instance=synthesised_data, schema=schema_model.contents)
-        except:
-            validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
-
-class JsonSynthesiser():
-    def __init__(self, method="faker",stdcout=False,rich_output=False):
+class JsonSynthesiser:
+    def __init__(self, method="faker", stdcout=False, rich_output=False):
         self.outputpooling = {}
         self.applied_constraints_cache = {}
         self.schema_keys_cache = {}
         self.method = method
         data_set = provider_methods[method]
         self.word_list, methods_map = list_match_methods(method)
-        self.word_tokens = data_set['word_tokens'] # {word: word.split("_") for word in word_list}
-        self.word_tokens_set = data_set['word_tokens_set'] # {word: set(word.split("_")) for word in word_list}
+        self.word_tokens = data_set[
+            "word_tokens"
+        ]  # {word: word.split("_") for word in word_list}
+        self.word_tokens_set = data_set[
+            "word_tokens_set"
+        ]  # {word: set(word.split("_")) for word in word_list}
         self.resolved_methods = make_resolved_methods(self.word_list, methods_map)
         self.stdcout = stdcout
         self.defs = {}
@@ -146,7 +171,7 @@ class JsonSynthesiser():
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
-        self, field_name:str, constraints:Dict[str,Any], generate_path:str
+        self, field_name: str, constraints: Dict[str, Any], generate_path: str
     ) -> Any:  # value
         """
         Inputs:\n
@@ -192,11 +217,13 @@ class JsonSynthesiser():
                 quantifier_match = re.search(r"(.*?)(\{\d+(?:,\d*)?\})(\$?)$", pattern)
                 if quantifier_match:
                     base, quant, end = quantifier_match.groups()
-                    
+
                     m = re.match(r"\{(\d+)(?:,(\d*))?\}", quant)
                     if m:
                         existing_min = int(m.group(1))
-                        existing_max = int(m.group(2)) if m.group(2) not in (None, '') else None
+                        existing_max = (
+                            int(m.group(2)) if m.group(2) not in (None, "") else None
+                        )
 
                         new_min = min_length if min_length is not None else existing_min
                         if max_length is not None:
@@ -231,25 +258,34 @@ class JsonSynthesiser():
                 # print(self.make_one_string(pattern))
 
                 # now required due to pattern constraints being auto generated by model.model_json_schema and containing lookarounds
-                src = regex_builder.compile_regex_to_function_source(pattern,max_repeat=max(2,pooling_count//amount))
+                src = regex_builder.compile_regex_to_function_source(
+                    pattern, max_repeat=max(2, pooling_count // amount)
+                )
                 thread_count = 8
                 tries = 0
                 exec(src, env)
                 gen = env["gen"]
-                if (pooling_count//thread_count+1) >= 10000 and self.PERFORMANCE:
-                    worker_func = partial(regex_parallel_worker, (src, max(1,pooling_count//thread_count+1)))
+                if (pooling_count // thread_count + 1) >= 10000 and self.PERFORMANCE:
+                    worker_func = partial(
+                        regex_parallel_worker,
+                        (src, max(1, pooling_count // thread_count + 1)),
+                    )
                     with Pool(thread_count) as p:
                         data_pool_list = p.map(worker_func, range(thread_count))
 
-                    data_pool = [item for temp_list in data_pool_list for item in temp_list]
+                    data_pool = [
+                        item for temp_list in data_pool_list for item in temp_list
+                    ]
                 else:
                     data_pool = [gen() for _ in range(max(1, pooling_count))]
-                data_pool = [ val for val in data_pool if re.fullmatch(pattern,val) ]
-                while len(data_pool) < max(1, pooling_count) or tries == max(1, pooling_count):
+                data_pool = [val for val in data_pool if re.fullmatch(pattern, val)]
+                while len(data_pool) < max(1, pooling_count) or tries == max(
+                    1, pooling_count
+                ):
                     val = gen()
-                    if re.fullmatch(pattern,val):
+                    if re.fullmatch(pattern, val):
                         data_pool.append(val)
-                    tries+=1
+                    tries += 1
                 if len(data_pool) < max(1, pooling_count):
                     if self.PERFORMANCE:
                         with Pool() as p:
@@ -257,18 +293,22 @@ class JsonSynthesiser():
                                 make_one_string, [pattern] * max(1, pooling_count)
                             )
                     else:
-                        if "(?" not in pattern: 
+                        if "(?" not in pattern:
                             try:
                                 data_pool = [
-                                    exrex.getone(pattern) for _ in range(max(1, pooling_count))
+                                    exrex.getone(pattern)
+                                    for _ in range(max(1, pooling_count))
                                 ]
                             except Exception as e:
                                 self.print(f"failed reg pool and used fallback: {e}")
                                 data_pool = [
-                                    rstr.xeger(pattern) for _ in range(max(1, pooling_count))
+                                    rstr.xeger(pattern)
+                                    for _ in range(max(1, pooling_count))
                                 ]
                         else:
-                            raise ValueError(f"Pattern '{pattern}' contains unhandled lookarounds and failed to generate")
+                            raise ValueError(
+                                f"Pattern '{pattern}' contains unhandled lookarounds and failed to generate"
+                            )
 
                 if data_pool == []:
                     raise Exception(f"No data pool for {constraints['pattern']}")
@@ -281,27 +321,30 @@ class JsonSynthesiser():
                         min_length = 1
                     if max_length is None:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
-                    
+
                     temp_string_list = string.ascii_letters + string.digits
-                    r_range = range(min_length, max_length+1)
-                    random_vals = random.choices(r_range,k=max(1, pooling_count))
-                    data_pool = ["".join(random.choices(temp_string_list,k=(rv)))for rv in random_vals]
+                    r_range = range(min_length, max_length + 1)
+                    random_vals = random.choices(r_range, k=max(1, pooling_count))
+                    data_pool = [
+                        "".join(random.choices(temp_string_list, k=(rv)))
+                        for rv in random_vals
+                    ]
 
                     if data_pool == []:
                         raise Exception(f"No data pool for str:{generate_path}")
 
-                elif data_type in (int,float,Decimal):
+                elif data_type in (int, float, Decimal):
                     lt = constraints.get("lt")
                     le = constraints.get("le")
                     gt = constraints.get("gt")
                     ge = constraints.get("ge")
                     multiple_of = constraints.get("multiple_of")
-                    
+
                     if lt is None:
                         if gt is None:
                             lt = 10 * max(1, (pooling_count // amount) + 3)
                         else:
-                            lt = gt+(10 * max(1, (pooling_count // amount) + 3))
+                            lt = gt + (10 * max(1, (pooling_count // amount) + 3))
                     else:
                         lt = lt - 1
                     if le is not None:
@@ -319,13 +362,17 @@ class JsonSynthesiser():
                         gt = max(gt, ge)
 
                     if gt >= lt:
-                        raise Exception(f"Value for gt:{gt} is greater than or equal to value for lt:{lt}")
+                        raise Exception(
+                            f"Value for gt:{gt} is greater than or equal to value for lt:{lt}"
+                        )
 
                     if multiple_of is not None:
-                        gt = math.nextafter(gt, float('inf'))
-                        lt = math.nextafter(lt, float('-inf'))
+                        gt = math.nextafter(gt, float("inf"))
+                        lt = math.nextafter(lt, float("-inf"))
                         multiple_of = Decimal(str(constraints["multiple_of"]))
-                        first = (Decimal(Decimal(gt) + multiple_of) // multiple_of) * multiple_of
+                        first = (
+                            Decimal(Decimal(gt) + multiple_of) // multiple_of
+                        ) * multiple_of
 
                         count = Decimal(lt - gt) // multiple_of
                         if count <= 0:
@@ -334,18 +381,22 @@ class JsonSynthesiser():
                             )
 
                         data_pool = [
-                            first + Decimal(idx+1+random.randint(0,int(count)-1)) * multiple_of
+                            first
+                            + Decimal(idx + 1 + random.randint(0, int(count) - 1))
+                            * multiple_of
                             for idx in range(pooling_count)
                         ]
                         random.shuffle(data_pool)
                     else:
-                        if data_type == int:
-                            r_range = range(gt,lt+1)
-                            data_pool = random.choices(r_range,k=max(1, pooling_count))
+                        if data_type is int:
+                            r_range = range(gt, lt + 1)
+                            data_pool = random.choices(r_range, k=max(1, pooling_count))
                         else:
-                            gt = math.nextafter(gt, float('inf'))
-                            lt = math.nextafter(lt, float('-inf'))
-                            data_pool = [random.uniform(gt,lt) for _ in range(pooling_count)]
+                            gt = math.nextafter(gt, float("inf"))
+                            lt = math.nextafter(lt, float("-inf"))
+                            data_pool = [
+                                random.uniform(gt, lt) for _ in range(pooling_count)
+                            ]
                     if data_pool == []:
                         raise Exception(f"No data pool for num:{generate_path}")
 
@@ -359,8 +410,8 @@ class JsonSynthesiser():
                             else:
                                 break
                 elif data_type is bool:
-                    r_range = [0,1]
-                    data_pool = random.choices(r_range,k=max(1, pooling_count))
+                    r_range = [0, 1]
+                    data_pool = random.choices(r_range, k=max(1, pooling_count))
                     data_pool = [x == 1 for x in data_pool]
                     if data_pool == []:
                         raise Exception(f"No data pool for bool:{generate_path}")
@@ -383,7 +434,7 @@ class JsonSynthesiser():
                     max_length = constraints.get("max_length")
                     if min_length is None:
                         min_length = 1
-                        
+
                     if max_length is None:
                         max_length = min_length + max(1, (pooling_count // amount)) + 3
                     data_pool = [
@@ -402,9 +453,9 @@ class JsonSynthesiser():
             self.outputpooling[generate_path] = data_pool
             # print(f"Pool | Time taken: {elapsed_time:.2f} seconds\n")
         return_value = self.outputpooling[generate_path].pop()
-        if (length_of_pool-1) == 0:
+        if (length_of_pool - 1) == 0:
             del self.outputpooling[generate_path]
-        if not isinstance(return_value,data_type):
+        if not isinstance(return_value, data_type):
             if data_type is bytes:
                 return_value = data_type(str(return_value), "utf-8")
             elif constraints["multiple_of"] is None:
@@ -415,12 +466,12 @@ class JsonSynthesiser():
 
     def apply_constraints(
         self,
-        return_value:Any,
-        constraints:Dict[str,Any],
-        match_name:str,
-        generate_path:str,
-        pooling_count:int,
-        amount:int,
+        return_value: Any,
+        constraints: Dict[str, Any],
+        match_name: str,
+        generate_path: str,
+        pooling_count: int,
+        amount: int,
     ) -> Any:
         """
         Input:\n
@@ -434,7 +485,7 @@ class JsonSynthesiser():
             value with constraints applied to it
         """
         data_type = constraints.get("annotation")
-        if not isinstance(return_value,data_type):
+        if not isinstance(return_value, data_type):
             try:
                 return_value = data_type(return_value)
             except (ValueError, TypeError):
@@ -451,7 +502,7 @@ class JsonSynthesiser():
                 if len(return_value) > max_length:
                     return_value = return_value[:max_length]
 
-        elif data_type in (int,float):
+        elif data_type in (int, float):
             if return_value is None:
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
@@ -462,12 +513,12 @@ class JsonSynthesiser():
                 gt = constraints.get("gt")
                 ge = constraints.get("ge")
                 multiple_of = constraints.get("multiple_of")
-                
+
                 if lt is None:
                     if gt is None:
                         lt = 10 * max(1, (pooling_count // amount) + 3)
                     else:
-                        lt = gt+(10 * max(1, (pooling_count // amount) + 3))
+                        lt = gt + (10 * max(1, (pooling_count // amount) + 3))
                 else:
                     lt = lt - 1
                 if le is not None:
@@ -480,12 +531,14 @@ class JsonSynthesiser():
                         gt = gt + 1
                     else:
                         if multiple_of is not None:
-                           gt = gt + multiple_of
+                            gt = gt + multiple_of
                 if ge is not None:
                     gt = max(gt, ge)
 
                 if gt >= lt:
-                    raise Exception(f"Value for gt:{gt} is greater than or equal to value for lt:{lt}")
+                    raise Exception(
+                        f"Value for gt:{gt} is greater than or equal to value for lt:{lt}"
+                    )
 
                 if multiple_of is not None:
                     first = ((gt + multiple_of) // multiple_of) * multiple_of
@@ -500,27 +553,28 @@ class JsonSynthesiser():
                     return_value = first + idx * multiple_of
                 else:
                     if return_value >= lt or return_value <= gt:
-                        return_value = return_value%(lt-gt)+gt
-                        if data_type == int:
-                            if lt-gt <= 1:
-                                raise Exception(f"No whole integers are greater than {gt} and less than {lt}")
-                            return_value = min(lt-1,max(gt+1,return_value))
+                        return_value = return_value % (lt - gt) + gt
+                        if data_type is int:
+                            if lt - gt <= 1:
+                                raise Exception(
+                                    f"No whole integers are greater than {gt} and less than {lt}"
+                                )
+                            return_value = min(lt - 1, max(gt + 1, return_value))
                         else:
-                            gt = math.nextafter(gt, float('inf'))
-                            lt = math.nextafter(lt, float('-inf'))
-                            return_value = min(lt,max(gt,return_value))
-
+                            gt = math.nextafter(gt, float("inf"))
+                            lt = math.nextafter(lt, float("-inf"))
+                            return_value = min(lt, max(gt, return_value))
 
         elif data_type is bool:
             try:
                 return_value = bool(return_value)
-            except:
+            except (TypeError, ValueError):
                 return_value = random.choice([True, False])
 
-        elif data_type in (complex,bytes):
+        elif data_type in (complex, bytes):
             try:
                 return_value = complex(return_value)
-            except:
+            except (TypeError, ValueError):
                 return_value = self.generate_from_constraints(
                     match_name, constraints, generate_path
                 )
@@ -529,11 +583,16 @@ class JsonSynthesiser():
         else:
             return_value = data_type(return_value)
         return return_value
+
     # ----- Constraint based generation -----
 
-    # ----- Synth based generation -----  
+    # ----- Synth based generation -----
     def generate_synth_data(
-        self, field_name:str, match_name:str, applied_constraints:Dict[str,Any], generate_path:str
+        self,
+        field_name: str,
+        match_name: str,
+        applied_constraints: Dict[str, Any],
+        generate_path: str,
     ) -> Any:
         """
         Inputs:\n
@@ -553,10 +612,12 @@ class JsonSynthesiser():
         if generate_path in self.applied_constraints_cache:
             applied_constraints = self.applied_constraints_cache[generate_path]
         else:
-            applied_constraints = check_generation_constraints(field_name,applied_constraints["origin"])
+            applied_constraints = check_generation_constraints(
+                field_name, applied_constraints["origin"]
+            )
             self.applied_constraints_cache[generate_path] = applied_constraints
         data_type = applied_constraints["annotation"]
-            
+
         # all traversals can be considered "annotated"
         if data_type is type(None) or data_type is None:
             return None
@@ -573,33 +634,46 @@ class JsonSynthesiser():
 
             new_applied_constraints = {**default_constr_dict, **applied_constraints}
             if len(data_args) == 0:
-                type_args_list = [{"annotation":str,"origin":{"type":"string"},"args":[]}]
+                type_args_list = [
+                    {"annotation": str, "origin": {"type": "string"}, "args": []}
+                ]
             else:
-                type_args_list = [{"annotation":infer_json_type(chosen_type),"origin":chosen_type,"args":infer_json_args(chosen_type)} for chosen_type in data_args]
+                type_args_list = [
+                    {
+                        "annotation": infer_json_type(chosen_type),
+                        "origin": chosen_type,
+                        "args": infer_json_args(chosen_type),
+                    }
+                    for chosen_type in data_args
+                ]
 
             if data_type in [List, list]:
                 output_data = []
                 new_applied_constraints.update(type_args_list[0])
-                list_generate_path = (
-                    generate_path + f".List(0)[{max_amount}]"
-                )
+                list_generate_path = generate_path + f".List(0)[{max_amount}]"
                 output_data = [
-                        self.generate_synth_data(
-                            field_name,
-                            match_name,
-                            new_applied_constraints,
-                            list_generate_path,
-                        )
+                    self.generate_synth_data(
+                        field_name,
+                        match_name,
+                        new_applied_constraints,
+                        list_generate_path,
+                    )
                     for _ in range(random.randint(min_amount, max_amount))
                 ]
-            
+
             elif data_type in [Dict, dict]:
                 if len(data_args) == 0:
                     type_args_list.append(type_args_list[0])
                 chosen_type_info_left = type_args_list[0]
                 chosen_type_info_right = type_args_list[1]
-                new_left_applied_constraints = {**new_applied_constraints, **chosen_type_info_left}
-                new_right_applied_constraints = {**new_applied_constraints, **chosen_type_info_right}
+                new_left_applied_constraints = {
+                    **new_applied_constraints,
+                    **chosen_type_info_left,
+                }
+                new_right_applied_constraints = {
+                    **new_applied_constraints,
+                    **chosen_type_info_right,
+                }
 
                 output_data = {}
                 target_amount = random.randint(min_amount, max_amount)
@@ -610,7 +684,9 @@ class JsonSynthesiser():
                 generate_path_left = f"{generate_path}.Dict(L)[{max_amount}]"
                 generate_path_right = f"{generate_path}.Dict(R)[{max_amount}]"
 
-                while len(dict_keys) < target_amount and current_tries < target_amountx2:
+                while (
+                    len(dict_keys) < target_amount and current_tries < target_amountx2
+                ):
                     v1 = self.generate_synth_data(
                         field_name,
                         match_name,
@@ -638,13 +714,16 @@ class JsonSynthesiser():
             elif data_type in [Tuple, tuple]:
                 output_data = []
                 if len(data_args) == 0:
-                    type_args_list.extend([type_args_list[0] for _ in range(random.randint(min_amount, max_amount))])
+                    type_args_list.extend(
+                        [
+                            type_args_list[0]
+                            for _ in range(random.randint(min_amount, max_amount))
+                        ]
+                    )
                 for x in range(len(data_args)):
                     chosen_type_info = type_args_list[x]
                     new_applied_constraints.update(chosen_type_info)
-                    tuple_generate_path = (
-                        generate_path + f".Tuple({x})[{max_amount}]"
-                    )
+                    tuple_generate_path = generate_path + f".Tuple({x})[{max_amount}]"
                     output_data.append(
                         self.generate_synth_data(
                             field_name,
@@ -665,10 +744,10 @@ class JsonSynthesiser():
                     pathstr = "FrozenSet"
                 else:
                     pathstr = "Set"
-                set_generate_path = (
-                    generate_path + f".{pathstr}(0)[{max_amount}]"
-                )
-                while len(output_data) < target_amount and current_tries < target_amountx2:
+                set_generate_path = generate_path + f".{pathstr}(0)[{max_amount}]"
+                while (
+                    len(output_data) < target_amount and current_tries < target_amountx2
+                ):
                     output_data.add(
                         self.generate_synth_data(
                             field_name,
@@ -724,7 +803,15 @@ class JsonSynthesiser():
                 func = None
             else:
                 func = self.resolved_methods[match_name]
-            if (applied_constraints["pattern"] is not None) or (match_name == "") or (match_name != "" and provider_return_types[match_name] != applied_constraints["annotation"]):
+            if (
+                (applied_constraints["pattern"] is not None)
+                or (match_name == "")
+                or (
+                    match_name != ""
+                    and provider_return_types[match_name]
+                    != applied_constraints["annotation"]
+                )
+            ):
                 output_data = self.generate_from_constraints(
                     field_name, applied_constraints, generate_path
                 )
@@ -742,7 +829,20 @@ class JsonSynthesiser():
                     start_time = time.time()
                     data_temp_pool = [func() for _ in range(pooling_count)]
 
-                    if any([applied_constraints.get(constraint) is not None for constraint in ["lt","le","gt","ge","multiple_of","min_length","max_length"]]):
+                    if any(
+                        [
+                            applied_constraints.get(constraint) is not None
+                            for constraint in [
+                                "lt",
+                                "le",
+                                "gt",
+                                "ge",
+                                "multiple_of",
+                                "min_length",
+                                "max_length",
+                            ]
+                        ]
+                    ):
                         data_pool = [
                             self.apply_constraints(
                                 func_val,
@@ -755,7 +855,9 @@ class JsonSynthesiser():
                             for func_val in data_temp_pool
                         ]
                     else:
-                        data_pool = [ data_type(temp_data) for temp_data in data_temp_pool ]
+                        data_pool = [
+                            data_type(temp_data) for temp_data in data_temp_pool
+                        ]
 
                     elapsed_time = time.time() - start_time
                     if self.stdcout:
@@ -780,7 +882,7 @@ class JsonSynthesiser():
         # apply constraints of output after data is provided
         return output_data
 
-    def generate_single_value(self, field_name:str, field_type:Type) -> Any:
+    def generate_single_value(self, field_name: str, field_type: Type) -> Any:
         """
         Inputs:\n
             field_name
@@ -788,18 +890,20 @@ class JsonSynthesiser():
         Outputs:\n
             single generated value
         """
-        matched_field = match_fields([field_name],self.method,field_types={field_name:field_type})
+        matched_field = match_fields(
+            [field_name], self.method, field_types={field_name: field_type}
+        )
         value = None
         if matched_field[field_name] != "":
             func = self.resolved_methods[matched_field[field_name]]
-            try: #this will fail if the function cant be loaded in the current venv (e.g. importing)
+            try:  # this will fail if the function cant be loaded in the current venv (e.g. importing)
                 value = func()
-            except:
+            except Exception:
                 pass
-        if value != None:
+        if value is not None:
             try:
                 value = field_type(value)
-            except:
+            except (ValueError, TypeError):
                 applied_constraints = default_constr_dict.copy()
                 applied_constraints["annotation"] = field_type
                 value = self.apply_constraints(
@@ -817,10 +921,16 @@ class JsonSynthesiser():
                 field_name, applied_constraints, "self()[1].generate"
             )
         return value
+
     # ----- Constraint based generation -----
 
     # ----- recursive functions -----
-    def recursive_match_fields(self,schema_model:JsonSchemaClass, method, field_match_pairs:Dict[str,Dict[str,str]]=None) -> Dict[str, Dict[str, str]]:
+    def recursive_match_fields(
+        self,
+        schema_model: JsonSchemaClass,
+        method,
+        field_match_pairs: Dict[str, Dict[str, str]] = None,
+    ) -> Dict[str, Dict[str, str]]:
         """
         Goes through an input schema model and matches all fields to a generation provider\n
         recurses through nested schemas, adding to list of providers for each field\n
@@ -837,15 +947,27 @@ class JsonSynthesiser():
             field_match_pairs = {}
         schema_name = schema_model.__name__
         if schema_model.contents["type"] != "object":
-            field_match_pairs[schema_name] = match_fields([schema_name], method, field_types={schema_name:infer_json_type(schema_model.contents)})
+            field_match_pairs[schema_name] = match_fields(
+                [schema_name],
+                method,
+                field_types={schema_name: infer_json_type(schema_model.contents)},
+            )
 
         model_data = get_json_model_data(schema_model)
         field_names = [x[0] for x in model_data]
 
         if schema_name not in field_match_pairs.keys():
-            field_match_pairs[schema_name] = match_fields(field_names, method, field_types={name:infer_json_type(content) for name,content in model_data})
+            field_match_pairs[schema_name] = match_fields(
+                field_names,
+                method,
+                field_types={
+                    name: infer_json_type(content) for name, content in model_data
+                },
+            )
         for x in model_data:
-            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            nested_types = [
+                ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)
+            ]
             for nt in nested_types:
                 ref_name = nt["$ref"].split("/")[-1]
                 if ref_name not in field_match_pairs.keys():
@@ -854,18 +976,20 @@ class JsonSynthesiser():
                         raise Exception(f"'{ref_name}' not in defs '{self.defs}'")
                     if self.defs == {}:
                         raise Exception("Synthesiser .defs have not been defined")
-                    field_match_pairs.update(self.recursive_match_fields(self.defs[ref_name],method))
+                    field_match_pairs.update(
+                        self.recursive_match_fields(self.defs[ref_name], method)
+                    )
         return field_match_pairs
 
     def recursive_get_applied_constraints(
-        self, schema_model:JsonSchemaClass
+        self, schema_model: JsonSchemaClass
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
         """
         Inputs:\n
             schema model
         Outputs:\n
-            nested constraints for all recursed schemas = 
-            { 
+            nested constraints for all recursed schemas =
+            {
                 schema name: {
                     field name: constraints
                 }
@@ -882,24 +1006,32 @@ class JsonSynthesiser():
         )
 
         for x in model_data:
-            nested_types = [ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)]
+            nested_types = [
+                ft for ft in list(flatten_json_types(x[1])) if is_json_model(ft)
+            ]
             for nt in nested_types:
                 ref_name = nt["$ref"].split("/")[-1]
                 if ref_name not in applied_constraints.keys():
                     if ref_name not in self.defs:
-                        raise Exception(f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions")
+                        raise Exception(
+                            f"'{ref_name}' not in defs '{self.defs}' | consider clearing defs before using internal functions"
+                        )
                     if self.defs == {}:
                         raise Exception("Synthesiser .defs have not been defined")
                     applied_constraints.update(
                         self.recursive_get_applied_constraints(self.defs[ref_name])
                     )
         return applied_constraints
-    # ----- recursive functions -----
 
+    # ----- recursive functions -----
 
     # ----- Central called functions -----
     def synthesise_recursive(
-        self, schema_model:JsonSchemaClass, method="faker", amount:int=1, path:str=""
+        self,
+        schema_model: JsonSchemaClass,
+        method="faker",
+        amount: int = 1,
+        path: str = "",
     ) -> Dict[str, Any]:
         """
         The main recursive call of the synthesiser class\n
@@ -910,13 +1042,15 @@ class JsonSynthesiser():
             amount
             generation path
         Outputs:\n
-            synthesised data = 
+            synthesised data =
             {field name: content}
         """
         if self.field_match_pairs == {}:
-            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
+            self.field_match_pairs = self.recursive_match_fields(schema_model, method)
         if self.applied_constraints == {}:
-            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
+            self.applied_constraints = self.recursive_get_applied_constraints(
+                schema_model
+            )
         schema_name = schema_model.__name__
 
         synthesised_data = {}
@@ -954,10 +1088,15 @@ class JsonSynthesiser():
         # print("__")
         return synthesised_data
 
-
     def synthesise(
-        self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",stdcout=False, performance=False
-    ) -> List[Dict[str,Any]]:
+        self,
+        schema_model: Union[JsonSchemaClass, Dict],
+        method=None,
+        amount=1,
+        seed="random",
+        stdcout=False,
+        performance=False,
+    ) -> List[Dict[str, Any]]:
         """
         The main call function of the synthesiser class
         Inputs:\n
@@ -972,7 +1111,7 @@ class JsonSynthesiser():
         """
         if amount == 0:
             return []
-        if isinstance(schema_model,dict):
+        if isinstance(schema_model, dict):
             if "title" not in schema_model:
                 raise Exception("JSON schema must have a title")
             schema_model = JsonSchemaClass(schema_model)
@@ -1007,27 +1146,34 @@ class JsonSynthesiser():
         self.outputpooling.clear()
         self.applied_constraints_cache.clear()
         self.schema_keys_cache.clear()
-        if method != None:
+        if method is not None:
             self.method = method
         else:
             method = self.method
         if schema_model.contents["type"] != "object":
             dataset = []
-            constraints = check_generation_constraints("",schema_model.contents)
+            constraints = check_generation_constraints("", schema_model.contents)
             if "title" in schema_model.contents:
                 field_name = schema_model.contents["title"]
-                self.field_match_pairs = match_fields([field_name],method,{field_name:infer_json_type(schema_model.contents)})
+                self.field_match_pairs = match_fields(
+                    [field_name],
+                    method,
+                    {field_name: infer_json_type(schema_model.contents)},
+                )
                 match_name = self.field_match_pairs[field_name]
             else:
                 field_name = ""
                 match_name = ""
                 self.field_match_pairs = {}
-            
-            
+
             for x in range(amount):
-                synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
-                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    validate_synthesised_data(synthesised_data,schema_model)
+                synthesised_data = self.generate_synth_data(
+                    field_name, match_name, constraints, f"{field_name}(?)[{amount}]"
+                )
+                if (
+                    not performance or x < 10
+                ):  # validate 10 to confirm, then skip the rest if performance is active
+                    validate_instance_data(synthesised_data, schema_model)
                 dataset.append(synthesised_data)
             return dataset
         else:
@@ -1039,16 +1185,22 @@ class JsonSynthesiser():
             klass2 = validator_for(schema2)
             klass2.check_schema(schema2)
             instance2 = klass1(schema2)
-            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
-            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
+            self.field_match_pairs = self.recursive_match_fields(schema_model, method)
+            self.applied_constraints = self.recursive_get_applied_constraints(
+                schema_model
+            )
             # print(self.applied_constraints)
             dataset = []
             for x in range(amount):
                 synthesised_data = self.synthesise_recursive(
                     schema_model, method=method, amount=amount
                 )
-                if x < 10:  #validate 10 to confirm, then skip the rest
-                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
+                if x < 10:  # validate 10 to confirm, then skip the rest
+                    validate_instance_data(
+                        synthesised_data,
+                        schema_model,
+                        schema_instances=(instance1, instance2),
+                    )
                 dataset.append(synthesised_data)
                 if self.stdcout:
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
@@ -1057,25 +1209,37 @@ class JsonSynthesiser():
                             end="\r",
                         )
             self.print("\nValidating data")
-            if performance == False:
-                for x,synthesised_data in enumerate(dataset):
-                    validate_synthesised_data(synthesised_data,schema_model,instances=(instance1,instance2))
+            if not performance:
+                for x, synthesised_data in enumerate(dataset):
+                    validate_instance_data(
+                        synthesised_data,
+                        schema_model,
+                        schema_instances=(instance1, instance2),
+                    )
                     if (x + 1) % max(1, amount // 100) == 0:  # 1% at a time
                         self.print(
                             f"Completed: {x + 1}/{amount} | {round(((x + 1) / amount) * 100, 2)}%{' ' * 30}",
                             end="\r",
                         )
-                           
+
             if self.stdcout:
                 self.print(f"Completed: {amount}/{amount}{' ' * 30}")
             # lp.print_stats()
             return dataset
+
     # ----- Central called functions -----
 
-    def register_schema(self, schema_model:Union[JsonSchemaClass,Dict], method=None, amount=1, seed="random",stdcout=False):
+    def register_schema(
+        self,
+        schema_model: Union[JsonSchemaClass, Dict],
+        method=None,
+        amount=1,
+        seed="random",
+        stdcout=False,
+    ):
         if amount == 0:
             return []
-        if isinstance(schema_model,dict):
+        if isinstance(schema_model, dict):
             if "title" not in schema_model:
                 raise Exception("JSON schema must have a title")
             schema_model = JsonSchemaClass(schema_model)
@@ -1088,28 +1252,39 @@ class JsonSynthesiser():
         self.outputpooling.clear()
         self.applied_constraints_cache.clear()
         self.schema_keys_cache.clear()
-        if method != None:
+        if method is not None:
             self.method = method
         else:
             method = self.method
         if schema_model.contents["type"] != "object":
-
-            constraints = check_generation_constraints("",schema_model.contents)
+            constraints = check_generation_constraints("", schema_model.contents)
             if "title" in schema_model.contents:
                 field_name = schema_model.contents["title"]
-                self.field_match_pairs = match_fields([field_name],method,{field_name:infer_json_type(schema_model.contents)})
+                self.field_match_pairs = match_fields(
+                    [field_name],
+                    method,
+                    {field_name: infer_json_type(schema_model.contents)},
+                )
                 match_name = self.field_match_pairs[field_name]
             else:
                 field_name = ""
                 match_name = ""
                 self.field_match_pairs = {}
-            self.yield_schema_data = {"constraints":constraints,"field_match_pairs":{"name":field_name,"match":match_name}}
+            self.yield_schema_data = {
+                "constraints": constraints,
+                "field_match_pairs": {"name": field_name, "match": match_name},
+            }
         else:
-            self.field_match_pairs = self.recursive_match_fields(schema_model,method)
-            self.applied_constraints = self.recursive_get_applied_constraints(schema_model)
-            self.yield_schema_data = {"constraints":self.applied_constraints,"field_match_pairs":self.field_match_pairs}
+            self.field_match_pairs = self.recursive_match_fields(schema_model, method)
+            self.applied_constraints = self.recursive_get_applied_constraints(
+                schema_model
+            )
+            self.yield_schema_data = {
+                "constraints": self.applied_constraints,
+                "field_match_pairs": self.field_match_pairs,
+            }
 
-    def yield_instance(self,amount=1,seed="random",stdcout=False, performance=False):
+    def yield_instance(self, amount=1, seed="random", stdcout=False, performance=False):
         prevcout = self.stdcout
         # prevseed = self.seed
         if stdcout:
@@ -1118,18 +1293,21 @@ class JsonSynthesiser():
         yield_schema_data = self.yield_schema_data
         method = self.method
         self.PERFORMANCE = performance
-        if schema_model.contents["type"] != "object": 
+        if schema_model.contents["type"] != "object":
             field_name = yield_schema_data["field_match_pairs"]["name"]
             match_name = yield_schema_data["field_match_pairs"]["match"]
             constraints = yield_schema_data["constraints"]
             dataset = []
             for x in range(amount):
-                synthesised_data = self.generate_synth_data(field_name,match_name,constraints,f"{field_name}(?)[{amount}]")
-                if performance == False or x < 10:  #validate 10 to confirm, then skip the rest if performance is active
-                    validate_synthesised_data(synthesised_data,schema_model)
+                synthesised_data = self.generate_synth_data(
+                    field_name, match_name, constraints, f"{field_name}(?)[{amount}]"
+                )
+                if (
+                    not performance or x < 10
+                ):  # validate 10 to confirm, then skip the rest if performance is active
+                    validate_instance_data(synthesised_data, schema_model)
                 dataset.append(synthesised_data)
         else:
-            
             dataset = []
             for x in range(amount):
                 synthesised_data = self.synthesise_recursive(
@@ -1147,5 +1325,3 @@ class JsonSynthesiser():
         self.stdcout = prevcout
         # self.seed = prevseed
         return dataset
-
-

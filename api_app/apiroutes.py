@@ -334,7 +334,7 @@ def entry_delete(id_num: int):
     append_row(id_num, "__DELETED__")
     try:
         current_ids.remove(id_num)
-    except:
+    except Exception:
         raise HTTPException(status_code=404, detail="Entry ID not found")
     return {"message": "Entry deleted", "entry": entry}
 
@@ -343,7 +343,7 @@ def entry_delete(id_num: int):
 def refresh_database():
     try:
         refactor()
-    except:
+    except Exception:
         return {"message": "Refresh not successful"}
     return {"message": "Refresh successful"}
 

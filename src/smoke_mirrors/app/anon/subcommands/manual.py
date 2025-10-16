@@ -1,26 +1,26 @@
 import typer
 from typing import Annotated, Optional
 from smoke_mirrors.app.anon.funcs import anon_func
-from smoke_mirrors.app.helper_funcs import  (
-    return_flags, 
-    load_recursed_path, 
-    load_schema, 
-    load_ingest, 
-    load_file_path, 
-    close_folder, 
-    recursive_ingest_json_handler, 
+from smoke_mirrors.app.helper_funcs import (
+    return_flags,
+    load_recursed_path,
+    load_schema,
+    load_ingest,
+    load_file_path,
+    close_folder,
+    recursive_ingest_json_handler,
     flatten_loaded_schemas,
     load_output_path_flag,
-    windows_path_to_pathlib
 )
-from smoke_mirrors.app.models import AnonymiserConfig,Settings
+from smoke_mirrors.app.models import AnonymiserConfig
 from pathlib import Path
 
 import json
 
 anon_manual_subcommand = typer.Typer()
 
-def anon_manual_func(schema_model,output_file_path,ingest,flags):
+
+def anon_manual_func(schema_model, output_file_path, ingest, flags):
     seed = flags.seed
     anon_flags = flags.anon
     load_file_path(output_file_path)
@@ -41,10 +41,11 @@ def anon_manual_func(schema_model,output_file_path,ingest,flags):
         fields=anon_flags.fields,
         output=output_file_path,
         key_anon=anon_flags.key_anon,
-        performance=anon_flags.performance
+        performance=anon_flags.performance,
     )
 
     close_folder(output_file_path)
+
 
 @anon_manual_subcommand.command(name="manual")
 def anon_manual_command(
@@ -56,8 +57,12 @@ def anon_manual_command(
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     default: Optional[str] = "mask",
     fields: str = typer.Option(None, help="Fields as JSON string"),
-    key_anon: Annotated[Optional[bool], typer.Option("--key-anon/--no-key-anon")] = None,
-    performance: Annotated[Optional[bool], typer.Option("--performance/--no-performance")] = None,
+    key_anon: Annotated[
+        Optional[bool], typer.Option("--key-anon/--no-key-anon")
+    ] = None,
+    performance: Annotated[
+        Optional[bool], typer.Option("--performance/--no-performance")
+    ] = None,
 ):
     """
     A subcommand for the anon command\n
@@ -85,13 +90,17 @@ def anon_manual_command(
         ctx.params["fields"] = None
 
     flags = return_flags(ctx, AnonymiserConfig)
-    print(f"Args: {flags.model_dump(exclude={"synth","anon"})}")
+    print(f"Args: {flags.model_dump(exclude={'synth', 'anon'})}")
     print(flags.anon)
     if flags.schema_path is None:
         schema_models = None
     else:
-        schema_models = load_recursed_path(flags.schema_path,flags.schema_type,load_schema)
+        schema_models = load_recursed_path(
+            flags.schema_path, flags.schema_type, load_schema
+        )
         schema_models = flatten_loaded_schemas(schema_models)
-    ingests = load_recursed_path(flags.anon.ingest,".json",load_ingest)
+    ingests = load_recursed_path(flags.anon.ingest, ".json", load_ingest)
     output_path_name = load_output_path_flag(flags.anon.output)
-    recursive_ingest_json_handler(ingests,anon_manual_func,flags,output_path_name,schema_models)
+    recursive_ingest_json_handler(
+        ingests, anon_manual_func, flags, output_path_name, schema_models
+    )

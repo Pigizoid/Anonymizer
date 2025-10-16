@@ -1,21 +1,23 @@
 import pytest
-
 from faker import Faker
-fake = Faker()
 from src.smoke_mirrors.pre_made_data import provider_methods
-from smoke_mirrors.synthesiser.matching_fields import levenshtein_distance, calc_difference, match_fields
+from smoke_mirrors.synthesiser.matching_fields import (
+    levenshtein_distance,
+    calc_difference,
+    match_fields,
+)
 
-
+fake = Faker()
 
 
 test_word_num = 10
-test_words = [fake.name() for x in range(test_word_num)]
+test_words = [fake.name() for _ in range(test_word_num)]
 test_words_1 = []
 for x in range(test_word_num):
     test_words_1.extend(test_words)
 test_words_2 = []
 for x in range(test_word_num):
-    test_words_2.extend([test_words[x] for y in range(test_word_num)])
+    test_words_2.extend([test_words[x] for _ in range(test_word_num)])
 
 
 @pytest.mark.parametrize(
@@ -100,7 +102,7 @@ field_names_2 = ["street", "city", "social_security_number", "continent"]
 
 
 def test_match_fields():
-    return_value = match_fields(field_names_1,"mixed")
+    return_value = match_fields(field_names_1, "mixed")
     assert isinstance(return_value, dict)
     assert all(
         [isinstance(x, str) and isinstance(y, str) for x, y in return_value.items()]
@@ -110,8 +112,8 @@ def test_match_fields():
 @pytest.mark.parametrize(
     "method,expected",
     [
-        ("faker", ["street_name", "city", "ssn", (False,"continent")]),
-        ("mimesis", ["street_name", "city", (False,"ssn"), "continent"]),
+        ("faker", ["street_name", "city", "ssn", (False, "continent")]),
+        ("mimesis", ["street_name", "city", (False, "ssn"), "continent"]),
         ("mixed", ["street_name", "city", "ssn", "continent"]),
     ],
 )
@@ -120,8 +122,10 @@ def test_match_fields_alternate_methods(method, expected):
     print(return_value)
     assert all(
         [
-            (return_value[field_names_2[x]] == expected[x] or (return_value[field_names_2[x]] == expected[x][1]) == expected[x][0])
+            (
+                return_value[field_names_2[x]] == expected[x]
+                or (return_value[field_names_2[x]] == expected[x][1]) == expected[x][0]
+            )
             for x in range(len(field_names_2))
         ]
     )
-

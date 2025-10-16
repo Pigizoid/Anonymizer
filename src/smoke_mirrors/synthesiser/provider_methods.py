@@ -9,15 +9,16 @@ fake = Faker()
 fake.add_provider(CustomProviders)
 generic = mimesis.Generic(mimesis.locales.Locale.EN)
 
-def list_faker_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
+
+def list_faker_methods(method_list: Dict[str, Any] = None) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     for attr in dir(fake):
         try:
             getattr(fake, attr)
-        except:
+        except Exception:
             continue
-        if method_list == None:
+        if method_list is None:
             if not attr.startswith("_") and attr.lower() == attr:
                 methods.append(attr)
                 methods_map[attr] = fake
@@ -26,7 +27,8 @@ def list_faker_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
             methods_map[attr] = fake
     return (methods, methods_map)
 
-def list_mimesis_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
+
+def list_mimesis_methods(method_list: Dict[str, Any] = None) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     for provider_name in sorted(generic.__dict__.keys()):
@@ -47,9 +49,9 @@ def list_mimesis_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
             for attr in dir(instance):
                 try:
                     getattr(instance, attr)
-                except:
+                except Exception:
                     continue
-                if method_list == None:
+                if method_list is None:
                     if not attr.startswith("_") and attr.lower() == attr:
                         methods.append(attr)
                         methods_map[attr] = instance
@@ -58,7 +60,8 @@ def list_mimesis_methods(method_list:Dict[str,Any]=None) -> Tuple[list, dict]:
                     methods_map[attr] = instance
     return (methods, methods_map)
 
-def list_match_methods(method:str) -> Tuple[list, dict]:
+
+def list_match_methods(method: str) -> Tuple[list, dict]:
     """
     Inputs:\n
         method of methods "faker","mimesis","mixed"
@@ -70,14 +73,11 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
     methods = []
     methods_map = {}
     methods_dict = {
-        "faker":["faker"],
-        "mimesis":["mimesis"],
-        "mixed":["faker","mimesis"]
+        "faker": ["faker"],
+        "mimesis": ["mimesis"],
+        "mixed": ["faker", "mimesis"],
     }
-    method_funcs_dict = {
-        "faker":list_faker_methods,
-        "mimesis":list_mimesis_methods
-    }
+    method_funcs_dict = {"faker": list_faker_methods, "mimesis": list_mimesis_methods}
     if method not in methods_dict:
         raise Exception(f"Unexpected method: {method}")
     methods_list = methods_dict[method]
@@ -86,7 +86,9 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
 
     for m in methods_list:
         method_func = method_funcs_dict[m]
-        returned_methods, returned_methods_map = method_func(provider_methods[m]["word_list"])
+        returned_methods, returned_methods_map = method_func(
+            provider_methods[m]["word_list"]
+        )
 
         methods.extend(returned_methods)
         methods_map.update(returned_methods_map)
@@ -94,7 +96,10 @@ def list_match_methods(method:str) -> Tuple[list, dict]:
     methods = list(set(methods))
     return (methods, methods_map)
 
-def make_resolved_methods(name_matches:List[str], methods_map:Dict[str,Any]) -> Dict[str, Any]:
+
+def make_resolved_methods(
+    name_matches: List[str], methods_map: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     Inputs:\n
         list of provider names

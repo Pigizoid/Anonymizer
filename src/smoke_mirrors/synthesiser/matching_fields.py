@@ -2,7 +2,7 @@ from typing import Dict, List, Set, Tuple
 from smoke_mirrors.pre_made_data import provider_methods, provider_return_types
 
 
-def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
+def levenshtein_distance(word1: str, word2: str, modifiers=None) -> float:
     """
     algorithm for calculating difference of two strings\n
     e.g:\n
@@ -35,21 +35,23 @@ def levenshtein_distance(word1:str, word2:str, modifiers=None) -> float:
             )
     return distance_point[len_word1][len_word2]
 
+
 VOWELS = {ord(ch) for ch in set("aeiouAEIOU")}
+
+
 def levenshtein_distance_fast(
     word1: str,
     word2: str,
     modifiers: Tuple[float, float, float] = None,
     max_dist: float = None,
     vowel_flag: bool = False,
-    allow_transpositions: bool = True
+    allow_transpositions: bool = True,
 ) -> float:
-    
     while word1 and word2 and word1[0] == word2[0]:
         word1, word2 = word1[1:], word2[1:]
     while word1 and word2 and word1[-1] == word2[-1]:
         word1, word2 = word1[:-1], word2[:-1]
-    
+
     if modifiers is None:
         modifiers = (0, 0, 0)
     del_cost, ins_cost, sub_mod = modifiers
@@ -67,7 +69,7 @@ def levenshtein_distance_fast(
     prev_prev = [0] * (len2 + 1)
     prev = list(range(len2 + 1))
     curr = prev_prev.copy()
-    
+
     for i in range(1, len1 + 1):
         curr[0] = i
         row_min = i
@@ -82,7 +84,7 @@ def levenshtein_distance_fast(
                 substitution += 0.1 * (w1c not in VOWELS) + 0.1 * (w2c not in VOWELS)
 
             v = min(deletion, insertion, substitution)
-            
+
             if (
                 allow_transpositions
                 and i > 1
@@ -99,17 +101,17 @@ def levenshtein_distance_fast(
             return float("inf")
 
         prev_prev, prev, curr = prev, curr, prev_prev
-    
+
     return prev[len2]
 
 
 def calc_difference(
-    target_word:str,
-    word:str,
-    word_tokens:Dict[str,List[str]]=None,
-    word_tokens_set:Dict[str,Set[str]]=None,
-    target_tokens:Dict[str,List[str]]=None,
-    target_tokens_set:Dict[str,Set[str]]=None,
+    target_word: str,
+    word: str,
+    word_tokens: Dict[str, List[str]] = None,
+    word_tokens_set: Dict[str, Set[str]] = None,
+    target_tokens: Dict[str, List[str]] = None,
+    target_tokens_set: Dict[str, Set[str]] = None,
 ) -> float:
     """
     algorithm for calculating difference of two strings\n
@@ -131,16 +133,15 @@ def calc_difference(
     """
     if word_tokens is None:
         word_tokens = word.split("_")
-    
+
     if word_tokens_set is None:
         word_tokens_set = set(word_tokens)
-        
+
     if target_tokens is None:
         target_tokens = target_word.split("_")
 
     if target_tokens_set is None:
         target_tokens_set = set(target_tokens)
-
 
     if target_tokens_set == word_tokens_set:  # name_first -> first_name
         return 0
@@ -154,7 +155,9 @@ def calc_difference(
     ) == word:  # abbreviation mapping	social_security_number -> ssn
         return 0
 
-    main_distance = levenshtein_distance_fast(target_word, word.lower())  # close early exit
+    main_distance = levenshtein_distance_fast(
+        target_word, word.lower()
+    )  # close early exit
     if main_distance <= 1 or main_distance >= len(target_word):
         return main_distance
 
@@ -191,7 +194,9 @@ def calc_difference(
     return distance
 
 
-def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[str, str]:
+def match_fields(
+    field_names: List[str], method: str, field_types=None
+) -> Dict[str, str]:
     """
     1. calculates the distance of each field_name in the list:\n
         to the closest matching generation provider
@@ -219,12 +224,18 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
         target_tokens = target_word.split("_")
         target_tokens_set = set(target_tokens)
         if t_word in word_list:
-            distances.append([t_word,0])
+            distances.append([t_word, 0])
         else:
-            target_letters = set(''.join(target_tokens_set))
-            filtered_word_list = [word for word in word_list if len(set(word) & target_letters) > 1] # filter match at least 2 letters
-            if field_types!= None and field_types[t_word] != None:
-                filtered_word_list = [word for word in word_list if provider_return_types[word] == field_types[t_word]] # filter by return type
+            target_letters = set("".join(target_tokens_set))
+            filtered_word_list = [
+                word for word in word_list if len(set(word) & target_letters) > 1
+            ]  # filter match at least 2 letters
+            if field_types is not None and field_types[t_word] is not None:
+                filtered_word_list = [
+                    word
+                    for word in word_list
+                    if provider_return_types[word] == field_types[t_word]
+                ]  # filter by return type
             for word in filtered_word_list:
                 distance = calc_difference(
                     target_word,
@@ -241,9 +252,7 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
             temp_min_value = sorted_by_distance[0][1]
             if temp_min_value <= min_value:
                 min_value = temp_min_value
-        closest_matches = [
-            item for item in sorted_by_distance if item[1] <= min_value
-        ]
+        closest_matches = [item for item in sorted_by_distance if item[1] <= min_value]
         if len(closest_matches) == 0:
             field_matches.append("")
         else:
@@ -253,4 +262,3 @@ def match_fields(field_names: List[str], method: str, field_types=None) -> Dict[
     for name, match in zip([x for x in field_names], field_matches):
         field_match_pairs[name] = match
     return field_match_pairs
-
