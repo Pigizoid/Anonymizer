@@ -1,4 +1,4 @@
-name: Python application
+name: Python Linting and Formatting
 
 on:
   pull_request:
