@@ -22,11 +22,14 @@ uv pip install -e . --system
 
 uv run pytest
 
+or optionally
+uv run --with pyinstaller pyinstaller --onefile src/smoke_mirrors/app/main.py --name sm
 
 
 # System Components
 
 ## Packages:
+```
 exrex - 0.12.0
 faker - 37.5.3
 jsonschema - 4.25.1
@@ -37,6 +40,7 @@ pyyam - l6.0.2
 requests - 2.32.5
 rstr - 3.2.2
 typer - 0.16.0
+```
 
 
 # Usage
@@ -76,6 +80,10 @@ Usage: sm anon [OPTIONS] COMMAND [ARGS]
 ╭─ Commands 
 │ auto
 │ manual
+```
+
+```
+with exe exchange 'sm' for '.\sm'
 ```
 
 ## Config usage

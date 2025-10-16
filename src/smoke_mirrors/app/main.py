@@ -189,3 +189,7 @@ def main(
     ctx.obj = {"settings": Settings, "schema_path": schema_path, "schema_type": schema_type, "seed": seed}
     #fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
     #additionally check if loading json breaks anything before passing to the synth_func
+
+
+if __name__ == "__main__":
+    app()
