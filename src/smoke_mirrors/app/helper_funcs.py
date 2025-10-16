@@ -10,10 +10,13 @@ from typing import Dict, Any, List, Union
 from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 import os
 from smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-from jsonschema import validate
 from jsonschema.validators import validator_for
-from jsonschema.exceptions import ValidationError
-from smoke_mirrors.tools.model_funcs import get_model_fields, get_json_model_fields, load_schemas_from_openapi, validate_instance_data
+from smoke_mirrors.tools.model_funcs import (
+    get_model_fields,
+    get_json_model_fields,
+    load_schemas_from_openapi,
+    validate_instance_data,
+)
 import re
 import shutil
 
@@ -32,6 +35,7 @@ def send_to_API(schema_model, output, data):
         # response = requests.post(output,json=entry)
         print(response)
 
+
 def send_batch_to_API(schema_model, output, data):
     start_time = time.time()
 
@@ -43,7 +47,6 @@ def send_batch_to_API(schema_model, output, data):
     elapsed_time = time.time() - start_time  # end timer
     print(f"Response: {response} | Time taken: {elapsed_time:.2f} seconds")
     return response
-
 
 
 def make_json_safe(obj):
@@ -60,37 +63,38 @@ def make_json_safe(obj):
     else:
         return obj
 
+
 def load_folder(output: Path):
     stem = output.stem
-    stem+="_(temp)"
+    stem += "_(temp)"
     output = output.with_stem(stem)
     output = output.with_suffix(".json")
     if output is not None:
         with open(output, "w") as f:
             f.write("[")
 
+
 def close_folder(file_path: Path):
     original = file_path.with_suffix(".json")
     stem = file_path.stem
-    stem+="_(temp)"
+    stem += "_(temp)"
     file_path = file_path.with_stem(stem)
     file_path = file_path.with_suffix(".json")
     if file_path is not None:
         with open(file_path, "a") as f:
             f.write("\n]\n")
     if original.exists():
-        shutil.copyfile(file_path,original)
+        shutil.copyfile(file_path, original)
         if file_path.exists():
             os.remove(file_path)
         else:
             print(f"The file '{file_path}' does not exist")
     else:
-        os.rename(file_path,original)
-    
+        os.rename(file_path, original)
 
 
 # ----- recursive file loading -----
-def load_schema_pydantic(schema_path:Path):
+def load_schema_pydantic(schema_path: Path):
     """
     Inputs:\n
         string to the schema path
@@ -102,7 +106,9 @@ def load_schema_pydantic(schema_path:Path):
     if not (schema_path.suffix == ".py"):
         schema_path = schema_path.with_suffix(".py")
     try:
-        spec = importlib.util.spec_from_file_location("imported_schema_model", schema_path)
+        spec = importlib.util.spec_from_file_location(
+            "imported_schema_model", schema_path
+        )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -110,16 +116,19 @@ def load_schema_pydantic(schema_path:Path):
         filtered = [
             {name: JsonSchemaClass(cls.model_json_schema())}
             for name, cls in classes
-            if cls.__module__ == "imported_schema_model" and issubclass(cls,BaseModel)
+            if cls.__module__ == "imported_schema_model" and issubclass(cls, BaseModel)
         ]
         if filtered == []:
             raise Exception(f"No pydantic schema in schema file {schema_path}")
-        schema_models = filtered # automatically ordered alphabetically
+        schema_models = filtered  # automatically ordered alphabetically
     except Exception as e:
-        raise Exception(f"Failed to import pydantic schema model on path '{schema_path}' with error {e}")
+        raise Exception(
+            f"Failed to import pydantic schema model on path '{schema_path}' with error {e}"
+        )
     return schema_models
 
-def load_schema_json(schema_path:Path):
+
+def load_schema_json(schema_path: Path):
     """
     Inputs:\n
         string to the schema path
@@ -128,18 +137,19 @@ def load_schema_json(schema_path:Path):
     """
     if not (schema_path.suffix == ".json"):
         schema_path = schema_path.with_suffix(".json")
-    with open(schema_path,"r") as f:
+    with open(schema_path, "r") as f:
         file_data = json.load(f)
         schema_models = []
-        if isinstance(file_data,dict) and "openapi" in file_data:
+        if isinstance(file_data, dict) and "openapi" in file_data:
             schemas = load_schemas_from_openapi(file_data)
-            for name,schema in schemas.items():
-                schema_models.append({name:JsonSchemaClass(schema,name=name)})
+            for name, schema in schemas.items():
+                schema_models.append({name: JsonSchemaClass(schema, name=name)})
         else:
             schema_models = JsonSchemaClass(file_data)
     return schema_models
 
-def load_schema(schema_path:Path):
+
+def load_schema(schema_path: Path):
     if schema_path.suffix == ".py":
         schema_models = load_schema_pydantic(schema_path)
     elif schema_path.suffix == ".json":
@@ -148,25 +158,29 @@ def load_schema(schema_path:Path):
         return None
     return schema_models
 
-def load_ingest(ingest_path:Path):
+
+def load_ingest(ingest_path: Path):
     return ingest_path
 
-def load_recursed_path(recursed_path:Path, file_type:str, loading_func):
+
+def load_recursed_path(recursed_path: Path, file_type: str, loading_func):
     file_flag = False
     if file_type is None:
         file_flag = True
     elif file_type[0] != ".":
-        file_type = "."+file_type
+        file_type = "." + file_type
     if recursed_path.is_dir():
         # folder case
         result = []
         for item in recursed_path.iterdir():
-            return_val = load_recursed_path(item,file_type,loading_func)
+            return_val = load_recursed_path(item, file_type, loading_func)
             if not return_val:
                 continue
             result.append(return_val)
         return {recursed_path.stem: result} if result else None
-    elif (file_flag == True and recursed_path.suffix in [".json",".py"]) or (recursed_path.suffix == file_type):
+    elif (file_flag and recursed_path.suffix in [".json", ".py"]) or (
+        recursed_path.suffix == file_type
+    ):
         # file case
         return {recursed_path.stem: loading_func(recursed_path)}
     else:
@@ -189,7 +203,7 @@ def schemas_equal(a, b) -> bool:
 
 
 def flatten_loaded_schemas(
-    schema_models: Union[Dict, List, BaseModel, JsonSchemaClass]
+    schema_models: Union[Dict, List, BaseModel, JsonSchemaClass],
 ) -> List[Any]:
     result: List[Any] = []
 
@@ -203,21 +217,22 @@ def flatten_loaded_schemas(
             for item in schema:
                 _flatten(item)
         else:
-            if not any(
-                r.__name__ == schema.__name__
-                for r in result
-            ):
+            if not any(r.__name__ == schema.__name__ for r in result):
                 result.append(schema)
             else:
-                raise Exception(f"Schemas with identical names exist in the folder, schema name -> {schema.__name__}")
+                raise Exception(
+                    f"Schemas with identical names exist in the folder, schema name -> {schema.__name__}"
+                )
 
     _flatten(schema_models)
     return result
+
+
 # ----- recursive file loading -----
 
 
 # ----- ingest handling -----
-def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
+def load_ingest_data(ingest, start_index=0) -> Dict[str, Any]:
     """
     Inputs:\n
         ingest string and loads the data from file or http
@@ -238,7 +253,7 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
             elif isinstance(data, dict):
                 try:
                     data = {int(key): content for key, content in data.items()}
-                except (ValueError,TypeError):
+                except (ValueError, TypeError):
                     raise Exception(
                         "Data is type of dict, expected data to be indexed by int"
                     )
@@ -246,12 +261,15 @@ def load_ingest_data(ingest, start_index=0)-> Dict[str,Any]:
         raise Exception("Unsupported ingest type")
     return data
 
-def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],ingest,ingest_path):
+
+def find_matching_schema(
+    schema_models: List[Union[BaseModel, JsonSchemaClass]], ingest, ingest_path
+):
     if schema_models is None:
         return None
     schema_instances = []
     for schema_model in schema_models:
-        if type(schema_model) == JsonSchemaClass:
+        if isinstance(schema_model, JsonSchemaClass):
             schema1 = schema_model.contents
             klass1 = validator_for(schema1)
             klass1.check_schema(schema1)
@@ -260,18 +278,22 @@ def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],in
             klass2 = validator_for(schema2)
             klass2.check_schema(schema2)
             instance2 = klass1(schema2)
-            schema_instances.append((instance1,instance2))
+            schema_instances.append((instance1, instance2))
         else:
             schema_instances.append(())
     matched_schemas = []
     first_entry = True
     start = time.time()
     print("Validating and matching schema to data")
-    for key,data_entry in ingest.items():
-        for schema_model,schema_instance in zip(schema_models,schema_instances):
-            if type(schema_model) == JsonSchemaClass:
+    for key, data_entry in ingest.items():
+        for schema_model, schema_instance in zip(schema_models, schema_instances):
+            if isinstance(schema_model, JsonSchemaClass):
                 if schema_model.fields.keys() == data_entry.keys():
-                    validate_instance_data(instance=data_entry, schema=schema_model, schema_instances=schema_instance)
+                    validate_instance_data(
+                        instance=data_entry,
+                        schema=schema_model,
+                        schema_instances=schema_instance,
+                    )
                 else:
                     continue
             else:
@@ -279,18 +301,20 @@ def find_matching_schema(schema_models:List[Union[BaseModel,JsonSchemaClass]],in
                     schema_model(**data_entry)
                 else:
                     continue
-            if first_entry == True:
+            if first_entry:
                 matched_schemas.append(schema_model)
             elif schema_model not in matched_schemas:
                 continue
         first_entry = False
     end = time.time()
-    elapsed = end-start
+    elapsed = end - start
     print(f"Finished matching data to schemas, time : {elapsed:2f} seconds")
     if len(matched_schemas) == 0:
         print(f"Data entry '{key}' in path '{ingest_path}' has no matched schema")
         return schema_models[0]
-    return matched_schemas[0] #(return first matched schema)
+    return matched_schemas[0]  # (return first matched schema)
+
+
 # ----- ingest handling -----
 
 
@@ -301,11 +325,12 @@ def get_unique_folder_name(base_path: Path) -> Path:
     parent = base_path.parent
     stem = base_path.name
     counter = 1
-    new_path = parent / (stem+"_(copy)")
+    new_path = parent / (stem + "_(copy)")
     while new_path.exists():
         counter += 1
-        new_path = parent / (stem+f"_(copy {counter})")
+        new_path = parent / (stem + f"_(copy {counter})")
     return new_path
+
 
 def get_latest_folder_name(base_path: Path) -> Path:
     parent = base_path.parent
@@ -319,66 +344,104 @@ def get_latest_folder_name(base_path: Path) -> Path:
         if item.is_dir():
             match = pattern.match(item.name)
             if match:
-                num = int(match.group(1)) if match.group(1) else (1 if "copy" in item.name else 0)
+                num = (
+                    int(match.group(1))
+                    if match.group(1)
+                    else (1 if "copy" in item.name else 0)
+                )
                 candidates.append((num, item))
 
     if not candidates:
         return base_path
     return max(candidates, key=lambda x: x[0])[1]
 
-def recursive_folder_schema_handler(schema_models,command,flags,output_path_name:Path,depth=0,unique_folder=True):
-    #1. check if output_path_name directory exists (could be nested)
-    #2. if it doesnt exist, create it (may have to be created within a sub folder)
+
+def recursive_folder_schema_handler(
+    schema_models, command, flags, output_path_name: Path, depth=0, unique_folder=True
+):
+    # 1. check if output_path_name directory exists (could be nested)
+    # 2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
     elif output_path_name.resolve().parent.name == "outputs":
-        if unique_folder == True:
+        if unique_folder:
             output_path_name = get_unique_folder_name(Path(output_path_name))
             os.makedirs(output_path_name)
         else:
             output_path_name = get_latest_folder_name(Path(output_path_name))
-    for file_path,contents in schema_models.items():
+    for file_path, contents in schema_models.items():
         new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            print(f"{' ' * (4 * depth)}| path: {file_path}| contents: list|")
             uf = True
             for inner_path in contents:
-                recursive_folder_schema_handler(inner_path,command,flags,new_path,depth=depth+1,unique_folder = uf)
+                recursive_folder_schema_handler(
+                    inner_path,
+                    command,
+                    flags,
+                    new_path,
+                    depth=depth + 1,
+                    unique_folder=uf,
+                )
                 uf = False
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {type(contents).__name__,contents.__name__}| {new_path}")
-            if contents == None:
+            print(
+                f"{' ' * (4 * depth)}| path: {file_path}| contents: {type(contents).__name__, contents.__name__}| {new_path}"
+            )
+            if contents is None:
                 raise Exception(f"Error in file {file_path}")
             schema_model = contents
-            command(schema_model,new_path,flags=flags)
+            command(schema_model, new_path, flags=flags)
     return None
 
-def recursive_ingest_json_handler(ingests,command,flags,output_path_name:Path,schema_models,depth=0,unique_folder=True):
-    #1. check if output_path_name directory exists (could be nested)
-    #2. if it doesnt exist, create it (may have to be created within a sub folder)
+
+def recursive_ingest_json_handler(
+    ingests,
+    command,
+    flags,
+    output_path_name: Path,
+    schema_models,
+    depth=0,
+    unique_folder=True,
+):
+    # 1. check if output_path_name directory exists (could be nested)
+    # 2. if it doesnt exist, create it (may have to be created within a sub folder)
     if not os.path.exists(output_path_name):
         os.makedirs(output_path_name)
     elif output_path_name.resolve().parent.name == "outputs":
-        if unique_folder == True:
+        if unique_folder:
             output_path_name = get_unique_folder_name(Path(output_path_name))
             os.makedirs(output_path_name)
         else:
             output_path_name = get_latest_folder_name(Path(output_path_name))
-    for file_path,contents in ingests.items():
+    for file_path, contents in ingests.items():
         new_path = Path(os.path.join(output_path_name, file_path))
         if type(contents) is list:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: list|")
+            print(f"{' ' * (4 * depth)}| path: {file_path}| contents: list|")
             uf = True
             for inner_path in contents:
-                recursive_ingest_json_handler(inner_path,command,flags,new_path,schema_models,depth=depth+1,unique_folder = uf)
+                recursive_ingest_json_handler(
+                    inner_path,
+                    command,
+                    flags,
+                    new_path,
+                    schema_models,
+                    depth=depth + 1,
+                    unique_folder=uf,
+                )
                 uf = False
         else:
-            print(f"{' '*(4*depth)}| path: {file_path}| contents: {contents}| {new_path}")
+            print(
+                f"{' ' * (4 * depth)}| path: {file_path}| contents: {contents}| {new_path}"
+            )
             ingest = load_ingest_data(contents)
-            schema_model = find_matching_schema(schema_models,ingest,file_path)
-            command(schema_model,new_path,ingest,flags=flags)
+            schema_model = find_matching_schema(schema_models, ingest, file_path)
+            command(schema_model, new_path, ingest, flags=flags)
     return None
+
+
 # ----- recursive handling -----
+
 
 def load_file_path(output):
     if output is not None:
@@ -386,16 +449,17 @@ def load_file_path(output):
     else:
         return None
 
+
 def load_output_path_flag(file_path):
     pathobj = Path(file_path)
-    if len(pathobj.parts)>1:
-        return_file_path =  pathobj.parent / "outputs" / pathobj.name
+    if len(pathobj.parts) > 1:
+        return_file_path = pathobj.parent / "outputs" / pathobj.name
     else:
         return_file_path = Path("outputs") / pathobj
     return return_file_path
 
 
-def return_flags(ctx, config_schema:BaseModel):
+def return_flags(ctx, config_schema: BaseModel):
     """
     Key Note: Settings is a dynamically loaded function created by the typer CLI context as ctx\n
     Inputs:\n
@@ -421,11 +485,13 @@ def return_flags(ctx, config_schema:BaseModel):
     elif config_schema == AnonymiserConfig:
         flags = settings(schema_path=schema_path, schema_type=schema_type, anon=params)
     else:
-        raise Exception(f"Input config schema '{config_schema.__name__}', not in ['SynthesiserConfig','AnonymiserConfig']")
+        raise Exception(
+            f"Input config schema '{config_schema.__name__}', not in ['SynthesiserConfig','AnonymiserConfig']"
+        )
     return flags
 
 
-def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
+def windows_path_to_pathlib(path_str: Union[str, Path]) -> Path:
     if path_str is None:
         return None
     if not os.path.exists(path_str):
@@ -436,10 +502,7 @@ def windows_path_to_pathlib(path_str:Union[str,Path]) -> Path:
             return_path = Path(PurePath(*pure_path.parts))
         return return_path
     else:
-        if isinstance(path_str,Path):
+        if isinstance(path_str, Path):
             return path_str
         else:
             return Path(path_str)
-
-
-

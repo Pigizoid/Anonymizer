@@ -1,8 +1,6 @@
-
-
-
 from pydantic import BaseModel
 from typing import Optional
+
 
 class StressProfile(BaseModel):
     bio: Optional[str]

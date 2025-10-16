@@ -17,11 +17,14 @@ type_map = {
     bool: "boolean",
     list: "array",
     dict: "object",
-    type(None): "null"
+    type(None): "null",
 }
 
+
 # ----- Model handling -----
-def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSchemaClass:
+def subset_model(
+    schema_model: JsonSchemaClass, field_names: List[str]
+) -> JsonSchemaClass:
     """
     Inputs:\n
         schema model
@@ -30,11 +33,11 @@ def subset_model(schema_model:JsonSchemaClass, field_names:List[str]) -> JsonSch
         schema model with name "new_schema_model" that contanins only field names in the list of field names
         inferences output data types from the input schema
     """
-    new_schema_model = schema_model.new_subset_model(field_names,"new_subset_model")
+    new_schema_model = schema_model.new_subset_model(field_names, "new_subset_model")
     return new_schema_model
 
 
-def infer_type(value: Union[str,bool,int,float,list,dict,None]) -> Dict[str, Any]:
+def infer_type(value: Union[str, bool, int, float, list, dict, None]) -> Dict[str, Any]:
     if isinstance(value, str):
         return {"type": "string"}
     elif isinstance(value, bool):
@@ -44,24 +47,22 @@ def infer_type(value: Union[str,bool,int,float,list,dict,None]) -> Dict[str, Any
     elif isinstance(value, float):
         return {"type": "number"}
     elif isinstance(value, list):
-        if value and len(value)!=0:
-            return {
-                "type": "array",
-                "items": infer_type(value[0])
-            }
+        if value and len(value) != 0:
+            return {"type": "array", "items": infer_type(value[0])}
         else:
             return {"type": "array", "items": {"type": "null"}}
     elif isinstance(value, dict):
-        if value and len(value)!=0:
+        if value and len(value) != 0:
             return {
                 "type": "object",
-                "additionalProperties": infer_type(list(value.values())[0])
+                "additionalProperties": infer_type(list(value.values())[0]),
             }
         else:
             return {"type": "object", "additionalProperties": {"type": "null"}}
     else:
         return {"type": "null"}
-    
+
+
 def new_precise_model(data: Dict[str, Any], field_names: List[str]) -> JsonSchemaClass:
     """
     Inputs:\n
@@ -79,12 +80,12 @@ def new_precise_model(data: Dict[str, Any], field_names: List[str]) -> JsonSchem
         "title": "new_schema_model",
         "type": "object",
         "properties": fields,
-        "required": list(field_names)
+        "required": list(field_names),
     }
     return JsonSchemaClass(schema_model)
 
 
-def new_model(data:Dict[str,Any], field_names:List[str]) -> Dict[str,Any]:
+def new_model(data: Dict[str, Any], field_names: List[str]) -> Dict[str, Any]:
     """
     Inputs:\n
         dict of data = {field_name:content}
@@ -94,12 +95,19 @@ def new_model(data:Dict[str,Any], field_names:List[str]) -> Dict[str,Any]:
         inferences output data types from the input data
     """
     fields = {
-        name:{"title":name, "type":type_map.get(type(content), "string")}
+        name: {"title": name, "type": type_map.get(type(content), "string")}
         for name, content in data.items()
         if name in field_names
     }
-    schema_model = {"title":"new_schema_model","properties":fields,"type":"object","required":list(field_names)}
+    schema_model = {
+        "title": "new_schema_model",
+        "properties": fields,
+        "type": "object",
+        "required": list(field_names),
+    }
     return JsonSchemaClass(schema_model)
+
+
 # ----- Model handling -----
 
 
@@ -176,7 +184,12 @@ def perturb_value(field_value: Any) -> Any:
         return field_value
 
 
-def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[int,str,None]="random", synth:JsonSynthesiser=None) -> Any:
+def anonymise_value(
+    field_value: Any,
+    anon_method: Tuple[str, str],
+    seed: Union[int, str, None] = "random",
+    synth: JsonSynthesiser = None,
+) -> Any:
     """
     Inputs:\n
         value to anonymise
@@ -200,7 +213,13 @@ def anonymise_value(field_value: Any, anon_method: Tuple[str,str], seed: Union[i
         )
 
 
-def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,str]], seed: Union[int,str,None]="random", synth:JsonSynthesiser=None, key_anon=False) -> Any:
+def anonymise_data(
+    input_data: Any,
+    anon_methods: Union[Dict[str, str], Tuple[str, str]],
+    seed: Union[int, str, None] = "random",
+    synth: JsonSynthesiser = None,
+    key_anon=False,
+) -> Any:
     """
     Recursive method\n
     Inputs:\n
@@ -218,7 +237,9 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
         if input_data_type in [List, list, Tuple, tuple, Set, set]:
             patch_data = []
             for value in input_data:
-                patch_data.append(anonymise_data(value, anon_methods, seed, synth, key_anon))
+                patch_data.append(
+                    anonymise_data(value, anon_methods, seed, synth, key_anon)
+                )
             if input_data_type in [Tuple, tuple]:
                 patch_data = tuple(patch_data)
             elif input_data_type in [Set, set]:
@@ -238,20 +259,38 @@ def anonymise_data(input_data:Any, anon_methods: Union[Dict[str,str],Tuple[str,s
             else:
                 anon_method = anon_methods
                 for key, value in input_data.items():
-                    patch_data[key] = anonymise_data(value, anon_method, seed, synth, key_anon)
-                if key_anon == True:
-                    patch_data = {f"key_{i}":value for i,value in enumerate(list(patch_data.values()))}
+                    patch_data[key] = anonymise_data(
+                        value, anon_method, seed, synth, key_anon
+                    )
+                if key_anon:
+                    patch_data = {
+                        f"key_{i}": value
+                        for i, value in enumerate(list(patch_data.values()))
+                    }
             return_data = patch_data
         else:
             raise Exception(f"Recersive data type| {input_data_type} |not handled")
     else:
         return_data = anonymise_value(input_data, anon_methods, seed, synth)
     return return_data
+
+
 # ----- Value handling -----
+
 
 # ----- Central function -----
 def anonymise(
-    schema_model:Union[JsonSchemaClass,None], data:Union[Dict[str,Dict],List[Dict]], method:str, manual:bool, default:str, fields:Dict[str,str], amount:int, seed:Union[int,str,None]="random", key_anon=False, stdcout=False, performance=False
+    schema_model: Union[JsonSchemaClass, None],
+    data: Union[Dict[str, Dict], List[Dict]],
+    method: str,
+    manual: bool,
+    default: str,
+    fields: Dict[str, str],
+    amount: int,
+    seed: Union[int, str, None] = "random",
+    key_anon=False,
+    stdcout=False,
+    performance=False,
 ) -> Dict[str, List[Any]]:
     """
     Inputs:\n
@@ -269,11 +308,13 @@ def anonymise(
                 [{Dict}] * amount
             }
     """
-    if isinstance(data,list):
-        data = {index:data_entry for index,data_entry in enumerate(data)}
+    if isinstance(data, list):
+        data = {index: data_entry for index, data_entry in enumerate(data)}
     anonymised_data = {}
     if stdcout:
-        print(f"fields: {list(fields.keys()) if len(fields.values())<5 else f"{list(field.values())[:5]}..."} |Seed: {seed} |Default: {default}")
+        print(
+            f"fields: {list(fields.keys()) if len(fields.values()) < 5 else f'{list(fields.values())[:5]}...'} |Seed: {seed} |Default: {default}"
+        )
     # print(data)
     synth = JsonSynthesiser(method=method)
     schema_match = True
@@ -338,7 +379,7 @@ def anonymise(
                     anon_methods=anon_methods,
                     seed=seed,
                     synth=synth,
-                    key_anon=key_anon
+                    key_anon=key_anon,
                 )
                 for _ in range(amount)
             ]
@@ -352,8 +393,12 @@ def anonymise(
                     new_fields[field] = return_entry[field]
                 else:
                     new_fields[field] = getattr(return_entry, field)
-            if performance == False or index < 10:
-                validate_instance_data(instance=new_fields, schema=result_schema, schema_instances=(instance1,instance2))
+            if not performance or index < 10:
+                validate_instance_data(
+                    instance=new_fields,
+                    schema=result_schema,
+                    schema_instances=(instance1, instance2),
+                )
             anonymised_data_set.append(new_fields)
         if (index + 1) % max(1, len_Data // 100) == 0:  # 1% at a time
             print(
@@ -362,4 +407,6 @@ def anonymise(
             )
         anonymised_data[index] = anonymised_data_set
     return anonymised_data
+
+
 # ----- Central function -----

@@ -15,7 +15,7 @@
 import sys
 from typing import Optional, Tuple
 
-try:
+if __name__ != "__main__":
     from .regex_sre_constants import (
         LITERAL,
         AT,
@@ -58,7 +58,7 @@ try:
         SRE_FLAG_DEBUG,
         MARK,
     )  # keep existing opcode constants
-except:
+else:
     from regex_sre_constants import (
         LITERAL,
         AT,

@@ -1,7 +1,13 @@
-from smoke_mirrors.synthesiser.provider_methods import list_faker_methods, list_mimesis_methods, list_match_methods, make_resolved_methods
+from smoke_mirrors.synthesiser.provider_methods import (
+    list_faker_methods,
+    list_mimesis_methods,
+    list_match_methods,
+    make_resolved_methods,
+)
 
 from faker import Faker
 from smoke_mirrors.pre_made_data import provider_methods
+
 
 def test_list_faker_methods():
     return_data = list_faker_methods()
@@ -37,7 +43,11 @@ def test_list_match_methods():
 
 
 fake = Faker()
+
+
 def test_make_resolved_methods():
-    return_value = make_resolved_methods(["name","email"],{"name":fake,"email":fake})
-    assert isinstance(return_value,dict)
+    return_value = make_resolved_methods(
+        ["name", "email"], {"name": fake, "email": fake}
+    )
+    assert isinstance(return_value, dict)
     assert all([callable(x) for x in return_value.values()])

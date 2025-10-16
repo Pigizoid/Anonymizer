@@ -41,7 +41,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         elif "schema_path" in raw:
             mapping["schema_path"] = raw["schema_path"]
         mapping["schema_path"] = windows_path_to_pathlib(mapping["schema_path"])
-        
+
         if "schema_type" in raw:
             mapping["schema_type"] = raw["schema_type"]
 
@@ -50,7 +50,9 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         elif "synth" in raw:
             mapping["synth"] = raw["synth"]
         if "output" in mapping["synth"]:
-            mapping["synth"]["output"] = windows_path_to_pathlib(mapping["synth"]["output"])
+            mapping["synth"]["output"] = windows_path_to_pathlib(
+                mapping["synth"]["output"]
+            )
 
         if "anonymiser" in raw:
             mapping["anon"] = raw["anonymiser"]
@@ -59,9 +61,13 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         elif "anon" in raw:
             mapping["anon"] = raw["anon"]
         if "output" in mapping["anon"]:
-            mapping["anon"]["output"] = windows_path_to_pathlib(mapping["anon"]["output"])
+            mapping["anon"]["output"] = windows_path_to_pathlib(
+                mapping["anon"]["output"]
+            )
         if "ingest" in mapping["anon"]:
-            mapping["anon"]["ingest"] = windows_path_to_pathlib(mapping["anon"]["ingest"])
+            mapping["anon"]["ingest"] = windows_path_to_pathlib(
+                mapping["anon"]["ingest"]
+            )
 
         return mapping
 
@@ -110,7 +116,9 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
                 continue
             anon = data.get("anon")
             if isinstance(anon, Mapping) and "fields" in anon:
-                last_anon_fields = anon["fields"]  #keep track of latest field dict to prevent dict update extending
+                last_anon_fields = anon[
+                    "fields"
+                ]  # keep track of latest field dict to prevent dict update extending
             result = deep_merge(result, data)
 
         if last_anon_fields is not None:
@@ -151,18 +159,10 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    config: Optional[Path] = typer.Option(
-        None
-    ),
-    schema_path: Optional[Path] = typer.Option(
-        None
-    ),
-    schema_type: Optional[str] = typer.Option(
-        None
-    ),
-    seed: Optional[str] = typer.Option(
-        False
-    ),
+    config: Optional[Path] = typer.Option(None),
+    schema_path: Optional[Path] = typer.Option(None),
+    schema_type: Optional[str] = typer.Option(None),
+    seed: Optional[str] = typer.Option(False),
 ):
     """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
@@ -184,11 +184,16 @@ def main(
             raise FileExistsError(f"File schema '{schema_path}' does not exist")
     else:
         schema_path = None
-    print("config file:",config_path)
+    print("config file:", config_path)
     Settings = make_settings_class(config_path)
-    ctx.obj = {"settings": Settings, "schema_path": schema_path, "schema_type": schema_type, "seed": seed}
-    #fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
-    #additionally check if loading json breaks anything before passing to the synth_func
+    ctx.obj = {
+        "settings": Settings,
+        "schema_path": schema_path,
+        "schema_type": schema_type,
+        "seed": seed,
+    }
+    # fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
+    # additionally check if loading json breaks anything before passing to the synth_func
 
 
 if __name__ == "__main__":

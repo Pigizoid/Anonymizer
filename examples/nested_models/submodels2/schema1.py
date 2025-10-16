@@ -1,25 +1,24 @@
-
-
-
 from pydantic import BaseModel, Field
-from typing import List, Optional,Dict,Set,Literal,Annotated
+from typing import List, Optional, Dict, Set, Literal, Annotated
 import decimal
-
-from pydantic import constr, conint
 
 
 #'''
 class USER(BaseModel):
-	
-	name: str
+    name: str
+
+
 #'''
+
 
 #'''
 class New_Address4(BaseModel):
-	
-	user: USER
-	street: str
+    user: USER
+    street: str
+
+
 #'''
+
 
 #'''
 class New_Address3(BaseModel):
@@ -28,70 +27,113 @@ class New_Address3(BaseModel):
     age: int = Field(gt=12, lt=100)
     bio: Optional[str] = Field(default=None, max_length=250)
     interests: List[str] = Field(default_factory=list)
+
+
 #'''
+
 
 #'''
 class New_Address2(BaseModel):
-	field_decimal: decimal.Decimal = Field(gt=3, lt=15, multiple_of=0.000005, decimal_places = 2)
-	field_float: float = Field(gt=15, allow_inf_nan=True)
+    field_decimal: decimal.Decimal = Field(
+        gt=3, lt=15, multiple_of=0.000005, decimal_places=2
+    )
+    field_float: float = Field(gt=15, allow_inf_nan=True)
+
+
 #'''
+
 
 #'''
 class New_Address1(BaseModel):
-	street: str
-	city: str
-	zip_code: List[Dict[Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')],List[Annotated[str,Field(pattern=r'^\d{5}(-\d{4})?$')]]]]  #either ddddd or ddddd-dddd
-	country: str = Field(default="USA")
-	social_security_number: str
-	continent: Optional[str]
-	phone_number: List[Dict[str,List[str]]]
-	title: Set[str]
-	direction: Literal["north", "south", "east", "west",100]
-	bananas: str
-	user: USER
-	name: Annotated[Dict[Annotated[str,Field(max_length = 1000)], Annotated[str,Field(max_length = 2000)]],Field(min_length=30)]
+    street: str
+    city: str
+    zip_code: List[
+        Dict[
+            Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")],
+            List[Annotated[str, Field(pattern=r"^\d{5}(-\d{4})?$")]],
+        ]
+    ]  # either ddddd or ddddd-dddd
+    country: str = Field(default="USA")
+    social_security_number: str
+    continent: Optional[str]
+    phone_number: List[Dict[str, List[str]]]
+    title: Set[str]
+    direction: Literal["north", "south", "east", "west", 100]
+    bananas: str
+    user: USER
+    name: Annotated[
+        Dict[
+            Annotated[str, Field(max_length=1000)],
+            Annotated[str, Field(max_length=2000)],
+        ],
+        Field(min_length=30),
+    ]
+
+
 #'''
+
 
 #'''
 class Address(BaseModel):
-	street: str
-	city: str
-	int_dict: Dict[Annotated[str,Field(gt=10)],Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')]]
-	int_dict1: Dict[Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')],Annotated[int,Field(gt=10)]]
-	int_dict2: Dict[str,Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')]]
-	int_dict3: Dict[Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')],str]
-	int_dict4: Dict[Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')],Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')]]
-	zip_code: List[Dict[Annotated[str,Field(pattern=r'^\d{3}(-\d{6})?$')],List[Annotated[str,Field(pattern=r'^\d{5}(-\d{4})?$')]]]]  #either ddddd or ddddd-dddd
-	country: str = Field(default="USA")
-	social_security_number: str
-	continent: Optional[str]
-	phone_number: List[Dict[str,List[str]]]
-	title: Set[str]
-	direction: Literal["north", "south", "east", "west",100]
-	bananas: str
-	user: USER
-	name: Annotated[Dict[Annotated[str,Field(max_length = 1000)], Annotated[str,Field(max_length = 2000)]],Field(min_length=30)]
-	field_decimal_constr: decimal.Decimal = Field(gt=3, lt=15, multiple_of=0.000005, decimal_places = 2)
-	field_float_constr: float = Field(gt=15, allow_inf_nan=True)
-	field_str: str
-	field_int: int
-	field_float: float
-	field_bool: bool
-	field_complex: complex
-	field_bytes: bytes
-	field_tuple: tuple
-	field_list: list #List[constr(min_length = 20)] = Field(min_length = 50)
-	field_set: set
-	field_frozenset: frozenset
-	field_dict: dict
-	username: str = Field(min_length=3, max_length=20, pattern="^[a-zA-Z0-9_]+$")
-	email: Optional[str]
-	age: int = Field(gt=12, lt=100)
-	bio: Optional[str] = Field(default=None, max_length=250)
-	interests: List[str] = Field(default_factory=list)
-	n1: New_Address1
-	n2: New_Address2
-	n3: New_Address3
-	n4: New_Address4
-#'''
+    street: str
+    city: str
+    int_dict: Dict[
+        Annotated[str, Field(gt=10)], Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")]
+    ]
+    int_dict1: Dict[
+        Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")], Annotated[int, Field(gt=10)]
+    ]
+    int_dict2: Dict[str, Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")]]
+    int_dict3: Dict[Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")], str]
+    int_dict4: Dict[
+        Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")],
+        Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")],
+    ]
+    zip_code: List[
+        Dict[
+            Annotated[str, Field(pattern=r"^\d{3}(-\d{6})?$")],
+            List[Annotated[str, Field(pattern=r"^\d{5}(-\d{4})?$")]],
+        ]
+    ]  # either ddddd or ddddd-dddd
+    country: str = Field(default="USA")
+    social_security_number: str
+    continent: Optional[str]
+    phone_number: List[Dict[str, List[str]]]
+    title: Set[str]
+    direction: Literal["north", "south", "east", "west", 100]
+    bananas: str
+    user: USER
+    name: Annotated[
+        Dict[
+            Annotated[str, Field(max_length=1000)],
+            Annotated[str, Field(max_length=2000)],
+        ],
+        Field(min_length=30),
+    ]
+    field_decimal_constr: decimal.Decimal = Field(
+        gt=3, lt=15, multiple_of=0.000005, decimal_places=2
+    )
+    field_float_constr: float = Field(gt=15, allow_inf_nan=True)
+    field_str: str
+    field_int: int
+    field_float: float
+    field_bool: bool
+    field_complex: complex
+    field_bytes: bytes
+    field_tuple: tuple
+    field_list: list  # List[constr(min_length = 20)] = Field(min_length = 50)
+    field_set: set
+    field_frozenset: frozenset
+    field_dict: dict
+    username: str = Field(min_length=3, max_length=20, pattern="^[a-zA-Z0-9_]+$")
+    email: Optional[str]
+    age: int = Field(gt=12, lt=100)
+    bio: Optional[str] = Field(default=None, max_length=250)
+    interests: List[str] = Field(default_factory=list)
+    n1: New_Address1
+    n2: New_Address2
+    n3: New_Address3
+    n4: New_Address4
 
+
+#'''

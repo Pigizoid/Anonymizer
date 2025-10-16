@@ -1,14 +1,11 @@
-from typing import List, Dict, Tuple, Set, Union, Literal, Optional, Any
+from typing import Tuple
 
-from decimal import Decimal
 
 from faker import Faker
 import mimesis
 from mimesis import Generic
 import inspect
-from enum import Enum
 from smoke_mirrors.synthesiser.custom_provider_methods import CustomProviders
-
 
 
 def generate_provider_return_types(provider_names, provider_instances):
@@ -17,28 +14,26 @@ def generate_provider_return_types(provider_names, provider_instances):
     for name in sorted(provider_names):
         try:
             value = getattr(provider_instances[name], name, None)()
-        except:
+        except Exception:
             continue
         if value is None:
             return_types[name] = type(None)
-        
+
         try:
             int(value)
             return_types[name] = int
             continue
-        except:
+        except (TypeError, ValueError):
             pass
 
         try:
             float(value)
             return_types[name] = float
             continue
-        except:
+        except (TypeError, ValueError):
             pass
 
-
-        
-        if isinstance(value,str) and value.lower() in {"true", "false"}:
+        if isinstance(value, str) and value.lower() in {"true", "false"}:
             return_types[name] = bool
         elif isinstance(value, bytes):
             return_types[name] = bytes
@@ -58,11 +53,6 @@ def generate_provider_return_types(provider_names, provider_instances):
     return dict(sorted(return_types.items()))
 
 
-
-
-
-
-
 fake = Faker()
 fake.add_provider(CustomProviders)
 generic = Generic(mimesis.locales.Locale.EN)
@@ -73,10 +63,14 @@ def list_faker_methods() -> Tuple[list, dict]:
     methods_map = {}
     for attr in dir(fake):
         try:  # this is used to ensure the providers dont error when called
-            if not attr.startswith("_") and callable(getattr(fake, attr)) and attr.lower() == attr:
+            if (
+                not attr.startswith("_")
+                and callable(getattr(fake, attr))
+                and attr.lower() == attr
+            ):
                 methods.append(attr)
                 methods_map[attr] = fake
-        except:
+        except Exception:
             pass
     return (methods, methods_map)
 
@@ -100,7 +94,11 @@ def list_mimesis_methods() -> Tuple[list, dict]:
             except (TypeError, ValueError):
                 continue
             for attr in dir(instance):
-                if not attr.startswith("_") and callable(getattr(instance, attr)) and attr.lower() == attr:
+                if (
+                    not attr.startswith("_")
+                    and callable(getattr(instance, attr))
+                    and attr.lower() == attr
+                ):
                     methods.append(attr)
                     methods_map[attr] = instance
     return (methods, methods_map)
@@ -130,10 +128,10 @@ def list_match_methods(method) -> Tuple[list, dict]:
     # print(f"Method: {method}, Map: {methods_map[method]}")
     return (methods, methods_map)
 
-def setup_func():
 
-    with open("pre_made_data.py","w+") as f:
-        f.write('''from typing import List, Dict, Tuple, Set, Union, Literal, Optional, Any
+def setup_func():
+    with open("pre_made_data.py", "w+") as f:
+        f.write("""from typing import List, Dict, Tuple, Set, Union, Literal, Optional, Any
 
 from decimal import Decimal
 
@@ -142,28 +140,34 @@ import mimesis
 from mimesis import Generic
 import inspect
                 
-                \n''')
+                \n""")
         f.write("provider_return_types = {\n")
         names, instances = list_match_methods("mixed")
         p_types = generate_provider_return_types(names, instances)
         for name, v in p_types.items():
             f.write(f"    '{name}' : {v.__name__},\n")
         f.write("}\n")
-        
-        methods = ["faker","mimesis","mixed"]
+
+        methods = ["faker", "mimesis", "mixed"]
         f.write("provider_methods = {\n")
         for method in methods:
             f.write(f"    '{method}' : {{\n")
             word_list, _ = list_match_methods(method)
             word_list = [word for word in word_list if word in p_types.keys()]
             f.write(f"        'word_list': {word_list},\n")
-            word_tokens = {word: word.split("_") for word in word_list if word in p_types.keys()}
+            word_tokens = {
+                word: word.split("_") for word in word_list if word in p_types.keys()
+            }
             f.write(f"        'word_tokens': {word_tokens},\n")
-            word_tokens_set = {word: set(word.split("_")) for word in word_list if word in p_types.keys()}
+            word_tokens_set = {
+                word: set(word.split("_"))
+                for word in word_list
+                if word in p_types.keys()
+            }
             f.write(f"        'word_tokens_set': {word_tokens_set}\n")
             f.write("    },\n")
         f.write("}\n")
-        f.write('''
+        f.write("""
 python_builtin_types = {
     str,
     int,
@@ -221,15 +225,16 @@ default_constr_dict = {
     "origin": None,
     "args": None,
 }
-        ''')
+        """)
         print("created data")
 
 
 if __name__ == "__main__":
     import os
     import pathlib
+
     test_dir = pathlib.Path(__file__).resolve().parent
     os.chdir(test_dir)
     print("Working dir:", os.getcwd())
-    #os.chrdir(os.getcwd()+"\\")
+    # os.chrdir(os.getcwd()+"\\")
     setup_func()

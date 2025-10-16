@@ -25,6 +25,9 @@ uv run pytest
 or optionally
 uv run --with pyinstaller pyinstaller --onefile src/smoke_mirrors/app/main.py --name sm
 
+uv run ruff format
+uv run ruff check  
+
 
 # System Components
 

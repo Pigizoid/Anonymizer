@@ -2,7 +2,15 @@ import pytest
 from pydantic import BaseModel
 from src.smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
-from src.smoke_mirrors.anonymiser.anonymiser import anonymise, subset_model, new_model, mask_value, perturb_value, anonymise_value, anonymise_data
+from src.smoke_mirrors.anonymiser.anonymiser import (
+    anonymise,
+    subset_model,
+    new_model,
+    mask_value,
+    perturb_value,
+    anonymise_value,
+    anonymise_data,
+)
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 
 
@@ -16,19 +24,19 @@ vals = [True, 1.5, 15, b"hello", "hello", []]
 methods = ["faker", "mimesis", "mixed"]
 synth = JsonSynthesiser()
 schema_input_data = {"foo": "hello", "bar": 10, "zar": True}
-input_data = {"0":schema_input_data}
+input_data = {"0": schema_input_data}
 manuals = [True, False]
-defaults = ["mask","perturb","synth"]
+defaults = ["mask", "perturb", "synth"]
 field_sets = [
-    {"foo":"default"},
-    {"bar":"default"},
-    {"zar":"default"},
-    {"foo":"default", "bar":"default"},
-    {"bar":"default", "zar":"default"},
-    {"foo":"default", "bar":"default", "zar":"default"},
+    {"foo": "default"},
+    {"bar": "default"},
+    {"zar": "default"},
+    {"foo": "default", "bar": "default"},
+    {"bar": "default", "zar": "default"},
+    {"foo": "default", "bar": "default", "zar": "default"},
 ]
 amounts = [1, 5, 10]
-key_anons = [True,False]
+key_anons = [True, False]
 
 input_sets = []
 for method in methods:
@@ -37,12 +45,41 @@ for method in methods:
             for fields in field_sets:
                 for amount in amounts:
                     for key_anon in key_anons:
-                        input_sets.append((JsonSchemaClass(schema_model.model_json_schema()),input_data,method,manual,default,fields,amount,0,key_anon))
-@pytest.mark.parametrize("schema_model, data, method, manual, default, fields, amount, seed, key_anon",input_sets)
-def test_anonymise(schema_model, data, method, manual, default, fields, amount, seed, key_anon):
+                        input_sets.append(
+                            (
+                                JsonSchemaClass(schema_model.model_json_schema()),
+                                input_data,
+                                method,
+                                manual,
+                                default,
+                                fields,
+                                amount,
+                                0,
+                                key_anon,
+                            )
+                        )
+
+
+@pytest.mark.parametrize(
+    "schema_model, data, method, manual, default, fields, amount, seed, key_anon",
+    input_sets,
+)
+def test_anonymise(
+    schema_model, data, method, manual, default, fields, amount, seed, key_anon
+):
     print(fields)
-    return_data = anonymise(schema_model, data, method, manual, default, fields, amount, seed=seed, key_anon=key_anon)
-    assert isinstance(return_data,dict)
+    return_data = anonymise(
+        schema_model,
+        data,
+        method,
+        manual,
+        default,
+        fields,
+        amount,
+        seed=seed,
+        key_anon=key_anon,
+    )
+    assert isinstance(return_data, dict)
 
 
 @pytest.mark.parametrize(
@@ -154,7 +191,6 @@ def test_anonymise_data_perturb():
     )
 
 
-
 class schema_model(BaseModel):
     foo: str
     bar: int
@@ -163,12 +199,16 @@ class schema_model(BaseModel):
 
 def test_subset_model():
     field_names = ["bar", "zar"]
-    return_model = subset_model(JsonSchemaClass(schema_model.model_json_schema()), field_names)
+    return_model = subset_model(
+        JsonSchemaClass(schema_model.model_json_schema()), field_names
+    )
     names = [name for name in get_json_model_fields(return_model).keys()]
     assert names == field_names
 
 
 data = {"foo": "hello", "bar": 10, "zar": False}
+
+
 def test_new_model():
     field_names = ["bar", "zar"]
     return_model = new_model(data, field_names)

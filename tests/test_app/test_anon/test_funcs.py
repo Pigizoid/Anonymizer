@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 import os
 import json
 
@@ -7,9 +6,10 @@ from src.smoke_mirrors.app.anon.funcs import anon_func
 from src.smoke_mirrors.app.helper_funcs import load_ingest_data
 from src.smoke_mirrors.library.jsonschemaclass import JsonSchemaClass
 from pathlib import Path
+
 test_schema = Path("tests") / "schema.json"
-with open(test_schema,"r") as f:
-    schema_model=JsonSchemaClass(json.load(f))
+with open(test_schema, "r") as f:
+    schema_model = JsonSchemaClass(json.load(f))
 
 seed = "random"
 methods = ["mixed", "mimesis", "faker"]
@@ -34,8 +34,8 @@ field_tests = [
     {"name": "perturb"},
     {"name": "synth"},
 ]
-key_anons = [True,False]
-performances = [True,False]
+key_anons = [True, False]
+performances = [True, False]
 
 test_list = []
 
@@ -43,8 +43,8 @@ for default in defaults:
     for amount in amounts:
         for method in methods:
             for key_anon in key_anons:
-                 for manual in manuals:
-                    if manual == True:
+                for manual in manuals:
+                    if manual:
                         for fields in field_tests:
                             test_list.append(
                                 (
@@ -60,7 +60,7 @@ for default in defaults:
                                     fields,
                                     output,
                                     key_anon,
-                                    True
+                                    True,
                                 )
                             )
                     else:
@@ -78,10 +78,9 @@ for default in defaults:
                                 {},
                                 output,
                                 key_anon,
-                                True
+                                True,
                             )
                         )
-
 
 
 @pytest.mark.parametrize(
@@ -99,13 +98,13 @@ def test_anon_func(
     manual,
     default,
     fields,
-    output:Path,
+    output: Path,
     key_anon,
-    performance
+    performance,
 ):
     print("CWD:", os.getcwd())
     stem = output.stem
-    file_output = output.with_stem(stem+"_(temp)")
+    file_output = output.with_stem(stem + "_(temp)")
     file_output = file_output.with_suffix(".json")
     print("Looking for:", os.path.abspath(file_output))
     with open(file_output, "w") as f:  # clear output
@@ -123,7 +122,7 @@ def test_anon_func(
         fields,
         output,
         key_anon,
-        performance
+        performance,
     )
     with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

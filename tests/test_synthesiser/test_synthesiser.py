@@ -1,5 +1,7 @@
 if __name__ == "__main__":
-    import os,sys,pathlib
+    import sys
+    import pathlib
+
     sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent.parent))
 
 from src.smoke_mirrors.synthesiser.synthesiser import JsonSynthesiser
@@ -12,7 +14,13 @@ from faker import Faker
 from src.smoke_mirrors.tools.model_funcs import get_json_model_fields
 from src.smoke_mirrors.synthesiser.synthesiser import print_path
 
-from tests.test_synthesiser.models import Constraints, ConstraintsNested, test_Address_4, generate_test1, User
+from tests.test_synthesiser.models import (
+    Constraints,
+    ConstraintsNested,
+    test_Address_4,
+    generate_test1,
+    User,
+)
 from jsonschema import validate
 
 
@@ -59,6 +67,7 @@ def test_progress_prints(capsys):
 
 val_types = [bool, int, float, complex, bytes, str]
 
+
 def test_generate_from_constraints():
     synth = JsonSynthesiser()
     generate_path = "test[100].List(0)[10].Dict(Right)[10].Annotated"
@@ -75,6 +84,7 @@ def test_generate_from_constraints():
         [re.search(r"a", text).group() == text for text in data_pool[generate_path]]
     )
 
+
 @pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
 def test_generate_from_constraints_alternate(val_type):
     synth = JsonSynthesiser()
@@ -84,6 +94,7 @@ def test_generate_from_constraints_alternate(val_type):
     constraints["pattern"] = None
     return_value = synth.generate_from_constraints("test", constraints, generate_path)
     assert isinstance(return_value, val_type)
+
 
 @pytest.mark.parametrize("val_type", [(val_type) for val_type in val_types])
 def test_apply_constraints(val_type):
@@ -99,10 +110,12 @@ def test_apply_constraints(val_type):
     )
     assert isinstance(return_value, val_type)
 
+
 # ----- constraint generator tests
 
 
 # ----- recursion tests
+
 
 def test_recursive_get_applied_constraints():
     synth = JsonSynthesiser()
@@ -157,6 +170,7 @@ def test_recursive_match_fields():
         "continent",
     ]
 
+
 # ----- recursion tests
 
 
@@ -167,10 +181,8 @@ def test_generate_synth_data():
 
     schema_model = generate_test1
     schema_name = schema_model.__name__
-    field_match_pairs = synth.recursive_match_fields(schema_model,method)
-    applied_constraints = synth.recursive_get_applied_constraints(
-        schema_model
-    )
+    field_match_pairs = synth.recursive_match_fields(schema_model, method)
+    applied_constraints = synth.recursive_get_applied_constraints(schema_model)
     synthesised_data = {}
     for name in get_json_model_fields(schema_model).keys():
         generate_path = "" + f"{schema_model.__name__}({name})[1]"
@@ -183,18 +195,20 @@ def test_generate_synth_data():
         )
     try:
         validate(instance=synthesised_data, schema=schema_model.contents)
-    except:
+    except Exception:
         validate(instance=synthesised_data, schema=schema_model.sanitised_contents)
+
 
 # ----- synth generator tests
 test_generate_synth_data()
 
 # ----- print tests
 
+
 def test_print_path_simple(capsys):
     path = "[0]"
     elapsed_time = 1.2345
-    print_path(path, elapsed_time,print)
+    print_path(path, elapsed_time, print)
 
     captured = capsys.readouterr()
     output = captured.out.strip()
@@ -202,10 +216,11 @@ def test_print_path_simple(capsys):
     assert "Time taken: 1.23 seconds" in output
     assert path in output
 
+
 def test_print_path_deeper_path(capsys):
     path = "[0][1][2]"
     elapsed_time = 12.5
-    print_path(path, elapsed_time,print)
+    print_path(path, elapsed_time, print)
 
     captured = capsys.readouterr()
     output = captured.out
@@ -213,6 +228,7 @@ def test_print_path_deeper_path(capsys):
     assert "Time taken: 12.50 seconds" in output
     assert path in output
     assert "        " in output
+
 
 @pytest.mark.parametrize(
     "path,elapsed,expected",
@@ -223,12 +239,12 @@ def test_print_path_deeper_path(capsys):
     ],
 )
 def test_print_path_parametrized(path, elapsed, expected, capsys):
-    print_path(path, elapsed,print)
+    print_path(path, elapsed, print)
     captured = capsys.readouterr()
     output = captured.out
 
     assert expected in output
     assert path in output
 
-# ----- print tests
 
+# ----- print tests

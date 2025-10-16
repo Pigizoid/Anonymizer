@@ -1,7 +1,7 @@
 import os
 import shutil
-import pytest
 from pathlib import Path
+
 
 def clear_folder(folder: str):
     if os.path.exists(folder):
@@ -16,8 +16,6 @@ def clear_folder(folder: str):
                 print(f"Failed to delete {file_path}. Reason: {e}")
     else:
         os.mkdir(folder)
-
-
 
 
 def pytest_sessionstart(session):

@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import re
 
+
 class MiniLineProfiler:
     def __init__(self):
         # Store timings as: {(filename, lineno): [total_time, hits, locals_snapshots]}
@@ -24,7 +25,10 @@ class MiniLineProfiler:
         now = time.perf_counter()
 
         # Attribute time to previous line
-        if getattr(self, "_last_time", None) is not None and self._last_key in self.stats:
+        if (
+            getattr(self, "_last_time", None) is not None
+            and self._last_key in self.stats
+        ):
             elapsed = now - self._last_time
             self.stats[self._last_key][0] += elapsed
             self.stats[self._last_key][1] += 1
@@ -48,7 +52,15 @@ class MiniLineProfiler:
 
                 total_line_time, hits, locals_snaps = self.stats.get(key, (0.0, 0, []))
                 total_func_time = sum(v[0] for v in self.stats.values())
-                self._print_line(key, code_line, total_line_time, hits, locals_snaps, total_func_time, large_flag=True)
+                self._print_line(
+                    key,
+                    code_line,
+                    total_line_time,
+                    hits,
+                    locals_snaps,
+                    total_func_time,
+                    large_flag=True,
+                )
                 input("...")
 
         # Update state
@@ -78,7 +90,9 @@ class MiniLineProfiler:
             self._start_lineno_map[filename] = start_lineno
 
             if interactive:
-                print(f"Interactive line profiler started for function '{func.__name__}'")
+                print(
+                    f"Interactive line profiler started for function '{func.__name__}'"
+                )
 
             sys.settrace(self._trace)
             try:
@@ -88,7 +102,16 @@ class MiniLineProfiler:
 
         return wrapper
 
-    def _print_line(self, key, code, total_time, hits, locals_snapshots, total_func_time, large_flag=False):
+    def _print_line(
+        self,
+        key,
+        code,
+        total_time,
+        hits,
+        locals_snapshots,
+        total_func_time,
+        large_flag=False,
+    ):
         time_ms = total_time * 1000
         pct_time = (total_time / total_func_time * 100) if total_func_time > 0 else 0.0
 
@@ -98,12 +121,16 @@ class MiniLineProfiler:
             last_snapshot = locals_snapshots[-1]
             filtered_locals = {k: v for k, v in last_snapshot.items() if k in var_names}
             if filtered_locals:
-                locals_preview = " | " + ", ".join(f"{k}={repr(v)}" for k, v in filtered_locals.items())
-        if large_flag==False:
+                locals_preview = " | " + ", ".join(
+                    f"{k}={repr(v)}" for k, v in filtered_locals.items()
+                )
+        if not large_flag:
             if len(locals_preview) > 60:
                 locals_preview = locals_preview[:60] + "|..."
 
-        print(f"{key[1]:5} {hits:5} {time_ms:10.3f} {pct_time:8.2f}  {code:40} {locals_preview}")
+        print(
+            f"{key[1]:5} {hits:5} {time_ms:10.3f} {pct_time:8.2f}  {code:40} {locals_preview}"
+        )
 
     def report(self, func):
         filename = inspect.getsourcefile(func)
@@ -112,21 +139,22 @@ class MiniLineProfiler:
         total_func_time = sum(v[0] for v in self.stats.values())
 
         print(f"\nLine-by-line profiling for {func.__name__} in {filename}:\n")
-        print(f"{'Line':>5} {'Hits':>5} {'Time (ms)':>10} {'% Time':>8}  Code{' ' * 40} Locals")
+        print(
+            f"{'Line':>5} {'Hits':>5} {'Time (ms)':>10} {'% Time':>8}  Code{' ' * 40} Locals"
+        )
         print("-" * 140)
 
         for i, line in enumerate(source_lines, start=start_lineno):
             key = (filename, i)
             total_line_time, hits, locals_snaps = self.stats.get(key, (0.0, 0, []))
-            self._print_line(key, line.rstrip(), total_line_time, hits, locals_snaps, total_func_time)
-
-
+            self._print_line(
+                key, line.rstrip(), total_line_time, hits, locals_snaps, total_func_time
+            )
 
 
 # ---------------- Example Usage ---------------- #
 
 if __name__ == "__main__":
-        
     profiler = MiniLineProfiler()
 
     @profiler.wrap(interactive=True)
