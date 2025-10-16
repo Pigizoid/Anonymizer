@@ -13,6 +13,7 @@ class SynthesiserConfig(BaseModel):
     flat_output: bool = False
     stdcout: bool = False
     performance: bool = False
+    realistic: bool = True
 
 
 class AnonymiserConfig(BaseModel):
@@ -26,6 +27,7 @@ class AnonymiserConfig(BaseModel):
     fields: typing.Dict[str, str] = {}
     key_anon: bool = False
     performance: bool = False
+    realistic: bool = True
 
 
 class Settings(BaseSettings):

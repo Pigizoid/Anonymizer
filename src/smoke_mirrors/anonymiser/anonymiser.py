@@ -291,6 +291,7 @@ def anonymise(
     key_anon=False,
     stdcout=False,
     performance=False,
+    realistic=True,
 ) -> Dict[str, List[Any]]:
     """
     Inputs:\n
@@ -316,7 +317,7 @@ def anonymise(
             f"fields: {list(fields.keys()) if len(fields.values()) < 5 else f'{list(fields.values())[:5]}...'} |Seed: {seed} |Default: {default}"
         )
     # print(data)
-    synth = JsonSynthesiser(method=method)
+    synth = JsonSynthesiser(method=method, realistic=realistic)
     schema_match = True
     first_data_entry = list(data.values())[0]
     for field_name in fields.keys():

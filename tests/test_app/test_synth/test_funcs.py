@@ -22,14 +22,17 @@ test_list = []
 for amount in amounts:
     for method in methods:
         test_list.append(
-            (schema_model, method, amount, output, stdcout, start_index, seed)
+            (schema_model, method, amount, output, stdcout, start_index, seed, True)
         )
 
 
 @pytest.mark.parametrize(
-    "schema_model, method, amount, output, stdcout, start_index, seed", test_list
+    "schema_model, method, amount, output, stdcout, start_index, seed, realistic",
+    test_list,
 )
-def test_synth_func(schema_model, method, amount, output, stdcout, start_index, seed):
+def test_synth_func(
+    schema_model, method, amount, output, stdcout, start_index, seed, realistic
+):
     print("CWD:", os.getcwd())
     stem = output.stem
     file_output = output.with_stem(stem + "_(temp)")
@@ -45,6 +48,7 @@ def test_synth_func(schema_model, method, amount, output, stdcout, start_index, 
         stdcout=stdcout,
         start_index=start_index,
         seed=seed,
+        realistic=realistic,
     )
     with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

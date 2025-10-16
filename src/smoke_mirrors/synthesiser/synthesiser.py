@@ -146,7 +146,9 @@ def regex_parallel_worker(args, _):
 
 
 class JsonSynthesiser:
-    def __init__(self, method="faker", stdcout=False, rich_output=False):
+    def __init__(
+        self, method="faker", stdcout=False, rich_output=False, realistic=True
+    ):
         self.outputpooling = {}
         self.applied_constraints_cache = {}
         self.schema_keys_cache = {}
@@ -168,6 +170,7 @@ class JsonSynthesiser:
         self.yield_schema_data = None
         self.PERFORMANCE = False
         self.print = richprint if rich_output else print
+        self.realistic = realistic
 
     # ----- Constraint based generation -----
     def generate_from_constraints(
@@ -891,7 +894,10 @@ class JsonSynthesiser:
             single generated value
         """
         matched_field = match_fields(
-            [field_name], self.method, field_types={field_name: field_type}
+            [field_name],
+            self.method,
+            field_types={field_name: field_type},
+            realistic_active=self.realistic,
         )
         value = None
         if matched_field[field_name] != "":
@@ -951,6 +957,7 @@ class JsonSynthesiser:
                 [schema_name],
                 method,
                 field_types={schema_name: infer_json_type(schema_model.contents)},
+                realistic_active=self.realistic,
             )
 
         model_data = get_json_model_data(schema_model)
@@ -963,6 +970,7 @@ class JsonSynthesiser:
                 field_types={
                     name: infer_json_type(content) for name, content in model_data
                 },
+                realistic_active=self.realistic,
             )
         for x in model_data:
             nested_types = [
@@ -1159,6 +1167,7 @@ class JsonSynthesiser:
                     [field_name],
                     method,
                     {field_name: infer_json_type(schema_model.contents)},
+                    realistic_active=self.realistic,
                 )
                 match_name = self.field_match_pairs[field_name]
             else:
@@ -1264,6 +1273,7 @@ class JsonSynthesiser:
                     [field_name],
                     method,
                     {field_name: infer_json_type(schema_model.contents)},
+                    realistic_active=self.realistic,
                 )
                 match_name = self.field_match_pairs[field_name]
             else:

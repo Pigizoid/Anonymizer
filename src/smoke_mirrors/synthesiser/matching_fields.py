@@ -195,7 +195,7 @@ def calc_difference(
 
 
 def match_fields(
-    field_names: List[str], method: str, field_types=None
+    field_names: List[str], method: str, field_types=None, realistic_active=True
 ) -> Dict[str, str]:
     """
     1. calculates the distance of each field_name in the list:\n
@@ -217,35 +217,36 @@ def match_fields(
         closest_matches = []
         distances = []
         target_word = t_word.lower()
-        if target_word == "":
-            break
-        if target_word[0] == "_":
-            target_word = target_word[1:]
-        target_tokens = target_word.split("_")
-        target_tokens_set = set(target_tokens)
-        if t_word in word_list:
-            distances.append([t_word, 0])
-        else:
-            target_letters = set("".join(target_tokens_set))
-            filtered_word_list = [
-                word for word in word_list if len(set(word) & target_letters) > 1
-            ]  # filter match at least 2 letters
-            if field_types is not None and field_types[t_word] is not None:
+        if realistic_active:
+            if target_word == "":
+                break
+            if target_word[0] == "_":
+                target_word = target_word[1:]
+            target_tokens = target_word.split("_")
+            target_tokens_set = set(target_tokens)
+            if t_word in word_list:
+                distances.append([t_word, 0])
+            else:
+                target_letters = set("".join(target_tokens_set))
                 filtered_word_list = [
-                    word
-                    for word in word_list
-                    if provider_return_types[word] == field_types[t_word]
-                ]  # filter by return type
-            for word in filtered_word_list:
-                distance = calc_difference(
-                    target_word,
-                    word,
-                    word_tokens[word],
-                    word_tokens_set[word],
-                    target_tokens,
-                    target_tokens_set,
-                )
-                distances.append([word, distance])
+                    word for word in word_list if len(set(word) & target_letters) > 1
+                ]  # filter match at least 2 letters
+                if field_types is not None and field_types[t_word] is not None:
+                    filtered_word_list = [
+                        word
+                        for word in word_list
+                        if provider_return_types[word] == field_types[t_word]
+                    ]  # filter by return type
+                for word in filtered_word_list:
+                    distance = calc_difference(
+                        target_word,
+                        word,
+                        word_tokens[word],
+                        word_tokens_set[word],
+                        target_tokens,
+                        target_tokens_set,
+                    )
+                    distances.append([word, distance])
         sorted_by_distance = sorted(distances, key=lambda dist: dist[1])
         min_value = (len(target_word) // 2 - 0.5) + 1
         if sorted_by_distance != [] and sorted_by_distance[0] != []:

@@ -40,6 +40,7 @@ def anon_auto_func(schema_model, output_file_path, ingest, flags):
         output=output_file_path,
         key_anon=anon_flags.key_anon,
         performance=anon_flags.performance,
+        realistic=anon_flags.realistic,
     )
 
     close_folder(output_file_path)
@@ -59,6 +60,9 @@ def anon_auto_command(
     ] = None,
     performance: Annotated[
         Optional[bool], typer.Option("--performance/--no-performance")
+    ] = None,
+    realistic: Annotated[
+        Optional[bool], typer.Option("--realistic/--no-realistic")
     ] = None,
 ):
     """

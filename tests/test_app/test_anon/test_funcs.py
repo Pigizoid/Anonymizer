@@ -36,6 +36,7 @@ field_tests = [
 ]
 key_anons = [True, False]
 performances = [True, False]
+realistics = [True, False]
 
 test_list = []
 
@@ -44,8 +45,28 @@ for default in defaults:
         for method in methods:
             for key_anon in key_anons:
                 for manual in manuals:
-                    if manual:
-                        for fields in field_tests:
+                    for realistic in realistics:
+                        if manual:
+                            for fields in field_tests:
+                                test_list.append(
+                                    (
+                                        schema_model,
+                                        seed,
+                                        method,
+                                        amount,
+                                        start_index,
+                                        ingest,
+                                        stdcout,
+                                        manual,
+                                        default,
+                                        fields,
+                                        output,
+                                        key_anon,
+                                        True,
+                                        realistic,
+                                    )
+                                )
+                        else:
                             test_list.append(
                                 (
                                     schema_model,
@@ -57,34 +78,17 @@ for default in defaults:
                                     stdcout,
                                     manual,
                                     default,
-                                    fields,
+                                    {},
                                     output,
                                     key_anon,
                                     True,
+                                    realistic,
                                 )
                             )
-                    else:
-                        test_list.append(
-                            (
-                                schema_model,
-                                seed,
-                                method,
-                                amount,
-                                start_index,
-                                ingest,
-                                stdcout,
-                                manual,
-                                default,
-                                {},
-                                output,
-                                key_anon,
-                                True,
-                            )
-                        )
 
 
 @pytest.mark.parametrize(
-    "schema_model, seed, method, amount, start_index, ingest, stdcout, manual, default, fields, output, key_anon, performance",
+    "schema_model, seed, method, amount, start_index, ingest, stdcout, manual, default, fields, output, key_anon, performance, realistic",
     test_list,
 )
 def test_anon_func(
@@ -101,6 +105,7 @@ def test_anon_func(
     output: Path,
     key_anon,
     performance,
+    realistic,
 ):
     print("CWD:", os.getcwd())
     stem = output.stem
@@ -123,6 +128,7 @@ def test_anon_func(
         output,
         key_anon,
         performance,
+        realistic,
     )
     with open(file_output, "r") as f:
         assert len(f.readlines()) != 0

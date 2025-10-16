@@ -30,6 +30,7 @@ def synth_single_func(schema_model, output_file_path, flags):
         stdcout=synth_flags.stdcout,
         seed=seed,
         performance=synth_flags.performance,
+        realistic=synth_flags.realistic,
     )
 
     close_folder(output_file_path)
@@ -46,6 +47,9 @@ def synth_single_command(
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[
         Optional[bool], typer.Option("--performance/--no-performance")
+    ] = None,
+    realistic: Annotated[
+        Optional[bool], typer.Option("--realistic/--no-realistic")
     ] = None,
 ):
     """

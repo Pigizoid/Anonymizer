@@ -22,6 +22,7 @@ def anon_func(
     output: Path,
     key_anon: bool,
     performance: bool,
+    realistic: bool,
 ):
     """
     Inputs:\n
@@ -56,6 +57,7 @@ def anon_func(
         key_anon=key_anon,
         stdcout=stdcout,
         performance=performance,
+        realistic=realistic,
     )
     end = time.time()
     elapsed_time = end - start

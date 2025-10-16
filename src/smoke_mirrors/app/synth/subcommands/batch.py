@@ -31,6 +31,7 @@ def synth_batch_func(schema_model, output_file_path, flags):
         batch = synth_flags.batch
     stdcout = synth_flags.stdcout
     performance = synth_flags.performance
+    realistic = synth_flags.realistic
     batch_index = 0
     aofb = +amount // batch
     totam = aofb + (amount % batch != 0)
@@ -47,6 +48,7 @@ def synth_batch_func(schema_model, output_file_path, flags):
             start_index=batch_index,
             seed=seed,
             performance=performance,
+            realistic=realistic,
         )
         batch_index += batch
     if amount - batch_index != 0:
@@ -62,6 +64,7 @@ def synth_batch_func(schema_model, output_file_path, flags):
             start_index=batch_index,
             seed=seed,
             performance=performance,
+            realistic=realistic,
         )
 
     close_folder(output_file_path)
@@ -80,6 +83,9 @@ def synth_batch_command(
     stdcout: Annotated[Optional[bool], typer.Option("--stdcout/--no-stdcout")] = None,
     performance: Annotated[
         Optional[bool], typer.Option("--performance/--no-performance")
+    ] = None,
+    realistic: Annotated[
+        Optional[bool], typer.Option("--realistic/--no-realistic")
     ] = None,
 ):
     """

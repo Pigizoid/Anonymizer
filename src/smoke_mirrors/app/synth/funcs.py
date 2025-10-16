@@ -17,6 +17,7 @@ def synth_func(
     start_index: int = 0,
     seed: Union[int, str, None] = "random",
     performance: bool = False,
+    realistic: bool = True,
 ):
     """
     Inputs:\n
@@ -33,7 +34,9 @@ def synth_func(
         data to the output file and optionally prints output to the screen
     """
     start_time = time.time()
-    synth = JsonSynthesiser(method=method, stdcout=stdcout, rich_output=True)
+    synth = JsonSynthesiser(
+        method=method, stdcout=stdcout, rich_output=True, realistic=realistic
+    )
     dataset = synth.synthesise(
         schema_model, method, amount, seed, performance=performance
     )  # returns as [ data, data, ... ]
