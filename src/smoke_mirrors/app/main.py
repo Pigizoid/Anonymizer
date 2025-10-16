@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Annotated
 from pathlib import Path
 from smoke_mirrors.app.synth.main import synth_app
 from smoke_mirrors.app.anon.main import anon_app
@@ -10,6 +10,10 @@ from collections.abc import Mapping
 import typer
 import yaml
 import os
+import sys
+import atexit
+import traceback
+from rich import print as richprint
 
 app = typer.Typer()
 
@@ -81,6 +85,7 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
         defaults = {
             "schema_path": None,
             "schema_type": None,
+            "dev": False,
             "synth": synth_defaults,
             "anon": anon_defaults,
         }
@@ -155,6 +160,29 @@ def make_settings_class(config_path: Optional[Path]) -> BaseSettings:
     return Settings
 
 
+class DevNull:
+    def __init__(self):
+        self.last_exception = None
+        self.print = richprint
+
+    def custom_excepthook(self, exc_type, exc_value, exc_traceback):
+        self.last_exception = (exc_type, exc_value, exc_traceback)
+
+    def report_exit(self):
+        if self.last_exception is not None:
+            exc_type, exc_value, exc_tb = self.last_exception
+            tb_summary = traceback.extract_tb(exc_tb)
+            last_frame = tb_summary[-1]
+            self.print("\n[red]ERROR[white]: ", end="")
+            self.print(f"{exc_value}")
+            self.print("[red]LOCATION[white]: ", end="")
+            self.print(
+                f"{last_frame.filename}, line {last_frame.lineno}, in {last_frame.name}"
+            )
+            self.print("[red]CODE[white]: ", end="")
+            self.print(f"{last_frame.line}")
+
+
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
@@ -162,6 +190,7 @@ def main(
     schema_path: Optional[Path] = typer.Option(None),
     schema_type: Optional[str] = typer.Option(None),
     seed: Optional[str] = typer.Option(False),
+    dev: Annotated[Optional[bool], typer.Option("--dev/--no-dev")] = None,
 ):
     """
     the main command run at top level (used for allowing callback methods) -> loading a config arg at top level
@@ -171,6 +200,10 @@ def main(
         sm --config config.yaml synth single
         sm --config config.yaml synth batch
     """
+    if not dev:
+        DN = DevNull()
+        sys.excepthook = DN.custom_excepthook
+        atexit.register(DN.report_exit)
     if config is not None:
         config_path = windows_path_to_pathlib(config)
         if not os.path.exists(config_path):
@@ -190,6 +223,7 @@ def main(
         "schema_path": schema_path,
         "schema_type": schema_type,
         "seed": seed,
+        "dev": dev,
     }
     # fix settings to allow for schema type of either py or json and then make a new json_sytnehsiser
     # additionally check if loading json breaks anything before passing to the synth_func

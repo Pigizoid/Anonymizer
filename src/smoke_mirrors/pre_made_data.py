@@ -3,7 +3,6 @@ from typing import List, Dict, Tuple, Set, Union, Literal, Optional
 from decimal import Decimal
 
 
-
 provider_return_types = {
     "aba": int,
     "academic_degree": str,

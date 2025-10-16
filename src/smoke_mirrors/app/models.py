@@ -34,5 +34,6 @@ class Settings(BaseSettings):
     schema_path: typing.Optional[Path]
     schema_type: typing.Optional[str]
     seed: typing.Union[int, str, bool, None] = False
+    dev: typing.Optional[bool] = False
     synth: typing.Optional[SynthesiserConfig]
     anon: typing.Optional[AnonymiserConfig]
