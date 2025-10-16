@@ -449,6 +449,7 @@ def load_file_path(output):
     else:
         return None
 
+
 def load_output_path_flag(file_path):
     pathobj = Path(file_path)
     if len(pathobj.parts) > 1:
