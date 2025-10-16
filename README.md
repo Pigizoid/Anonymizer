@@ -56,11 +56,13 @@ Open selected directory in the terminal
 
 Example folder structure
 
+```
 |folder
 |  \
 |  |models
 |  |data
 |  |config
+```
 
 ```
 Usage: sm [OPTIONS] COMMAND [ARGS]
